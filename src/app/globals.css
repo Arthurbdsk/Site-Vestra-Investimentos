@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+:root {
+  /* Base clara */
+  --color-paper: #ffffff;
+  --color-paper-alt: #f5f6f7;
+
+  /* Azul da identidade, agora como bloco de destaque */
+  --color-blue: #0f2d44;
+  --color-blue-deep: #0a2133;
+
+  --color-gold: #f5a623;
+  --color-gold-soft: #f5c56a;
+
+  /* Texto sobre branco */
+  --color-ink: #0f2d44;
+  --color-ink-muted: #5c666f;
+
+  /* Texto sobre azul */
+  --color-onblue: #f5f6f7;
+  --color-onblue-muted: #a9b4bf;
+
+  /* Réguas: uma para fundo claro, outra para fundo azul */
+  --rule: rgba(15, 45, 68, 0.14);
+  --rule-inv: rgba(245, 246, 247, 0.16);
+}
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-paper-alt: var(--color-paper-alt);
+  --color-blue: var(--color-blue);
+  --color-blue-deep: var(--color-blue-deep);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-onblue: var(--color-onblue);
+  --color-onblue-muted: var(--color-onblue-muted);
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-manrope);
+  --font-mono: var(--font-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body), sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-blue);
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4ccd3;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Textura de papel impresso */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Colunas de jornal ao fundo */
+.ruled {
+  background-image: linear-gradient(to right, var(--rule) 1px, transparent 1px);
+  background-size: 25% 100%;
+}
+
+.ruled-inv {
+  background-image: linear-gradient(to right, var(--rule-inv) 1px, transparent 1px);
+  background-size: 25% 100%;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 42s linear infinite;
+}
+
+.animate-marquee-slow {
+  animation: marquee 70s linear infinite;
+}
+
+.marquee-pause:hover .animate-marquee,
+.marquee-pause:hover .animate-marquee-slow {
+  animation-play-state: paused;
+}
+
+@keyframes blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+
+.animate-blink {
+  animation: blink 2.4s steps(1) infinite;
+}
+
+@keyframes flash-up {
+  0% { background-color: rgba(74, 222, 128, 0); }
+  25% { background-color: rgba(74, 222, 128, 0.18); }
+  100% { background-color: rgba(74, 222, 128, 0); }
+}
+
+@keyframes flash-down {
+  0% { background-color: rgba(251, 113, 133, 0); }
+  25% { background-color: rgba(251, 113, 133, 0.18); }
+  100% { background-color: rgba(251, 113, 133, 0); }
+}
+
+.flash-up { animation: flash-up 0.9s ease-out; }
+.flash-down { animation: flash-down 0.9s ease-out; }
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
