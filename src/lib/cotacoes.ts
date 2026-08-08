@@ -86,9 +86,17 @@ export async function buscarCotacoes(): Promise<ResultadoCotacoes> {
   return { ok: true, cotacoes, doCache: false };
 }
 
-/** Preco atual de um unico ticker, direto da fonte. Usado nas ordens. */
-export async function precoAtual(ticker: string): Promise<number | null> {
-  const r = await buscarCotacoes();
-  if (!r.ok) return null;
-  return r.cotacoes.find((c) => c.ticker === ticker)?.preco ?? null;
+/**
+ * Preco de qualquer ticker da B3, mesmo fora da lista curada. Usado nas
+ * ordens de compra/venda, ja que o simulador agora aceita a bolsa inteira:
+ * a validade do ticker e definida por essa busca dar certo ou nao.
+ */
+export async function precoAtualQualquerTicker(
+  ticker: string,
+): Promise<number | null> {
+  const token = process.env.BRAPI_TOKEN;
+  if (!token || token.startsWith("cole_aqui")) return null;
+
+  const c = await buscarUm(ticker.trim().toUpperCase(), token);
+  return c?.preco ?? null;
 }

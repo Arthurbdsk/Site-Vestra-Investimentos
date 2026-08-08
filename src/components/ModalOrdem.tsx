@@ -14,6 +14,8 @@ export type OrdemAberta = {
   tipo: "comprar" | "vender";
   /** Saldo em caixa (compra) ou cotas em carteira (venda). */
   limite: number;
+  /** Nome da empresa, pra ações fora da lista curada (que não têm explica). */
+  nome?: string;
 };
 
 type Estado =
@@ -126,7 +128,7 @@ export function ModalOrdem({
               <h2 className="mt-1 font-display text-3xl text-ink">
                 {ordem.ticker}
               </h2>
-              <p className="text-sm text-ink-muted">{info?.nome}</p>
+              <p className="text-sm text-ink-muted">{info?.nome ?? ordem.nome}</p>
 
               {info && comprando && (
                 <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">

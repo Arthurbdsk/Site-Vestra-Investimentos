@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { CountUp } from "./CountUp";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
+import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
 
@@ -195,12 +196,25 @@ export function PainelSimulador({
                 <Carteira
                   posicoes={posicoes}
                   precoDe={precoDe}
-                  aoVender={(p) => {
-                    const c = precoDe(p.ticker);
-                    if (c)
+                  aoVender={async (p) => {
+                    // precoDe so cobre a lista curada; ações compradas via
+                    // busca na B3 inteira precisam de uma cotação avulsa.
+                    const cache = precoDe(p.ticker);
+                    const preco =
+                      cache?.preco ??
+                      (await fetch(`/api/acoes?q=${encodeURIComponent(p.ticker)}`)
+                        .then((r) => r.json())
+                        .then(
+                          (json) =>
+                            json.acoes?.find((a: AcaoB3) => a.ticker === p.ticker)
+                              ?.preco ?? null,
+                        )
+                        .catch(() => null));
+
+                    if (preco != null)
                       setOrdem({
                         ticker: p.ticker,
-                        preco: c.preco,
+                        preco,
                         tipo: "vender",
                         limite: p.quantidade,
                       });
@@ -211,16 +225,14 @@ export function PainelSimulador({
 
               {aba === "explorar" && (
                 <Explorar
-                  precoDe={precoDe}
-                  aoComprar={(ticker) => {
-                    const c = precoDe(ticker);
-                    if (c)
-                      setOrdem({
-                        ticker,
-                        preco: c.preco,
-                        tipo: "comprar",
-                        limite: saldo,
-                      });
+                  aoComprar={(ticker, preco, nome) => {
+                    setOrdem({
+                      ticker,
+                      preco,
+                      tipo: "comprar",
+                      limite: saldo,
+                      nome,
+                    });
                   }}
                 />
               )}
@@ -358,16 +370,48 @@ function Carteira({
 /* ------------------------------------------------------------------ */
 
 function Explorar({
-  precoDe,
   aoComprar,
 }: {
-  precoDe: (t: string) => Cotacao | null;
-  aoComprar: (ticker: string) => void;
+  aoComprar: (ticker: string, preco: number, nome?: string) => void;
 }) {
   const [busca, setBusca] = useState("");
+  const [buscaAtrasada, setBuscaAtrasada] = useState("");
+  const [b3, setB3] = useState<AcaoB3[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erroB3, setErroB3] = useState<string | null>(null);
 
-  const lista = ACOES.filter((a) => {
-    const t = busca.trim().toLowerCase();
+  useEffect(() => {
+    const id = setTimeout(() => setBuscaAtrasada(busca.trim()), 350);
+    return () => clearTimeout(id);
+  }, [busca]);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarregando(true);
+    fetch(`/api/acoes?q=${encodeURIComponent(buscaAtrasada)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelado) return;
+        if (json.acoes) {
+          setB3(json.acoes);
+          setErroB3(null);
+        } else {
+          setErroB3(json.mensagem ?? "Não foi possível buscar as ações agora.");
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setErroB3("Não foi possível buscar as ações agora.");
+      })
+      .finally(() => {
+        if (!cancelado) setCarregando(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [buscaAtrasada]);
+
+  const t = busca.trim().toLowerCase();
+  const populares = ACOES.filter((a) => {
     if (!t) return true;
     return (
       a.ticker.toLowerCase().includes(t) ||
@@ -375,15 +419,18 @@ function Explorar({
       a.setor.toLowerCase().includes(t)
     );
   });
+  const populareTickers = new Set(populares.map((a) => a.ticker));
+  const restoB3 = b3.filter((a) => !populareTickers.has(a.ticker));
 
   return (
     <div>
       <h2 className="font-display text-2xl text-ink">
-        Escolha uma empresa que você conhece
+        Escolha uma ação da B3
       </h2>
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Selecionamos poucas empresas de propósito, todas conhecidas. Cada uma
-        tem uma explicação simples do que ela faz.
+        Destacamos algumas empresas conhecidas com explicação em português,
+        mas a bolsa é sua: busque qualquer código ou nome pra comprar
+        qualquer ação da B3.
       </p>
 
       <input
@@ -393,72 +440,191 @@ function Explorar({
         className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
       />
 
-      <ul className="mt-6 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-        {lista.map((a, i) => {
-          const c = precoDe(a.ticker);
-          return (
-            <motion.li
+      {populares.length > 0 && (
+        <>
+          <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            Populares
+          </p>
+          <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+            {populares.map((a, i) => (
+              <CartaoAcaoPopular
+                key={a.ticker}
+                acao={a}
+                delay={Math.min(i * 0.04, 0.4)}
+                aoComprar={aoComprar}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+
+      <div className="mt-10 flex items-center gap-3">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+          {t ? "Resultados na B3" : "Mais ações da B3"}
+        </p>
+        {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
+      </div>
+
+      {erroB3 && (
+        <p className="mt-4 text-sm text-ink-muted">{erroB3}</p>
+      )}
+
+      {!erroB3 && (
+        <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+          {restoB3.map((a, i) => (
+            <CartaoAcaoB3
               key={a.ticker}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i * 0.04, 0.4) }}
-              className="bg-paper p-5"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-mono text-sm font-semibold text-ink">
-                    {a.ticker}
-                  </p>
-                  <p className="text-sm text-ink">{a.nome}</p>
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-                    {a.setor}
-                  </p>
-                </div>
+              acao={a}
+              delay={Math.min(i * 0.04, 0.4)}
+              aoComprar={aoComprar}
+            />
+          ))}
+        </ul>
+      )}
 
-                <div className="text-right">
-                  {c ? (
-                    <>
-                      <p className="font-mono text-lg tabular text-ink">
-                        {brl(c.preco)}
-                      </p>
-                      <p
-                        className={`font-mono text-xs tabular ${
-                          c.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
-                        }`}
-                      >
-                        {c.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(c.variacao))}%
-                      </p>
-                    </>
-                  ) : (
-                    <p className="font-mono text-xs text-ink-muted">
-                      preço indisponível
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-                {a.explica}
-              </p>
-
-              <button
-                onClick={() => aoComprar(a.ticker)}
-                disabled={!c}
-                className="mt-4 w-full bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
-              >
-                {c ? "Comprar" : "Indisponível agora"}
-              </button>
-            </motion.li>
-          );
-        })}
-      </ul>
-
-      {lista.length === 0 && (
+      {!carregando && !erroB3 && populares.length === 0 && restoB3.length === 0 && (
         <p className="mt-8 text-ink-muted">
-          Nenhuma empresa encontrada com esse termo.
+          Nenhuma ação encontrada com esse termo.
         </p>
       )}
     </div>
+  );
+}
+
+function CartaoAcaoPopular({
+  acao,
+  delay,
+  aoComprar,
+}: {
+  acao: (typeof ACOES)[number];
+  delay: number;
+  aoComprar: (ticker: string, preco: number, nome?: string) => void;
+}) {
+  const [dados, setDados] = useState<{ preco: number; variacao: number } | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    fetch(`/api/acoes?q=${encodeURIComponent(acao.ticker)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelado || !json.acoes) return;
+        const encontrada = json.acoes.find(
+          (a: AcaoB3) => a.ticker === acao.ticker,
+        );
+        if (encontrada?.preco != null) {
+          setDados({ preco: encontrada.preco, variacao: encontrada.variacao ?? 0 });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [acao.ticker]);
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="bg-paper p-5"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-sm font-semibold text-ink">{acao.ticker}</p>
+          <p className="text-sm text-ink">{acao.nome}</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+            {acao.setor}
+          </p>
+        </div>
+
+        <div className="text-right">
+          {dados ? (
+            <>
+              <p className="font-mono text-lg tabular text-ink">{brl(dados.preco)}</p>
+              <p
+                className={`font-mono text-xs tabular ${
+                  dados.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
+                }`}
+              >
+                {dados.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dados.variacao))}%
+              </p>
+            </>
+          ) : (
+            <p className="font-mono text-xs text-ink-muted">carregando…</p>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-3 text-sm leading-relaxed text-ink-muted">{acao.explica}</p>
+
+      <button
+        onClick={() => dados && aoComprar(acao.ticker, dados.preco, acao.nome)}
+        disabled={!dados}
+        className="mt-4 w-full bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
+      >
+        {dados ? "Comprar" : "Indisponível agora"}
+      </button>
+    </motion.li>
+  );
+}
+
+function CartaoAcaoB3({
+  acao,
+  delay,
+  aoComprar,
+}: {
+  acao: AcaoB3;
+  delay: number;
+  aoComprar: (ticker: string, preco: number, nome?: string) => void;
+}) {
+  const disponivel = acao.preco != null;
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="bg-paper p-5"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-sm font-semibold text-ink">{acao.ticker}</p>
+          <p className="text-sm text-ink">{acao.nome}</p>
+          {acao.setor && (
+            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+              {acao.setor}
+            </p>
+          )}
+        </div>
+
+        <div className="text-right">
+          {disponivel ? (
+            <>
+              <p className="font-mono text-lg tabular text-ink">{brl(acao.preco!)}</p>
+              {acao.variacao != null && (
+                <p
+                  className={`font-mono text-xs tabular ${
+                    acao.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {acao.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(acao.variacao))}%
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="font-mono text-xs text-ink-muted">preço indisponível</p>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={() => disponivel && aoComprar(acao.ticker, acao.preco!, acao.nome)}
+        disabled={!disponivel}
+        className="mt-4 w-full border border-blue px-5 py-2.5 text-sm font-semibold text-blue transition-colors hover:bg-blue hover:text-onblue disabled:opacity-40"
+      >
+        {disponivel ? "Comprar" : "Indisponível agora"}
+      </button>
+    </motion.li>
   );
 }
 

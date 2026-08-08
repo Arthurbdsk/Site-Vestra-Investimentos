@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { MagneticButton } from "./MagneticButton";
 import { TickerTape } from "./TickerTape";
@@ -8,6 +9,14 @@ import { TickerTape } from "./TickerTape";
 export function CTASection() {
   return (
     <section className="grain relative overflow-hidden bg-blue">
+      <Image
+        src="/images/cta-skyline.jpg"
+        alt=""
+        fill
+        aria-hidden="true"
+        className="object-cover opacity-40 grayscale"
+      />
+      <div className="absolute inset-0 bg-blue/85" aria-hidden="true" />
       <TickerTape speed="slow" />
       <div className="ruled-inv absolute inset-0 opacity-50" aria-hidden="true" />
 

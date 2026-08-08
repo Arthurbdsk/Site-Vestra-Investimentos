@@ -4,6 +4,7 @@ import { Hero } from "@/components/Hero";
 import { WhySection } from "@/components/WhySection";
 import { SimulatorPreview } from "@/components/SimulatorPreview";
 import { HowItWorks } from "@/components/HowItWorks";
+import { Depoimento } from "@/components/Depoimento";
 import { CTASection } from "@/components/CTASection";
 import { usuarioAtual } from "@/lib/supabase/server";
 
@@ -18,6 +19,7 @@ export default async function Home() {
         <WhySection />
         <SimulatorPreview />
         <HowItWorks />
+        <Depoimento />
         <CTASection />
       </main>
       <Footer />

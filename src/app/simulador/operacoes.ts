@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { precoAtual } from "@/lib/cotacoes";
-import { acaoPorTicker } from "@/lib/acoes";
+import { precoAtualQualquerTicker } from "@/lib/cotacoes";
 import { brl } from "@/lib/formato";
 
 export type Resultado =
@@ -24,20 +23,17 @@ async function executar(
     return { ok: false, mensagem: "Sua sessão expirou. Entre de novo pra continuar." };
   }
 
-  if (!acaoPorTicker(ticker)) {
-    return { ok: false, mensagem: "Essa ação não está disponível no simulador." };
-  }
-
   if (!Number.isInteger(quantidade) || quantidade <= 0) {
     return { ok: false, mensagem: "Escolha uma quantidade de pelo menos 1 cota." };
   }
 
   // O preco vem da fonte, no servidor. O navegador nunca decide o valor.
-  const preco = await precoAtual(ticker);
+  // Um ticker invalido tambem cai aqui, ja que a busca simplesmente falha.
+  const preco = await precoAtualQualquerTicker(ticker);
   if (preco === null) {
     return {
       ok: false,
-      mensagem: "Não consegui confirmar o preço agora. Tente de novo em instantes.",
+      mensagem: "Não consegui confirmar o preço dessa ação agora. Tente de novo em instantes.",
     };
   }
 
