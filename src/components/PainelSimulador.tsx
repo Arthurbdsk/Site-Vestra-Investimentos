@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
+import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { CountUp } from "./CountUp";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
@@ -27,7 +28,7 @@ export type Transacao = {
   criado_em: string;
 };
 
-type Aba = "carteira" | "explorar" | "historico";
+type Aba = "carteira" | "explorar" | "e-se" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -69,6 +70,7 @@ export function PainelSimulador({
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
+    { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
 
@@ -235,6 +237,8 @@ export function PainelSimulador({
                   }}
                 />
               )}
+
+              {aba === "e-se" && <SeTivesseInvestido />}
 
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>

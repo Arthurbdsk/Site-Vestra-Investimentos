@@ -19,6 +19,14 @@ export function pct(valor: number): string {
   return `${sinal}${numero(valor, 2)}%`;
 }
 
+export function data(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export function dataHora(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", {
     day: "2-digit",
