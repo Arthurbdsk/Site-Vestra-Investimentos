@@ -4,7 +4,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import { ACOES } from "@/lib/acoes";
-import { PERIODOS, type Periodo } from "@/lib/historico";
+import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
+import { GraficoPreco } from "./GraficoPreco";
 import { brl, numero, pct, data as fmtData } from "@/lib/formato";
 
 type Estado =
@@ -19,6 +20,7 @@ type Estado =
       dataAntiga: string;
       precoAtual: number;
       dataAtual: string;
+      serie: PontoSerie[];
     };
 
 export function SeTivesseInvestido() {
@@ -52,6 +54,7 @@ export function SeTivesseInvestido() {
         dataAntiga: json.dataAntiga,
         precoAtual: json.precoAtual,
         dataAtual: json.dataAtual,
+        serie: json.serie ?? [],
       });
     } catch {
       setEstado({
@@ -201,6 +204,12 @@ export function SeTivesseInvestido() {
             {resultado.ganho >= 0 ? "+" : ""}
             {brl(resultado.ganho)} ({pct(resultado.ganhoPct)})
           </p>
+
+          {estado.serie.length > 1 && (
+            <div className="mt-6 border-t border-[var(--rule)] pt-6">
+              <GraficoPreco serie={estado.serie} />
+            </div>
+          )}
 
           <p className="mt-4 font-mono text-[11px] text-ink-muted">
             Simulação com preços históricos reais. Não considera dividendos,

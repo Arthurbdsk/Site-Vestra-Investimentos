@@ -9,6 +9,8 @@ export const PERIODOS: { valor: Periodo; label: string }[] = [
   { valor: "5y", label: "5 anos" },
 ];
 
+export type PontoSerie = { data: string; preco: number };
+
 export type ResultadoHistorico =
   | {
       ok: true;
@@ -18,6 +20,7 @@ export type ResultadoHistorico =
       dataAntiga: string;
       precoAtual: number;
       dataAtual: string;
+      serie: PontoSerie[];
     }
   | { ok: false; motivo: "config" | "erro"; mensagem: string };
 
@@ -78,6 +81,13 @@ export async function buscarHistorico(
       };
     }
 
+    const pontosValidos: PontoSerie[] = serie
+      .map((p: Record<string, unknown>) => ({
+        data: new Date(Number(p.date) * 1000).toISOString(),
+        preco: Number(p.close),
+      }))
+      .filter((p) => Number.isFinite(p.preco));
+
     return {
       ok: true,
       ticker: String(r.symbol ?? t),
@@ -86,6 +96,7 @@ export async function buscarHistorico(
       dataAntiga: new Date(Number(primeiro.date) * 1000).toISOString(),
       precoAtual,
       dataAtual: new Date(Number(ultimo.date) * 1000).toISOString(),
+      serie: pontosValidos,
     };
   } catch {
     return {

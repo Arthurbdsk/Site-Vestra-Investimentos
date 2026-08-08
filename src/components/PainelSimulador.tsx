@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
+import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
@@ -319,6 +320,8 @@ function Carteira({
                   <p className="text-xs text-ink-muted">{info?.nome}</p>
                 </div>
 
+                <MiniGraficoAcao ticker={p.ticker} />
+
                 <div className="text-right">
                   <p className="font-mono text-xs text-ink-muted">quantas</p>
                   <p className="font-mono text-sm tabular text-ink">
@@ -558,6 +561,10 @@ function CartaoAcaoPopular({
         </div>
       </div>
 
+      <div className="mt-3 flex justify-end">
+        <MiniGraficoAcao ticker={acao.ticker} />
+      </div>
+
       <p className="mt-3 text-sm leading-relaxed text-ink-muted">{acao.explica}</p>
 
       <button
@@ -618,6 +625,10 @@ function CartaoAcaoB3({
             <p className="font-mono text-xs text-ink-muted">preço indisponível</p>
           )}
         </div>
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <MiniGraficoAcao ticker={acao.ticker} />
       </div>
 
       <button
