@@ -7,7 +7,6 @@ import { Logomark } from "./Logomark";
 export function AvisoConfiguracao() {
   return (
     <main className="grain relative flex flex-1 items-center bg-paper">
-      <div className="ruled absolute inset-0 opacity-70" aria-hidden="true" />
       <div className="relative z-[2] mx-auto w-full max-w-2xl px-6 py-24">
         <Logomark size={48} />
         <h1 className="mt-7 font-display text-3xl leading-tight text-ink sm:text-4xl">

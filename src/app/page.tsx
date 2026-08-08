@@ -1,7 +1,8 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
-import { WhySection } from "@/components/WhySection";
+import { Manifesto } from "@/components/Manifesto";
+import { Valores } from "@/components/Valores";
 import { SimulatorPreview } from "@/components/SimulatorPreview";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Depoimento } from "@/components/Depoimento";
@@ -16,7 +17,8 @@ export default async function Home() {
       <Header logado={!!user} />
       <main className="flex-1">
         <Hero />
-        <WhySection />
+        <Manifesto />
+        <Valores />
         <SimulatorPreview />
         <HowItWorks />
         <Depoimento />

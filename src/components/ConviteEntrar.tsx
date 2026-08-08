@@ -10,7 +10,6 @@ import { BotaoVisitante } from "./BotaoVisitante";
 export function ConviteEntrar() {
   return (
     <main className="grain relative flex flex-1 flex-col justify-center bg-paper">
-      <div className="ruled absolute inset-0 opacity-70" aria-hidden="true" />
 
       <div className="relative z-[2] mx-auto w-full max-w-3xl px-6 py-24">
         <motion.div

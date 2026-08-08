@@ -19,8 +19,15 @@ export function Hero() {
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   return (
-    <section ref={ref} className="grain relative bg-paper">
-      <div className="ruled absolute inset-0 opacity-70" aria-hidden="true" />
+    <section ref={ref} className="grain relative overflow-hidden bg-paper">
+      <div
+        className="halo -right-32 -top-24 h-[560px] w-[560px] bg-blue/10"
+        aria-hidden="true"
+      />
+      <div
+        className="halo -left-40 top-64 h-[380px] w-[380px] bg-gold/20"
+        aria-hidden="true"
+      />
 
       <motion.div
         style={{ y, opacity: fade }}
