@@ -13,7 +13,6 @@ export default async function CadastroPage() {
     <>
       <Header />
       <main className="grain relative flex flex-1 items-center bg-paper">
-        <div className="ruled absolute inset-0 opacity-70" aria-hidden="true" />
         <div className="relative z-[2] mx-auto w-full max-w-6xl px-6 py-20">
           <FormularioAuth modo="cadastro" />
         </div>

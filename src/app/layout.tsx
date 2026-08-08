@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Manrope, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ScrollProgress } from "@/components/ScrollProgress";
+import { SmoothScroll } from "@/components/SmoothScroll";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink">
+        <SmoothScroll />
         <ScrollProgress />
         {children}
       </body>

@@ -92,7 +92,6 @@ export function PainelSimulador({
 
       {/* Resumo em azul */}
       <section className="grain relative bg-blue">
-        <div className="ruled-inv absolute inset-0 opacity-50" aria-hidden="true" />
         <div className="relative z-[2] mx-auto max-w-6xl px-6 py-12">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
             Olá, {apelido}

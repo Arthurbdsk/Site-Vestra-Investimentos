@@ -88,15 +88,27 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Colunas de jornal ao fundo */
-.ruled {
-  background-image: linear-gradient(to right, var(--rule) 1px, transparent 1px);
-  background-size: 25% 100%;
+/* Brilho suave que da profundidade sem parecer bolha de gradiente */
+.halo {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(90px);
+  pointer-events: none;
+  opacity: 0.5;
 }
 
-.ruled-inv {
-  background-image: linear-gradient(to right, var(--rule-inv) 1px, transparent 1px);
-  background-size: 25% 100%;
+/* Faixa dourada que cresce por baixo de um texto no hover */
+.sublinhado {
+  background-image: linear-gradient(var(--color-gold), var(--color-gold));
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 0% 0.28em;
+  transition: background-size 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sublinhado:hover,
+.grupo:hover .sublinhado {
+  background-size: 100% 0.28em;
 }
 
 @keyframes marquee {
@@ -144,6 +156,16 @@ body {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Lenis: evita "pulo" enquanto a rolagem suave assume o controle */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
 }
 
 .text-balance {

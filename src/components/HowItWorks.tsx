@@ -50,7 +50,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 flex items-center gap-4">
           <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue">
-            03
+            04
           </span>
           <span className="h-px flex-1 bg-[var(--rule)]" />
         </div>
