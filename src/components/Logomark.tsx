@@ -14,16 +14,14 @@ export function Logomark({ size = 40, className = "", withBadge = true }: Logoma
         className={className}
         aria-hidden="true"
       >
-        <path d="M28 68a32 32 0 0 1 64 0z" fill="currentColor" opacity="0.95" />
         <polyline
-          points="18,82 44,61 59,72 78,48 94,35"
+          points="26,34 58,86 94,26"
           fill="none"
           stroke="currentColor"
-          strokeWidth="7"
+          strokeWidth="14"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx="94" cy="35" r="6" fill="currentColor" />
       </svg>
     );
   }
@@ -35,20 +33,25 @@ export function Logomark({ size = 40, className = "", withBadge = true }: Logoma
       height={size}
       className={className}
       role="img"
-      aria-label="Marca do projeto"
+      aria-label="Marca Vestra"
     >
-      <circle cx="60" cy="60" r="58" fill="var(--color-blue)" />
-      <circle cx="60" cy="60" r="57" fill="none" stroke="var(--color-gold)" strokeOpacity="0.18" />
-      <path d="M28 68a32 32 0 0 1 64 0z" fill="var(--color-gold)" />
+      <rect x="2" y="2" width="116" height="116" rx="28" fill="var(--color-blue-pale, #e7f0fb)" />
       <polyline
-        points="18,82 44,61 59,72 78,48 94,35"
+        points="26,34 58,86"
         fill="none"
-        stroke="var(--color-gold)"
-        strokeWidth="7"
+        stroke="var(--color-blue)"
+        strokeWidth="14"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="94" cy="35" r="6" fill="var(--color-gold)" />
+      <polyline
+        points="58,86 94,26"
+        fill="none"
+        stroke="var(--color-gold)"
+        strokeWidth="14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
