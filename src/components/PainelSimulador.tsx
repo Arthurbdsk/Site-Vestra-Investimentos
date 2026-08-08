@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
+import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
@@ -50,6 +51,7 @@ export function PainelSimulador({
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
+  const [detalhe, setDetalhe] = useState<string | null>(null);
 
   const precoDe = useMemo(() => {
     const mapa = new Map(cotacoes.map((c) => [c.ticker, c]));
@@ -198,6 +200,7 @@ export function PainelSimulador({
                 <Carteira
                   posicoes={posicoes}
                   precoDe={precoDe}
+                  aoVerDetalhe={(ticker) => setDetalhe(ticker)}
                   aoVender={async (p) => {
                     // precoDe so cobre a lista curada; ações compradas via
                     // busca na B3 inteira precisam de uma cotação avulsa.
@@ -227,6 +230,7 @@ export function PainelSimulador({
 
               {aba === "explorar" && (
                 <Explorar
+                  aoVerDetalhe={(ticker) => setDetalhe(ticker)}
                   aoComprar={(ticker, preco, nome) => {
                     setOrdem({
                       ticker,
@@ -248,6 +252,14 @@ export function PainelSimulador({
       </main>
 
       <ModalOrdem ordem={ordem} aoFechar={() => setOrdem(null)} />
+      <ModalDetalheAcao
+        ticker={detalhe}
+        aoFechar={() => setDetalhe(null)}
+        aoComprar={(ticker, preco, nome) => {
+          setDetalhe(null);
+          setOrdem({ ticker, preco, tipo: "comprar", limite: saldo, nome });
+        }}
+      />
     </>
   );
 }
@@ -259,11 +271,13 @@ function Carteira({
   precoDe,
   aoVender,
   aoExplorar,
+  aoVerDetalhe,
 }: {
   posicoes: Posicao[];
   precoDe: (t: string) => Cotacao | null;
   aoVender: (p: Posicao) => void;
   aoExplorar: () => void;
+  aoVerDetalhe: (ticker: string) => void;
 }) {
   if (posicoes.length === 0) {
     return (
@@ -313,12 +327,15 @@ function Carteira({
               className="border-b border-[var(--rule)] py-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="min-w-[140px]">
-                  <p className="font-mono text-sm font-semibold text-ink">
+                <button
+                  onClick={() => aoVerDetalhe(p.ticker)}
+                  className="min-w-[140px] text-left"
+                >
+                  <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
                     {p.ticker}
                   </p>
                   <p className="text-xs text-ink-muted">{info?.nome}</p>
-                </div>
+                </button>
 
                 <MiniGraficoAcao ticker={p.ticker} />
 
@@ -377,8 +394,10 @@ function Carteira({
 
 function Explorar({
   aoComprar,
+  aoVerDetalhe,
 }: {
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
+  aoVerDetalhe: (ticker: string) => void;
 }) {
   const [busca, setBusca] = useState("");
   const [buscaAtrasada, setBuscaAtrasada] = useState("");
@@ -458,6 +477,7 @@ function Explorar({
                 acao={a}
                 delay={Math.min(i * 0.04, 0.4)}
                 aoComprar={aoComprar}
+                aoVerDetalhe={aoVerDetalhe}
               />
             ))}
           </ul>
@@ -483,6 +503,7 @@ function Explorar({
               acao={a}
               delay={Math.min(i * 0.04, 0.4)}
               aoComprar={aoComprar}
+              aoVerDetalhe={aoVerDetalhe}
             />
           ))}
         </ul>
@@ -501,10 +522,12 @@ function CartaoAcaoPopular({
   acao,
   delay,
   aoComprar,
+  aoVerDetalhe,
 }: {
   acao: (typeof ACOES)[number];
   delay: number;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
+  aoVerDetalhe: (ticker: string) => void;
 }) {
   const [dados, setDados] = useState<{ preco: number; variacao: number } | null>(null);
 
@@ -535,13 +558,15 @@ function CartaoAcaoPopular({
       className="bg-paper p-5"
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-sm font-semibold text-ink">{acao.ticker}</p>
+        <button onClick={() => aoVerDetalhe(acao.ticker)} className="text-left">
+          <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
+            {acao.ticker}
+          </p>
           <p className="text-sm text-ink">{acao.nome}</p>
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
             {acao.setor}
           </p>
-        </div>
+        </button>
 
         <div className="text-right">
           {dados ? (
@@ -582,10 +607,12 @@ function CartaoAcaoB3({
   acao,
   delay,
   aoComprar,
+  aoVerDetalhe,
 }: {
   acao: AcaoB3;
   delay: number;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
+  aoVerDetalhe: (ticker: string) => void;
 }) {
   const disponivel = acao.preco != null;
 
@@ -597,15 +624,17 @@ function CartaoAcaoB3({
       className="bg-paper p-5"
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-sm font-semibold text-ink">{acao.ticker}</p>
+        <button onClick={() => aoVerDetalhe(acao.ticker)} className="text-left">
+          <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
+            {acao.ticker}
+          </p>
           <p className="text-sm text-ink">{acao.nome}</p>
           {acao.setor && (
             <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
               {acao.setor}
             </p>
           )}
-        </div>
+        </button>
 
         <div className="text-right">
           {disponivel ? (
