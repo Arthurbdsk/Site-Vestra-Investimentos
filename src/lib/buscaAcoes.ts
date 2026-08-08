@@ -27,7 +27,7 @@ export async function buscarAcoesB3(termo: string): Promise<ResultadoBusca> {
 
   const params = new URLSearchParams({
     type: "stock",
-    limit: "24",
+    limit: "48",
     sortBy: "market_cap_basic",
     sortOrder: "desc",
   });
@@ -57,7 +57,13 @@ export async function buscarAcoesB3(termo: string): Promise<ResultadoBusca> {
       setor: s.sector ? String(s.sector) : null,
     }));
 
-    return { ok: true, acoes: acoes.filter((a) => a.ticker) };
+    // O mercado fracionario duplica cada ticker com um "F" no final
+    // (ex: PETR4F ao lado de PETR4); e a mesma empresa, entao filtramos.
+    const semFracionario = acoes.filter(
+      (a) => a.ticker && !a.ticker.endsWith("F"),
+    );
+
+    return { ok: true, acoes: semFracionario };
   } catch {
     return {
       ok: false,
