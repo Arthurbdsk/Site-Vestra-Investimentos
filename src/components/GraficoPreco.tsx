@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { PontoSerie } from "@/lib/historico";
-import { data as fmtData, brl } from "@/lib/formato";
+import { data as fmtData, dataHora, brl } from "@/lib/formato";
 
 const W = 640;
 const H = 220;
@@ -17,6 +17,12 @@ export function GraficoPreco({ serie }: { serie: PontoSerie[] }) {
   const range = max - min || 1;
   const subiu = precos[precos.length - 1] >= precos[0];
   const cor = subiu ? "var(--color-blue)" : "#e11d48";
+
+  // Serie intraday (varios pontos no mesmo dia) mostra hora, nao so a data.
+  const mesmoDia =
+    new Date(serie[0].data).toDateString() ===
+    new Date(serie[serie.length - 1].data).toDateString();
+  const fmt = mesmoDia ? dataHora : fmtData;
 
   const pontos = serie.map((p, i) => {
     const x = PAD + (i / (serie.length - 1)) * (W - PAD * 2);
@@ -75,11 +81,10 @@ export function GraficoPreco({ serie }: { serie: PontoSerie[] }) {
 
       <div className="mt-2 flex items-center justify-between font-mono text-[11px] text-ink-muted">
         <span>
-          {fmtData(serie[0].data)} · {brl(serie[0].preco)}
+          {fmt(serie[0].data)} · {brl(serie[0].preco)}
         </span>
         <span>
-          {fmtData(serie[serie.length - 1].data)} ·{" "}
-          {brl(serie[serie.length - 1].preco)}
+          {fmt(serie[serie.length - 1].data)} · {brl(serie[serie.length - 1].preco)}
         </span>
       </div>
     </div>

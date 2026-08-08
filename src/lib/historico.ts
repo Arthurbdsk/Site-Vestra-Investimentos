@@ -1,6 +1,7 @@
-export type Periodo = "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
+export type Periodo = "1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
 
 export const PERIODOS: { valor: Periodo; label: string }[] = [
+  { valor: "1d", label: "1 dia" },
   { valor: "1mo", label: "1 mês" },
   { valor: "3mo", label: "3 meses" },
   { valor: "6mo", label: "6 meses" },
@@ -44,10 +45,12 @@ export async function buscarHistorico(
   }
 
   const t = ticker.trim().toUpperCase();
+  // "1 dia" precisa de granularidade intraday; o resto usa fechamento diario.
+  const interval = periodo === "1d" ? "15m" : "1d";
 
   try {
     const resposta = await fetch(
-      `https://brapi.dev/api/quote/${t}?range=${periodo}&interval=1d`,
+      `https://brapi.dev/api/quote/${t}?range=${periodo}&interval=${interval}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!resposta.ok) {
