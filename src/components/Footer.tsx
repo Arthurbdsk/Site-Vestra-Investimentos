@@ -10,7 +10,7 @@ export function Footer() {
             <div className="flex items-center gap-3">
               <Logomark size={32} />
               <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
-                [nome do projeto]
+                Vestra
               </span>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-onblue-muted">

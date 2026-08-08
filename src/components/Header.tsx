@@ -42,7 +42,7 @@ export function Header({ logado = false }: { logado?: boolean }) {
             <Logomark size={36} />
           </motion.span>
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted transition-colors group-hover:text-blue">
-            [nome do projeto]
+            Vestra
           </span>
         </Link>
 

@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Educação financeira sem enrolação",
+  title: "Vestra: educação financeira sem enrolação",
   description:
     "Aprenda a investir na prática, com dinheiro fictício, em um simulador feito para o investidor brasileiro iniciante.",
 };

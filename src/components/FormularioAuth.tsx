@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 import { Logomark } from "./Logomark";
 import { BotaoVisitante } from "./BotaoVisitante";
+import { BotaoGoogle } from "./BotaoGoogle";
 
 type Modo = "cadastro" | "login";
 
@@ -122,7 +123,23 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
         {t.subtitulo}
       </p>
 
-      <form onSubmit={enviar} className="mt-9 space-y-4">
+      <Suspense fallback={null}>
+        <ErroDaUrl />
+      </Suspense>
+
+      <div className="mt-8">
+        <BotaoGoogle />
+      </div>
+
+      <div className="my-6 flex items-center gap-4">
+        <span className="h-px flex-1 bg-[var(--rule)]" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+          ou
+        </span>
+        <span className="h-px flex-1 bg-[var(--rule)]" />
+      </div>
+
+      <form onSubmit={enviar} className="space-y-4">
         <div>
           <label
             htmlFor="email"
@@ -216,6 +233,28 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
         simulador é fictício.
       </p>
     </motion.div>
+  );
+}
+
+function ErroDaUrl() {
+  const params = useSearchParams();
+  const erro = params.get("erro");
+
+  const mensagens: Record<string, string> = {
+    link_invalido:
+      "Esse link de confirmação não é mais válido, ou já foi usado. Tente criar a conta de novo, ou entre com sua senha se já confirmou antes.",
+    login_google_falhou:
+      "Não conseguimos concluir o login com o Google agora. Tente de novo, ou entre com email e senha.",
+  };
+
+  const mensagem = erro ? mensagens[erro] : undefined;
+  if (!mensagem) return null;
+
+  return (
+    <p className="mt-6 flex items-start gap-2 border-l-[3px] border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+      <AlertCircle size={15} className="mt-0.5 shrink-0" />
+      {mensagem}
+    </p>
   );
 }
 
