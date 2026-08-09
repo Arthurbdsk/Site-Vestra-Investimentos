@@ -49,17 +49,22 @@ export async function buscarTesouroDireto(): Promise<ResultadoTesouro> {
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!resposta.ok) {
+      const corpo = await resposta.text().catch(() => "");
       return {
         ok: false,
         motivo: "erro",
-        mensagem: "Não foi possível buscar os títulos do Tesouro agora.",
+        mensagem: `Não foi possível buscar os títulos do Tesouro agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
       };
     }
 
     const json = await resposta.json();
     const lista = json.results ?? json.bonds ?? json.data ?? [];
     if (!Array.isArray(lista)) {
-      return { ok: false, motivo: "erro", mensagem: "Resposta inesperada do Tesouro Direto." };
+      return {
+        ok: false,
+        motivo: "erro",
+        mensagem: `Resposta inesperada do Tesouro Direto (${JSON.stringify(json).slice(0, 300)}).`,
+      };
     }
 
     const titulos: TituloTesouro[] = lista
