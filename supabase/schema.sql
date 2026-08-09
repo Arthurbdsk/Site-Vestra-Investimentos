@@ -2,7 +2,26 @@
 -- BANCO DE DADOS DO SIMULADOR
 -- Copie TODO este arquivo e cole no "SQL Editor" do Supabase,
 -- depois clique em "Run". Pode rodar mais de uma vez sem quebrar.
+--
+-- IMPORTANTE (uma vez so, antes de rodar isto pela primeira vez):
+-- as funcoes comprar/vender abaixo verificam uma assinatura do preco
+-- pra ninguem conseguir chamar esse RPC direto (por fora do site) e
+-- forjar um preco. Isso exige um segredo guardado no Vault do Supabase,
+-- que precisa ser IGUAL ao da variavel PRECO_ASSINATURA_SECRET no
+-- .env.local / Vercel. Rode isto uma unica vez, com um valor aleatorio
+-- longo (o mesmo que voce vai colocar em PRECO_ASSINATURA_SECRET):
+--
+--   select vault.create_secret('COLE_AQUI_O_MESMO_VALOR_DO_ENV', 'preco_assinatura_secret');
+--
+-- Se precisar trocar o segredo depois:
+--
+--   select vault.update_secret(
+--     (select id from vault.secrets where name = 'preco_assinatura_secret'),
+--     'NOVO_VALOR'
+--   );
 -- ============================================================
+
+create extension if not exists pgcrypto;
 
 -- Saldo inicial ficticio de todo mundo que se cadastra
 create or replace function saldo_inicial()
@@ -95,13 +114,61 @@ create trigger ao_criar_usuario
 
 
 -- ------------------------------------------------------------
+-- Verifica a assinatura de um preco (veja o aviso do topo do arquivo).
+-- Sem isso, qualquer pessoa com uma sessao valida poderia chamar
+-- comprar/vender direto (por fora do site) e inventar o preco que
+-- quisesse. Aqui o banco recalcula a assinatura com o mesmo segredo do
+-- servidor e so aceita se bater e ainda nao tiver expirado.
+-- ------------------------------------------------------------
+create or replace function public.verificar_preco_assinado(
+  p_ticker text, p_preco_texto text, p_expira_em bigint, p_assinatura text
+) returns numeric language plpgsql security definer set search_path = public as $$
+declare
+  v_segredo text;
+  v_mensagem text;
+  v_esperada text;
+begin
+  select decrypted_secret into v_segredo
+    from vault.decrypted_secrets where name = 'preco_assinatura_secret';
+
+  if v_segredo is null then
+    raise exception 'Segredo de assinatura de preco nao configurado no Vault.';
+  end if;
+
+  if p_expira_em < (extract(epoch from now()) * 1000)::bigint then
+    raise exception 'Essa cotacao expirou. Tente de novo.';
+  end if;
+
+  v_mensagem := p_ticker || '|' || p_preco_texto || '|' || p_expira_em::text;
+  v_esperada := encode(hmac(v_mensagem, v_segredo, 'sha256'), 'hex');
+
+  if v_esperada <> p_assinatura then
+    raise exception 'Preco nao pode ser confirmado. Tente de novo.';
+  end if;
+
+  return p_preco_texto::numeric;
+end $$;
+
+
+-- Remove as versoes antigas (3 parametros, preco direto sem assinatura).
+-- Sem isso as duas ficariam coexistindo no banco — Postgres permite
+-- sobrecarga de funcao por assinatura diferente — e a brecha continuaria
+-- aberta pela versao velha.
+drop function if exists public.comprar(text, integer, numeric);
+drop function if exists public.vender(text, integer, numeric);
+
+
+-- ------------------------------------------------------------
 -- COMPRAR: tira do saldo, soma na posicao, registra a transacao.
 -- Tudo junto, ou nada. Assim o saldo nunca fica errado.
 -- ------------------------------------------------------------
-create or replace function public.comprar(p_ticker text, p_qtd integer, p_preco numeric)
+create or replace function public.comprar(
+  p_ticker text, p_qtd integer, p_preco_texto text, p_expira_em bigint, p_assinatura text
+)
 returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
+  v_preco   numeric(14,2);
   v_custo   numeric(14,2);
   v_saldo   numeric(14,2);
   v_pos     public.posicoes%rowtype;
@@ -112,11 +179,13 @@ begin
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
   end if;
-  if p_preco is null or p_preco <= 0 then
+
+  v_preco := public.verificar_preco_assinado(p_ticker, p_preco_texto, p_expira_em, p_assinatura);
+  if v_preco <= 0 then
     raise exception 'Preco invalido.';
   end if;
 
-  v_custo := round(p_qtd * p_preco, 2);
+  v_custo := round(p_qtd * v_preco, 2);
 
   select saldo into v_saldo from public.perfis where id = v_usuario for update;
   if v_saldo is null then
@@ -140,23 +209,26 @@ begin
     where id = v_pos.id;
   else
     insert into public.posicoes (usuario_id, ticker, quantidade, preco_medio)
-    values (v_usuario, p_ticker, p_qtd, p_preco);
+    values (v_usuario, p_ticker, p_qtd, v_preco);
   end if;
 
   insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
-  values (v_usuario, p_ticker, 'compra', p_qtd, p_preco, v_custo);
+  values (v_usuario, p_ticker, 'compra', p_qtd, v_preco, v_custo);
 
-  return json_build_object('ok', true, 'custo', v_custo, 'saldo', v_saldo - v_custo);
+  return json_build_object('ok', true, 'preco', v_preco, 'custo', v_custo, 'saldo', v_saldo - v_custo);
 end $$;
 
 
 -- ------------------------------------------------------------
 -- VENDER: devolve o dinheiro, baixa a posicao, registra
 -- ------------------------------------------------------------
-create or replace function public.vender(p_ticker text, p_qtd integer, p_preco numeric)
+create or replace function public.vender(
+  p_ticker text, p_qtd integer, p_preco_texto text, p_expira_em bigint, p_assinatura text
+)
 returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
+  v_preco   numeric(14,2);
   v_valor   numeric(14,2);
   v_pos     public.posicoes%rowtype;
 begin
@@ -166,7 +238,9 @@ begin
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
   end if;
-  if p_preco is null or p_preco <= 0 then
+
+  v_preco := public.verificar_preco_assinado(p_ticker, p_preco_texto, p_expira_em, p_assinatura);
+  if v_preco <= 0 then
     raise exception 'Preco invalido.';
   end if;
 
@@ -180,7 +254,7 @@ begin
     raise exception 'Voce tem apenas % cotas de %.', v_pos.quantidade, p_ticker;
   end if;
 
-  v_valor := round(p_qtd * p_preco, 2);
+  v_valor := round(p_qtd * v_preco, 2);
 
   if v_pos.quantidade = p_qtd then
     delete from public.posicoes where id = v_pos.id;
@@ -193,7 +267,7 @@ begin
   update public.perfis set saldo = saldo + v_valor where id = v_usuario;
 
   insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
-  values (v_usuario, p_ticker, 'venda', p_qtd, p_preco, v_valor);
+  values (v_usuario, p_ticker, 'venda', p_qtd, v_preco, v_valor);
 
   return json_build_object('ok', true, 'valor', v_valor);
 end $$;
