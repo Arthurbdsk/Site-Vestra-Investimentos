@@ -105,13 +105,33 @@ async function processarDividendos(
 
   if (!posicoes || posicoes.length === 0) return;
 
+  // So credita dividendos pagos depois da primeira compra de cada ativo —
+  // senao, ao comprar uma acao que ja pagou dividendo varias vezes na
+  // vida real, a pessoa recebe anos de pagamentos "atrasados" de uma vez.
+  const { data: primeirasCompras } = await supabase
+    .from("transacoes")
+    .select("ticker, criado_em")
+    .eq("usuario_id", usuarioId)
+    .eq("tipo", "compra")
+    .order("criado_em", { ascending: true });
+
+  const dataDaPrimeiraCompra = new Map<string, string>();
+  for (const t of primeirasCompras ?? []) {
+    if (!dataDaPrimeiraCompra.has(t.ticker)) {
+      dataDaPrimeiraCompra.set(t.ticker, t.criado_em.slice(0, 10));
+    }
+  }
+
   const hoje = new Date().toISOString().slice(0, 10);
 
   for (const pos of posicoes as { ticker: string; quantidade: number }[]) {
+    const desde = dataDaPrimeiraCompra.get(pos.ticker);
+    if (!desde) continue;
+
     const dividendos = await buscarDividendos(pos.ticker);
     for (const d of dividendos) {
       const dataPagamento = d.dataPagamento.slice(0, 10);
-      if (dataPagamento > hoje) continue;
+      if (dataPagamento > hoje || dataPagamento < desde) continue;
 
       await supabase.rpc("creditar_dividendo", {
         p_ticker: pos.ticker,
