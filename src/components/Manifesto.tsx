@@ -43,11 +43,6 @@ export function Manifesto() {
 
   return (
     <section className="grain relative overflow-hidden bg-paper py-24 md:py-36">
-      <div
-        className="halo -left-40 top-10 h-[420px] w-[420px] bg-gold/20"
-        aria-hidden="true"
-      />
-
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
         <Surge>
           <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue">

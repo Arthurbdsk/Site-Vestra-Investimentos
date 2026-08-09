@@ -19,11 +19,6 @@ export function CTASection() {
       <div className="absolute inset-0 bg-blue/85" aria-hidden="true" />
       <TickerTape speed="slow" />
 
-      <div
-        className="halo left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 bg-gold/25"
-        aria-hidden="true"
-      />
-
       <div className="relative z-[2] mx-auto max-w-6xl px-6 py-24 md:py-32">
         <div className="grid gap-10 md:grid-cols-[1.3fr_0.7fr] md:items-end">
           <div>
