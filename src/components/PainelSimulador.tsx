@@ -10,6 +10,7 @@ import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
 import { RendaFixaPainel, type PosicaoRendaFixa } from "./RendaFixaPainel";
+import { StatusMercado } from "./StatusMercado";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
@@ -126,9 +127,12 @@ export function PainelSimulador({
       {/* Resumo em azul */}
       <section className="grain relative bg-blue">
         <div className="relative z-[2] mx-auto max-w-6xl px-6 py-12">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
-            Olá, {apelido}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
+              Olá, {apelido}
+            </p>
+            <StatusMercado />
+          </div>
 
           <div className="mt-6 grid gap-8 sm:grid-cols-3">
             <div>

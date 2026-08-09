@@ -2,9 +2,23 @@
 
 import { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Newspaper, Calculator, ChevronDown, UserCheck } from "lucide-react";
+import {
+  BookOpen,
+  Newspaper,
+  Calculator,
+  UserCheck,
+  ArrowLeft,
+  Compass,
+  Scale,
+  Layers,
+  Percent,
+  AlertTriangle,
+  LineChart,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
 import { GLOSSARIO } from "@/lib/glossario";
-import { ARTIGOS } from "@/lib/artigos";
+import { ARTIGOS, type Artigo } from "@/lib/artigos";
 import { caminhoSuave } from "@/lib/svgPath";
 import { brl } from "@/lib/formato";
 import { QuizPerfil } from "./QuizPerfil";
@@ -127,8 +141,49 @@ function Dicionario() {
 
 /* ------------------------------------------------------------------ */
 
+const ESTILO_ARTIGO: { icone: LucideIcon; fundo: string }[] = [
+  { icone: Compass, fundo: "bg-blue" },
+  { icone: Scale, fundo: "bg-gold" },
+  { icone: Layers, fundo: "bg-blue" },
+  { icone: Percent, fundo: "bg-gold" },
+  { icone: AlertTriangle, fundo: "bg-blue" },
+  { icone: LineChart, fundo: "bg-gold" },
+];
+
+function tempoLeitura(artigo: Artigo): number {
+  const palavras = artigo.corpo.join(" ").split(/\s+/).length;
+  return Math.max(1, Math.round(palavras / 200));
+}
+
 function Artigos() {
   const [aberto, setAberto] = useState<string | null>(null);
+  const artigo = ARTIGOS.find((a) => a.slug === aberto);
+
+  if (artigo) {
+    return (
+      <div>
+        <button
+          onClick={() => setAberto(null)}
+          className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-blue transition-colors hover:text-gold"
+        >
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+          Voltar pros artigos
+        </button>
+
+        <h2 className="mt-6 font-display text-3xl text-ink">{artigo.titulo}</h2>
+        <p className="mt-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+          <Clock size={12} />
+          {tempoLeitura(artigo)} min de leitura
+        </p>
+
+        <div className="mt-6 space-y-4 text-base leading-relaxed text-ink-muted">
+          {artigo.corpo.map((par, i) => (
+            <p key={i}>{par}</p>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -137,38 +192,36 @@ function Artigos() {
         Textos curtos pra entender o essencial, sem enrolação.
       </p>
 
-      <ul className="mt-6 border-t border-[var(--rule)]">
-        {ARTIGOS.map((a) => {
-          const expandido = aberto === a.slug;
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {ARTIGOS.map((a, i) => {
+          const estilo = ESTILO_ARTIGO[i % ESTILO_ARTIGO.length];
+          const Icone = estilo.icone;
           return (
-            <li key={a.slug} className="border-b border-[var(--rule)]">
-              <button
-                onClick={() => setAberto(expandido ? null : a.slug)}
-                className="flex w-full items-center justify-between gap-4 py-5 text-left"
-              >
-                <div>
-                  <p className="font-display text-lg text-ink">{a.titulo}</p>
-                  <p className="mt-1 text-sm text-ink-muted">{a.resumo}</p>
-                </div>
-                <ChevronDown
-                  size={18}
-                  className={`shrink-0 text-ink-muted transition-transform ${expandido ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              <div className="grid transition-all duration-300" style={{ gridTemplateRows: expandido ? "1fr" : "0fr" }}>
-                <div className="overflow-hidden">
-                  <div className="space-y-3 pb-6 pr-8 text-sm leading-relaxed text-ink-muted">
-                    {a.corpo.map((par, i) => (
-                      <p key={i}>{par}</p>
-                    ))}
-                  </div>
-                </div>
+            <motion.button
+              key={a.slug}
+              onClick={() => setAberto(a.slug)}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.05, 0.4) }}
+              className="group flex flex-col overflow-hidden border border-[var(--rule)] bg-paper text-left transition-colors hover:border-blue"
+            >
+              <div className={`flex h-28 items-center justify-center ${estilo.fundo}`}>
+                <Icone size={36} className={estilo.fundo === "bg-gold" ? "text-blue" : "text-gold"} />
               </div>
-            </li>
+              <div className="p-5">
+                <p className="font-display text-lg leading-snug text-ink group-hover:text-blue">
+                  {a.titulo}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{a.resumo}</p>
+                <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                  <Clock size={12} />
+                  {tempoLeitura(a)} min de leitura
+                </p>
+              </div>
+            </motion.button>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
