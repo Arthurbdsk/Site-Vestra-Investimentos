@@ -155,6 +155,33 @@ create trigger ao_criar_usuario
 
 
 -- ------------------------------------------------------------
+-- GARANTIR PERFIL: cria o perfil se por algum motivo o gatilho acima
+-- nao rodou (ex: login social/OAuth em alguns fluxos nao dispara
+-- "after insert" do mesmo jeito). Chamada toda vez que a pagina do
+-- simulador carrega, antes de ler o saldo — assim ninguem fica preso
+-- vendo R$ 0,00 por causa de um perfil que nunca foi criado.
+-- ------------------------------------------------------------
+create or replace function public.garantir_perfil()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_email   text;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select email into v_email from auth.users where id = v_usuario;
+
+  insert into public.perfis (id, apelido)
+  values (v_usuario, split_part(coalesce(v_email, ''), '@', 1))
+  on conflict (id) do nothing;
+
+  return json_build_object('ok', true);
+end $$;
+
+
+-- ------------------------------------------------------------
 -- COMPRAR: tira do saldo, soma na posicao, registra a transacao.
 -- Tudo junto, ou nada. Assim o saldo nunca fica errado.
 -- ------------------------------------------------------------

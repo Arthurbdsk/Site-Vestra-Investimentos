@@ -44,6 +44,11 @@ export default async function SimuladorPage() {
     );
   }
 
+  // Garante que o perfil existe (alguns fluxos de login social podem
+  // nao disparar o gatilho de criacao automatica) antes de qualquer
+  // outra coisa que dependa dele.
+  await supabase.rpc("garantir_perfil");
+
   // Executa ordens limitadas que atingiram o preco-alvo, e credita
   // dividendos novos, antes de buscar o estado atual da carteira.
   await processarPendencias(user.id);
