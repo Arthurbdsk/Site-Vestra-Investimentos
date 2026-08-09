@@ -13,18 +13,22 @@ returns numeric language sql immutable as $$ select 100000.00::numeric $$;
 -- PERFIS: um por usuario, guarda o dinheiro ficticio em caixa
 -- ------------------------------------------------------------
 create table if not exists public.perfis (
-  id                uuid primary key references auth.users(id) on delete cascade,
-  apelido           text,
-  saldo             numeric(14,2) not null default saldo_inicial(),
-  dias_seguidos     integer not null default 0,
-  ultimo_acesso     date,
-  perfil_investidor text,
-  criado_em         timestamptz not null default now()
+  id                   uuid primary key references auth.users(id) on delete cascade,
+  apelido              text,
+  saldo                numeric(14,2) not null default saldo_inicial(),
+  dias_seguidos        integer not null default 0,
+  ultimo_acesso        date,
+  perfil_investidor    text,
+  mes_referencia        text,
+  patrimonio_inicio_mes numeric(14,2),
+  criado_em            timestamptz not null default now()
 );
 
 alter table public.perfis add column if not exists dias_seguidos integer not null default 0;
 alter table public.perfis add column if not exists ultimo_acesso date;
 alter table public.perfis add column if not exists perfil_investidor text;
+alter table public.perfis add column if not exists mes_referencia text;
+alter table public.perfis add column if not exists patrimonio_inicio_mes numeric(14,2);
 
 alter table public.perfis enable row level security;
 
@@ -529,7 +533,21 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- REGISTRAR ACESSO: streak de dias seguidos usando o simulador.
+-- PATRIMONIO DE: saldo + acoes pelo preco medio + renda fixa pelo
+-- valor investido. Usada pelo ranking geral e pelo snapshot mensal.
+-- ------------------------------------------------------------
+create or replace function public.patrimonio_de(p_usuario uuid)
+returns numeric language sql stable security definer set search_path = public as $$
+  select
+    coalesce((select saldo from public.perfis where id = p_usuario), 0)
+      + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p_usuario), 0)
+      + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p_usuario and resgatado = false), 0)
+$$;
+
+
+-- ------------------------------------------------------------
+-- REGISTRAR ACESSO: streak de dias seguidos usando o simulador, e
+-- snapshot do patrimonio no inicio de cada mes (pro desafio mensal).
 -- Chamada uma vez por carregamento da pagina (ver
 -- src/app/simulador/processarPendencias.ts). So conta a primeira
 -- visita de cada dia: entrar varias vezes no mesmo dia nao aumenta.
@@ -540,6 +558,7 @@ declare
   v_usuario uuid := auth.uid();
   v_perfil  public.perfis%rowtype;
   v_novo_dia boolean;
+  v_mes_atual text := to_char(current_date, 'YYYY-MM');
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -565,6 +584,13 @@ begin
     end if;
   end if;
 
+  if v_perfil.mes_referencia is distinct from v_mes_atual then
+    update public.perfis
+      set mes_referencia = v_mes_atual,
+          patrimonio_inicio_mes = public.patrimonio_de(v_usuario)
+      where id = v_usuario;
+  end if;
+
   select dias_seguidos into v_perfil.dias_seguidos
     from public.perfis where id = v_usuario;
 
@@ -584,22 +610,41 @@ returns table(apelido text, patrimonio numeric, posicao bigint)
 language sql security definer set search_path = public as $$
   select
     coalesce(p.apelido, 'Investidor') as apelido,
-    p.saldo
-      + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p.id), 0)
-      + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p.id and resgatado = false), 0)
-      as patrimonio,
-    row_number() over (order by
-      p.saldo
-        + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p.id), 0)
-        + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p.id and resgatado = false), 0)
-      desc
-    ) as posicao
+    public.patrimonio_de(p.id) as patrimonio,
+    row_number() over (order by public.patrimonio_de(p.id) desc) as posicao
   from public.perfis p
   order by patrimonio desc
   limit p_limite
 $$;
 
 grant execute on function public.ranking(integer) to authenticated;
+
+
+-- ------------------------------------------------------------
+-- RANKING MENSAL (desafio do mes): ordena por QUANTO CRESCEU o
+-- patrimonio desde o snapshot capturado no inicio do mes (ver
+-- registrar_acesso), nao pelo total acumulado. So entram quem ja tem
+-- um snapshot deste mes (ou seja, quem visitou o simulador este mes).
+-- ------------------------------------------------------------
+create or replace function public.ranking_mensal(p_limite integer default 50)
+returns table(apelido text, ganho numeric, ganho_pct numeric, posicao bigint)
+language sql security definer set search_path = public as $$
+  select
+    coalesce(p.apelido, 'Investidor') as apelido,
+    public.patrimonio_de(p.id) - p.patrimonio_inicio_mes as ganho,
+    case when p.patrimonio_inicio_mes > 0
+      then round(((public.patrimonio_de(p.id) - p.patrimonio_inicio_mes) / p.patrimonio_inicio_mes) * 100, 2)
+      else 0
+    end as ganho_pct,
+    row_number() over (order by public.patrimonio_de(p.id) - p.patrimonio_inicio_mes desc) as posicao
+  from public.perfis p
+  where p.mes_referencia = to_char(current_date, 'YYYY-MM')
+    and p.patrimonio_inicio_mes is not null
+  order by ganho desc
+  limit p_limite
+$$;
+
+grant execute on function public.ranking_mensal(integer) to authenticated;
 
 
 -- ------------------------------------------------------------

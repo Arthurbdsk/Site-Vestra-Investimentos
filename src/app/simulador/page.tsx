@@ -9,7 +9,7 @@ import {
   type OrdemPendente,
 } from "@/components/PainelSimulador";
 import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
-import type { RankingLinha } from "@/components/RankingPainel";
+import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
@@ -87,6 +87,8 @@ export default async function SimuladorPage() {
       supabase.rpc("ranking", { p_limite: 50 }),
     ]);
 
+  const { data: rankingMensalData } = await supabase.rpc("ranking_mensal", { p_limite: 50 });
+
   const visitante = user.is_anonymous === true;
 
   const apelido = visitante
@@ -139,6 +141,15 @@ export default async function SimuladorPage() {
     }),
   );
 
+  const rankingMensal: RankingMensalLinha[] = (rankingMensalData ?? []).map(
+    (r: { apelido: string; ganho: number | string; ganho_pct: number | string; posicao: number }) => ({
+      apelido: r.apelido,
+      ganho: Number(r.ganho),
+      ganhoPct: Number(r.ganho_pct),
+      posicao: Number(r.posicao),
+    }),
+  );
+
   const cotacoes = cotacoesRes.ok ? cotacoesRes.cotacoes : [];
   const avisoCotacoes = cotacoesRes.ok
     ? cotacoesRes.doCache
@@ -160,6 +171,7 @@ export default async function SimuladorPage() {
         ordensPendentes={ordensPendentes}
         posicoesRendaFixa={posicoesRendaFixa}
         ranking={ranking}
+        rankingMensal={rankingMensal}
         diasSeguidos={diasSeguidos}
         novoDia={novoDia}
         perfilInvestidorDefinido={perfilInvestidorDefinido}

@@ -14,7 +14,7 @@ import { StatusMercado } from "./StatusMercado";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { TabelaAcoes } from "./TabelaAcoes";
 import { LogoAcao } from "./LogoAcao";
-import { RankingPainel, type RankingLinha } from "./RankingPainel";
+import { RankingPainel, type RankingLinha, type RankingMensalLinha } from "./RankingPainel";
 import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
@@ -67,6 +67,7 @@ export function PainelSimulador({
   ordensPendentes,
   posicoesRendaFixa,
   ranking,
+  rankingMensal,
   diasSeguidos,
   novoDia,
   perfilInvestidorDefinido,
@@ -81,6 +82,7 @@ export function PainelSimulador({
   ordensPendentes: OrdemPendente[];
   posicoesRendaFixa: PosicaoRendaFixa[];
   ranking: RankingLinha[];
+  rankingMensal: RankingMensalLinha[];
   diasSeguidos: number;
   novoDia: boolean;
   perfilInvestidorDefinido: boolean;
@@ -365,7 +367,9 @@ export function PainelSimulador({
 
               {aba === "noticias" && <NoticiasFinanceiras />}
 
-              {aba === "ranking" && <RankingPainel ranking={ranking} />}
+              {aba === "ranking" && (
+                <RankingPainel ranking={ranking} rankingMensal={rankingMensal} />
+              )}
 
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>
