@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
+import { RendaFixaPainel, type PosicaoRendaFixa } from "./RendaFixaPainel";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
@@ -43,7 +44,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "e-se" | "noticias" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "e-se" | "noticias" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -54,6 +55,7 @@ export function PainelSimulador({
   avisoCotacoes,
   visitante = false,
   ordensPendentes,
+  posicoesRendaFixa,
 }: {
   apelido: string;
   saldo: number;
@@ -63,6 +65,7 @@ export function PainelSimulador({
   avisoCotacoes: string | null;
   visitante?: boolean;
   ordensPendentes: OrdemPendente[];
+  posicoesRendaFixa: PosicaoRendaFixa[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -81,13 +84,21 @@ export function PainelSimulador({
     const c = precoDe(p.ticker);
     return s + p.quantidade * (c?.preco ?? p.preco_medio);
   }, 0);
-  const patrimonio = saldo + valorAtual;
+  const valorRendaFixa = posicoesRendaFixa.reduce((s, p) => {
+    const dias = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(p.dataAplicacao).getTime()) / 86_400_000),
+    );
+    return s + p.valorInvestido * Math.pow(1 + p.taxaAnual, dias / 365);
+  }, 0);
+  const patrimonio = saldo + valorAtual + valorRendaFixa;
   const lucro = valorAtual - investido;
   const lucroPct = investido > 0 ? (lucro / investido) * 100 : 0;
 
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
+    { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "historico", label: "Histórico", icone: Clock },
@@ -259,6 +270,8 @@ export function PainelSimulador({
                   }}
                 />
               )}
+
+              {aba === "renda-fixa" && <RendaFixaPainel posicoes={posicoesRendaFixa} />}
 
               {aba === "e-se" && <SeTivesseInvestido />}
 

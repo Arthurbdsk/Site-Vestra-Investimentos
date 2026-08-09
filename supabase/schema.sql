@@ -386,3 +386,109 @@ begin
 
   return json_build_object('ok', true, 'creditado', true, 'valor', v_total);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- RENDA FIXA: CDB e Tesouro Direto. Cada posicao guarda a taxa anual
+-- do dia da aplicacao (como na vida real, a taxa contratada nao muda
+-- depois); o valor atual e calculado por juros compostos sobre os
+-- dias corridos desde a aplicacao.
+-- ------------------------------------------------------------
+create table if not exists public.investimentos_rf (
+  id              uuid primary key default gen_random_uuid(),
+  usuario_id      uuid not null references auth.users(id) on delete cascade,
+  tipo            text not null check (tipo in ('cdb','tesouro')),
+  nome            text not null,
+  valor_investido numeric(14,2) not null check (valor_investido > 0),
+  taxa_anual      numeric(8,4) not null check (taxa_anual > 0),
+  data_aplicacao  date not null default current_date,
+  resgatado       boolean not null default false,
+  resgatado_em    timestamptz,
+  valor_resgate   numeric(14,2),
+  criado_em       timestamptz not null default now()
+);
+
+create index if not exists investimentos_rf_usuario_idx
+  on public.investimentos_rf(usuario_id, resgatado);
+
+alter table public.investimentos_rf enable row level security;
+
+drop policy if exists "investimentos rf proprios" on public.investimentos_rf;
+create policy "investimentos rf proprios" on public.investimentos_rf
+  for select using (auth.uid() = usuario_id);
+
+create or replace function public.investir_renda_fixa(
+  p_tipo text, p_nome text, p_valor numeric, p_taxa_anual numeric
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_saldo   numeric(14,2);
+  v_id      uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_tipo not in ('cdb', 'tesouro') then
+    raise exception 'Tipo de investimento invalido.';
+  end if;
+  if p_valor is null or p_valor <= 0 then
+    raise exception 'Valor invalido.';
+  end if;
+  if p_taxa_anual is null or p_taxa_anual <= 0 then
+    raise exception 'Taxa invalida.';
+  end if;
+
+  select saldo into v_saldo from public.perfis where id = v_usuario for update;
+  if v_saldo is null then
+    raise exception 'Perfil nao encontrado.';
+  end if;
+  if v_saldo < p_valor then
+    raise exception 'Saldo insuficiente. Voce tem R$ % e precisa de R$ %.', v_saldo, p_valor;
+  end if;
+
+  update public.perfis set saldo = saldo - p_valor where id = v_usuario;
+
+  insert into public.investimentos_rf (usuario_id, tipo, nome, valor_investido, taxa_anual)
+  values (v_usuario, p_tipo, p_nome, p_valor, p_taxa_anual)
+  returning id into v_id;
+
+  return json_build_object('ok', true, 'id', v_id);
+end $$;
+
+create or replace function public.resgatar_renda_fixa(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_pos     public.investimentos_rf%rowtype;
+  v_dias    integer;
+  v_valor   numeric(14,2);
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_pos from public.investimentos_rf
+    where id = p_id and usuario_id = v_usuario for update;
+
+  if not found then
+    raise exception 'Investimento nao encontrado.';
+  end if;
+  if v_pos.resgatado then
+    raise exception 'Esse investimento ja foi resgatado.';
+  end if;
+
+  v_dias := greatest(0, current_date - v_pos.data_aplicacao);
+  v_valor := round(
+    v_pos.valor_investido * power(1 + v_pos.taxa_anual, v_dias / 365.0),
+    2
+  );
+
+  update public.investimentos_rf
+    set resgatado = true, resgatado_em = now(), valor_resgate = v_valor
+    where id = p_id;
+
+  update public.perfis set saldo = saldo + v_valor where id = v_usuario;
+
+  return json_build_object('ok', true, 'valor', v_valor, 'dias', v_dias);
+end $$;

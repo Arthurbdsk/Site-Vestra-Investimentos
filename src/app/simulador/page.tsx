@@ -8,6 +8,7 @@ import {
   type Transacao,
   type OrdemPendente,
 } from "@/components/PainelSimulador";
+import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
@@ -46,24 +47,30 @@ export default async function SimuladorPage() {
   // dividendos novos, antes de buscar o estado atual da carteira.
   await processarPendencias(user.id);
 
-  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes] = await Promise.all([
-    supabase.from("perfis").select("apelido, saldo").eq("id", user.id).single(),
-    supabase
-      .from("posicoes")
-      .select("ticker, quantidade, preco_medio")
-      .order("ticker"),
-    supabase
-      .from("transacoes")
-      .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
-      .order("criado_em", { ascending: false })
-      .limit(50),
-    buscarCotacoes(),
-    supabase
-      .from("ordens_pendentes")
-      .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
-      .eq("status", "pendente")
-      .order("criado_em", { ascending: false }),
-  ]);
+  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes, rendaFixaRes] =
+    await Promise.all([
+      supabase.from("perfis").select("apelido, saldo").eq("id", user.id).single(),
+      supabase
+        .from("posicoes")
+        .select("ticker, quantidade, preco_medio")
+        .order("ticker"),
+      supabase
+        .from("transacoes")
+        .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
+        .order("criado_em", { ascending: false })
+        .limit(50),
+      buscarCotacoes(),
+      supabase
+        .from("ordens_pendentes")
+        .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
+        .eq("status", "pendente")
+        .order("criado_em", { ascending: false }),
+      supabase
+        .from("investimentos_rf")
+        .select("id, tipo, nome, valor_investido, taxa_anual, data_aplicacao")
+        .eq("resgatado", false)
+        .order("criado_em", { ascending: false }),
+    ]);
 
   const visitante = user.is_anonymous === true;
 
@@ -99,6 +106,15 @@ export default async function SimuladorPage() {
     criadoEm: o.criado_em,
   }));
 
+  const posicoesRendaFixa: PosicaoRendaFixa[] = (rendaFixaRes.data ?? []).map((p) => ({
+    id: p.id,
+    tipo: p.tipo,
+    nome: p.nome,
+    valorInvestido: Number(p.valor_investido),
+    taxaAnual: Number(p.taxa_anual),
+    dataAplicacao: p.data_aplicacao,
+  }));
+
   const cotacoes = cotacoesRes.ok ? cotacoesRes.cotacoes : [];
   const avisoCotacoes = cotacoesRes.ok
     ? cotacoesRes.doCache
@@ -118,6 +134,7 @@ export default async function SimuladorPage() {
         avisoCotacoes={avisoCotacoes}
         visitante={visitante}
         ordensPendentes={ordensPendentes}
+        posicoesRendaFixa={posicoesRendaFixa}
       />
       <Footer />
     </>
