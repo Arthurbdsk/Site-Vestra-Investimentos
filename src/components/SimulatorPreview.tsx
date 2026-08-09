@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useVisivel } from "@/lib/useVisivel";
 import { ArrowUpRight } from "lucide-react";
 import { CountUp } from "./CountUp";
 import { Sparkline } from "./Sparkline";
@@ -49,8 +50,12 @@ const inicial: Papel[] = [
 export function SimulatorPreview() {
   const [papeis, setPapeis] = useState(inicial);
   const [flash, setFlash] = useState<Record<string, "up" | "down" | null>>({});
+  // Os precos so "piscam" enquanto a secao esta visivel. Fora da tela isso
+  // era so re-renderizacao desperdicada a cada 2,6 segundos.
+  const { ref, visivel } = useVisivel<HTMLElement>(0.15);
 
   useEffect(() => {
+    if (!visivel) return;
     const id = setInterval(() => {
       setPapeis((prev) => {
         const alvo = Math.floor(Math.random() * prev.length);
@@ -70,10 +75,10 @@ export function SimulatorPreview() {
       });
     }, 2600);
     return () => clearInterval(id);
-  }, []);
+  }, [visivel]);
 
   return (
-    <section className="grain relative bg-blue py-24 md:py-32">
+    <section ref={ref} className="grain relative bg-blue py-24 md:py-32">
 
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
         <div className="mb-12 flex items-center gap-4">

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useVisivel } from "@/lib/useVisivel";
 
 type Candle = { o: number; c: number; h: number; l: number };
 
@@ -34,15 +35,20 @@ const scale = (v: number) => H - (v / 90) * H;
  */
 export function CandleChart() {
   const [live, setLive] = useState(0);
+  // O observador fica numa div em volta, e nao no proprio <svg>: medir
+  // area visivel de SVG nao e confiavel.
+  const { ref, visivel } = useVisivel<HTMLDivElement>();
 
   useEffect(() => {
+    if (!visivel) return;
     const id = setInterval(() => setLive(Math.random() * 6 - 3), 1600);
     return () => clearInterval(id);
-  }, []);
+  }, [visivel]);
 
   const ultimoFechamento = seed[seed.length - 1].c + live;
 
   return (
+    <div ref={ref}>
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-hidden="true">
       {[0.25, 0.5, 0.75].map((g) => (
         <line
@@ -116,5 +122,6 @@ export function CandleChart() {
         />
       </motion.g>
     </svg>
+    </div>
   );
 }

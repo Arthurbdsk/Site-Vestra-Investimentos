@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useVisivel } from "@/lib/useVisivel";
 
 const passos = [
   {
@@ -33,15 +34,18 @@ const passos = [
 export function HowItWorks() {
   const [ativo, setAtivo] = useState(0);
   const [pausado, setPausado] = useState(false);
+  // So avanca sozinho enquanto a secao esta na tela.
+  const { ref, visivel } = useVisivel<HTMLElement>(0.2);
 
   useEffect(() => {
-    if (pausado) return;
+    if (pausado || !visivel) return;
     const id = setInterval(() => setAtivo((a) => (a + 1) % passos.length), 4200);
     return () => clearInterval(id);
-  }, [pausado]);
+  }, [pausado, visivel]);
 
   return (
     <section
+      ref={ref}
       id="como-funciona"
       className="grain relative bg-paper py-24 md:py-32"
       onMouseEnter={() => setPausado(true)}

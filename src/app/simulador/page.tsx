@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ConviteEntrar } from "@/components/ConviteEntrar";
@@ -12,9 +13,9 @@ import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
 import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
+import type { Cotacao } from "@/lib/cotacoes";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
-import { buscarCotacoes } from "@/lib/cotacoes";
 import { processarPendencias } from "./processarPendencias";
 
 export const dynamic = "force-dynamic";
@@ -46,65 +47,80 @@ export default async function SimuladorPage() {
     );
   }
 
-  // Garante que o perfil existe (alguns fluxos de login social podem
-  // nao disparar o gatilho de criacao automatica) antes de qualquer
-  // outra coisa que dependa dele.
+  // O perfil precisa existir antes de qualquer leitura que dependa dele,
+  // entao essa e a unica coisa que roda sozinha antes das demais.
   await supabase.rpc("garantir_perfil");
 
-  // Executa ordens limitadas que atingiram o preco-alvo, e credita
-  // dividendos novos, antes de buscar o estado atual da carteira.
-  await processarPendencias(user.id);
+  // Tudo daqui pra baixo e independente, entao vai junto numa tacada so.
+  // Antes eram sete idas e voltas em fila ate o banco; agora e uma.
+  const [
+    perfilRes,
+    posicoesRes,
+    transacoesRes,
+    cotacoesRes,
+    ordensRes,
+    rendaFixaRes,
+    rankingRes,
+    rankingMensalRes,
+    favoritosRes,
+    duelosRes,
+    alertasRes,
+    acessoRes,
+  ] = await Promise.all([
+    supabase
+      .from("perfis")
+      .select("apelido, saldo, perfil_investidor")
+      .eq("id", user.id)
+      .single(),
+    supabase.from("posicoes").select("ticker, quantidade, preco_medio").order("ticker"),
+    supabase
+      .from("transacoes")
+      .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
+      .order("criado_em", { ascending: false })
+      .limit(50),
+    // As cotacoes agora vem da tabela que o proprio banco mantem atualizada.
+    // Antes eram 16 chamadas HTTP a brapi a cada carregamento da pagina.
+    supabase.from("cotacoes").select("ticker, preco, variacao, atualizado_em"),
+    supabase
+      .from("ordens_pendentes")
+      .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
+      .eq("status", "pendente")
+      .order("criado_em", { ascending: false }),
+    supabase
+      .from("investimentos_rf")
+      .select("id, tipo, nome, valor_investido, taxa_anual, data_aplicacao")
+      .eq("resgatado", false)
+      .order("criado_em", { ascending: false }),
+    supabase.rpc("ranking", { p_limite: 50 }),
+    supabase.rpc("ranking_mensal", { p_limite: 50 }),
+    supabase.from("favoritos").select("ticker"),
+    supabase.rpc("listar_meus_duelos"),
+    supabase
+      .from("alertas_preco")
+      .select("id, ticker, direcao, preco_alvo, status, visto")
+      .in("status", ["ativo", "disparado"])
+      .order("criado_em", { ascending: false }),
+    supabase.rpc("registrar_acesso"),
+  ]);
 
-  const { data: acessoData } = await supabase.rpc("registrar_acesso");
-  const diasSeguidos = Number(acessoData?.diasSeguidos ?? 0);
-  const novoDia = Boolean(acessoData?.novoDia);
+  // Ordens limitadas, dividendos e alertas dependem de consultar preco na
+  // brapi num laco, o que segurava a pagina por segundos. Agora roda DEPOIS
+  // que a resposta ja foi enviada. O efeito aparece na proxima visita.
+  after(async () => {
+    try {
+      await processarPendencias(user.id);
+    } catch {
+      // Falhar aqui nao pode atrapalhar quem ja recebeu a pagina.
+    }
+  });
 
-  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes, rendaFixaRes, rankingRes] =
-    await Promise.all([
-      supabase
-        .from("perfis")
-        .select("apelido, saldo, perfil_investidor")
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("posicoes")
-        .select("ticker, quantidade, preco_medio")
-        .order("ticker"),
-      supabase
-        .from("transacoes")
-        .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
-        .order("criado_em", { ascending: false })
-        .limit(50),
-      buscarCotacoes(),
-      supabase
-        .from("ordens_pendentes")
-        .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
-        .eq("status", "pendente")
-        .order("criado_em", { ascending: false }),
-      supabase
-        .from("investimentos_rf")
-        .select("id, tipo, nome, valor_investido, taxa_anual, data_aplicacao")
-        .eq("resgatado", false)
-        .order("criado_em", { ascending: false }),
-      supabase.rpc("ranking", { p_limite: 50 }),
-    ]);
+  const diasSeguidos = Number(acessoRes.data?.diasSeguidos ?? 0);
+  const novoDia = Boolean(acessoRes.data?.novoDia);
 
-  const { data: rankingMensalData } = await supabase.rpc("ranking_mensal", { p_limite: 50 });
+  const favoritos: string[] = (favoritosRes.data ?? []).map((f) => f.ticker);
+  const duelos: Duelo[] = duelosRes.data ?? [];
 
-  const { data: favoritosData } = await supabase
-    .from("favoritos")
-    .select("ticker");
-  const favoritos: string[] = (favoritosData ?? []).map((f) => f.ticker);
-
-  const { data: duelosData } = await supabase.rpc("listar_meus_duelos");
-  const duelos: Duelo[] = duelosData ?? [];
-
-  const { data: alertasData } = await supabase
-    .from("alertas_preco")
-    .select("id, ticker, direcao, preco_alvo, status, visto")
-    .in("status", ["ativo", "disparado"])
-    .order("criado_em", { ascending: false });
-  const alertas: AlertaPreco[] = (alertasData ?? [])
+  const alertas: AlertaPreco[] = (alertasRes.data ?? [])
     .filter((a) => a.status === "ativo" || !a.visto)
     .map((a) => ({
       id: a.id,
@@ -166,8 +182,13 @@ export default async function SimuladorPage() {
     }),
   );
 
-  const rankingMensal: RankingMensalLinha[] = (rankingMensalData ?? []).map(
-    (r: { apelido: string; ganho: number | string; ganho_pct: number | string; posicao: number }) => ({
+  const rankingMensal: RankingMensalLinha[] = (rankingMensalRes.data ?? []).map(
+    (r: {
+      apelido: string;
+      ganho: number | string;
+      ganho_pct: number | string;
+      posicao: number;
+    }) => ({
       apelido: r.apelido,
       ganho: Number(r.ganho),
       ganhoPct: Number(r.ganho_pct),
@@ -175,12 +196,17 @@ export default async function SimuladorPage() {
     }),
   );
 
-  const cotacoes = cotacoesRes.ok ? cotacoesRes.cotacoes : [];
-  const avisoCotacoes = cotacoesRes.ok
-    ? cotacoesRes.doCache
-      ? "Os preços vêm da B3 com alguns minutos de atraso, o que é normal em dados gratuitos."
-      : null
-    : cotacoesRes.mensagem;
+  const cotacoes: Cotacao[] = (cotacoesRes.data ?? []).map((c) => ({
+    ticker: c.ticker,
+    preco: Number(c.preco),
+    variacao: Number(c.variacao),
+    atualizadoEm: c.atualizado_em,
+  }));
+
+  const avisoCotacoes =
+    cotacoes.length === 0
+      ? "Estamos buscando os preços da B3. Atualize em instantes."
+      : "Os preços vêm da B3 com alguns minutos de atraso, o que é normal em dados gratuitos.";
 
   return (
     <>
