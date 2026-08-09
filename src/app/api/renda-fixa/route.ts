@@ -7,7 +7,7 @@ export async function GET() {
 
   return NextResponse.json({
     cdi: { taxaAnual: cdi.taxaAnual, referencia: cdi.referencia },
-    tesouro: tesouro.ok ? tesouro.titulos : [],
-    avisoTesouro: tesouro.ok ? null : tesouro.mensagem,
+    tesouro: tesouro.titulos,
+    avisoTesouro: null,
   });
 }

@@ -29,64 +29,56 @@ export type TituloTesouro = {
   vencimento: string;
 };
 
-export type ResultadoTesouro =
-  | { ok: true; titulos: TituloTesouro[] }
-  | { ok: false; motivo: "config" | "erro"; mensagem: string };
+export type ResultadoTesouro = { ok: true; titulos: TituloTesouro[] };
+
+/**
+ * Titulos do Tesouro Direto. O endpoint ao vivo da brapi
+ * (/api/v2/treasury/list) tambem exige plano pago, entao usamos uma lista
+ * curada com taxas aproximadas — mesma logica do CDI aproximado acima.
+ * Nao muda dia a dia, mas reflete bem a cara de cada tipo de titulo.
+ */
+const TESOURO_ATUALIZADO_EM = "2026-01";
+
+const TITULOS_TESOURO: TituloTesouro[] = [
+  {
+    symbol: "tesouro-selic-2029",
+    nome: "Tesouro Selic 2029",
+    indexador: "Selic",
+    taxaCompra: 15.0,
+    precoCompra: 100,
+    vencimento: "2029-03-01",
+  },
+  {
+    symbol: "tesouro-prefixado-2029",
+    nome: "Tesouro Prefixado 2029",
+    indexador: "Prefixado",
+    taxaCompra: 13.8,
+    precoCompra: 100,
+    vencimento: "2029-01-01",
+  },
+  {
+    symbol: "tesouro-ipca-2035",
+    nome: "Tesouro IPCA+ 2035",
+    indexador: "IPCA+",
+    taxaCompra: 7.2,
+    precoCompra: 100,
+    vencimento: "2035-05-15",
+  },
+  {
+    symbol: "tesouro-ipca-2045",
+    nome: "Tesouro IPCA+ 2045",
+    indexador: "IPCA+",
+    taxaCompra: 7.5,
+    precoCompra: 100,
+    vencimento: "2045-05-15",
+  },
+];
 
 export async function buscarTesouroDireto(): Promise<ResultadoTesouro> {
-  const token = process.env.BRAPI_TOKEN;
-  if (!token || token.startsWith("cole_aqui")) {
-    return {
-      ok: false,
-      motivo: "config",
-      mensagem: "O token da brapi ainda não foi preenchido no arquivo .env.local.",
-    };
-  }
-
-  try {
-    const resposta = await fetch(
-      `https://brapi.dev/api/v2/treasury/list?limit=20`,
-      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
-    );
-    if (!resposta.ok) {
-      const corpo = await resposta.text().catch(() => "");
-      return {
-        ok: false,
-        motivo: "erro",
-        mensagem: `Não foi possível buscar os títulos do Tesouro agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
-      };
-    }
-
-    const json = await resposta.json();
-    const lista = json.results ?? json.bonds ?? json.data ?? [];
-    if (!Array.isArray(lista)) {
-      return {
-        ok: false,
-        motivo: "erro",
-        mensagem: `Resposta inesperada do Tesouro Direto (${JSON.stringify(json).slice(0, 300)}).`,
-      };
-    }
-
-    const titulos: TituloTesouro[] = lista
-      .map((t: Record<string, unknown>) => ({
-        symbol: String(t.symbol ?? ""),
-        nome: String(t.bondType ?? t.name ?? t.symbol ?? ""),
-        indexador: String(t.indexer ?? ""),
-        taxaCompra: Number(t.buyRate ?? t.rate ?? 0),
-        precoCompra: Number(t.buyPrice ?? t.price ?? 0),
-        vencimento: String(t.maturityDate ?? ""),
-      }))
-      .filter((t) => t.symbol && t.precoCompra > 0);
-
-    return { ok: true, titulos };
-  } catch {
-    return {
-      ok: false,
-      motivo: "erro",
-      mensagem: "Não foi possível buscar os títulos do Tesouro agora.",
-    };
-  }
+  return { ok: true, titulos: TITULOS_TESOURO };
 }
+
+export { TESOURO_ATUALIZADO_EM };
 
 export type Cdb = {
   id: string;

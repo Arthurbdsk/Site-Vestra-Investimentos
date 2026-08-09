@@ -127,11 +127,12 @@ export function RendaFixaPainel({ posicoes }: { posicoes: PosicaoRendaFixa[] }) 
 
           <div className="mt-10">
             <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-              Tesouro Direto (títulos reais do governo)
+              Tesouro Direto
             </p>
-            {estado.avisoTesouro && (
-              <p className="mt-3 text-sm text-ink-muted">{estado.avisoTesouro}</p>
-            )}
+            <p className="mt-1 text-xs text-ink-muted">
+              Taxas aproximadas dos tipos reais de título (Selic, Prefixado,
+              IPCA+), atualizadas manualmente — não ao vivo.
+            </p>
             <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
               {estado.tesouro.slice(0, 8).map((t, i) => (
                 <TesouroCartao key={t.symbol} titulo={t} delay={i * 0.05} />
@@ -235,7 +236,13 @@ function CdbCartao({
 
 function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number }) {
   const router = useRouter();
-  const taxaAnual = titulo.taxaCompra / 100;
+  // Tesouro IPCA+ divulga a taxa REAL, acima da inflação — pra render
+  // igual na simulação (sem modelar IPCA à parte), somamos uma inflação
+  // assumida só pra virar uma taxa nominal equivalente.
+  const inflacaoAssumida = 4.5;
+  const taxaNominal =
+    titulo.indexador === "IPCA+" ? titulo.taxaCompra + inflacaoAssumida : titulo.taxaCompra;
+  const taxaAnual = taxaNominal / 100;
 
   return (
     <motion.li
@@ -255,6 +262,7 @@ function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number
       </div>
       <p className="mt-3 font-mono text-lg tabular text-gold">
         {numero(titulo.taxaCompra, 2)}% ao ano
+        {titulo.indexador === "IPCA+" && " + IPCA"}
       </p>
       <FormularioInvestir
         onConfirmar={async (valor) => {
