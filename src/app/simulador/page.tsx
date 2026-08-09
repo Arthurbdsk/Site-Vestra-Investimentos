@@ -90,6 +90,11 @@ export default async function SimuladorPage() {
 
   const { data: rankingMensalData } = await supabase.rpc("ranking_mensal", { p_limite: 50 });
 
+  const { data: favoritosData } = await supabase
+    .from("favoritos")
+    .select("ticker");
+  const favoritos: string[] = (favoritosData ?? []).map((f) => f.ticker);
+
   const { data: alertasData } = await supabase
     .from("alertas_preco")
     .select("id, ticker, direcao, preco_alvo, status, visto")
@@ -192,6 +197,7 @@ export default async function SimuladorPage() {
         novoDia={novoDia}
         perfilInvestidorDefinido={perfilInvestidorDefinido}
         alertas={alertas}
+        favoritos={favoritos}
       />
       <Footer />
     </>

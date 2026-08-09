@@ -21,7 +21,11 @@ import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
 import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./AlertasPreco";
+import { ComposicaoCarteira } from "./ComposicaoCarteira";
+import { MaioresVariacoes } from "./MaioresVariacoes";
+import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
+import { calcularNivel } from "@/lib/nivelInvestidor";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
@@ -74,6 +78,7 @@ export function PainelSimulador({
   novoDia,
   perfilInvestidorDefinido,
   alertas,
+  favoritos,
 }: {
   apelido: string;
   saldo: number;
@@ -90,11 +95,13 @@ export function PainelSimulador({
   novoDia: boolean;
   perfilInvestidorDefinido: boolean;
   alertas: AlertaPreco[];
+  favoritos: string[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [mostrarCartao, setMostrarCartao] = useState(false);
+  const favoritosSet = useMemo(() => new Set(favoritos), [favoritos]);
 
   const precoDe = useMemo(() => {
     const mapa = new Map(cotacoes.map((c) => [c.ticker, c]));
@@ -129,6 +136,7 @@ export function PainelSimulador({
     diasSeguidos,
     patrimonio,
   });
+  const nivel = calcularNivel(conquistas.filter((c) => c.concluida).length);
 
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "carteira", label: "Minha carteira", icone: Wallet },
@@ -166,9 +174,17 @@ export function PainelSimulador({
       <section className="grain relative bg-blue">
         <div className="relative z-[2] mx-auto max-w-6xl px-6 py-12">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
-              Olá, {apelido}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
+                Olá, {apelido}
+              </p>
+              <span
+                className="rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                style={{ background: `color-mix(in srgb, ${nivel.cor} 22%, transparent)`, color: nivel.cor }}
+              >
+                {nivel.nome}
+              </span>
+            </div>
             <StatusMercado />
           </div>
 
@@ -295,6 +311,8 @@ export function PainelSimulador({
 
                 <PainelAlertas alertas={alertas} />
 
+                <ComposicaoCarteira posicoes={posicoes} precoDe={precoDe} />
+
                 <div className="mb-8">
                   <button
                     onClick={() => setMostrarCartao((v) => !v)}
@@ -347,18 +365,22 @@ export function PainelSimulador({
               )}
 
               {aba === "explorar" && (
-                <Explorar
-                  aoVerDetalhe={(ticker) => setDetalhe(ticker)}
-                  aoComprar={(ticker, preco, nome) => {
-                    setOrdem({
-                      ticker,
-                      preco,
-                      tipo: "comprar",
-                      limite: saldo,
-                      nome,
-                    });
-                  }}
-                />
+                <>
+                  <MaioresVariacoes cotacoes={cotacoes} aoVerDetalhe={(ticker) => setDetalhe(ticker)} />
+                  <Explorar
+                    favoritos={favoritosSet}
+                    aoVerDetalhe={(ticker) => setDetalhe(ticker)}
+                    aoComprar={(ticker, preco, nome) => {
+                      setOrdem({
+                        ticker,
+                        preco,
+                        tipo: "comprar",
+                        limite: saldo,
+                        nome,
+                      });
+                    }}
+                  />
+                </>
               )}
 
               {aba === "renda-fixa" && <RendaFixaPainel posicoes={posicoesRendaFixa} />}
@@ -389,6 +411,7 @@ export function PainelSimulador({
       <ModalOrdem ordem={ordem} aoFechar={() => setOrdem(null)} />
       <ModalDetalheAcao
         ticker={detalhe}
+        favorito={detalhe != null && favoritosSet.has(detalhe)}
         aoFechar={() => setDetalhe(null)}
         aoComprar={(ticker, preco, nome) => {
           setDetalhe(null);
@@ -605,9 +628,11 @@ function OrdemPendenteLinha({ ordem, delay }: { ordem: OrdemPendente; delay: num
 /* ------------------------------------------------------------------ */
 
 function Explorar({
+  favoritos,
   aoComprar,
   aoVerDetalhe,
 }: {
+  favoritos: Set<string>;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
@@ -678,6 +703,14 @@ function Explorar({
         className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
       />
 
+      {favoritos.size > 0 && !t && (
+        <FavoritasFaixa
+          tickers={[...favoritos]}
+          aoComprar={aoComprar}
+          aoVerDetalhe={aoVerDetalhe}
+        />
+      )}
+
       {populares.length > 0 && (
         <>
           <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
@@ -689,6 +722,7 @@ function Explorar({
                 key={a.ticker}
                 acao={a}
                 delay={Math.min(i * 0.04, 0.4)}
+                favorito={favoritos.has(a.ticker)}
                 aoComprar={aoComprar}
                 aoVerDetalhe={aoVerDetalhe}
               />
@@ -740,6 +774,7 @@ function Explorar({
               key={a.ticker}
               acao={a}
               delay={Math.min(i * 0.04, 0.4)}
+              favorito={favoritos.has(a.ticker)}
               aoComprar={aoComprar}
               aoVerDetalhe={aoVerDetalhe}
             />
@@ -749,7 +784,7 @@ function Explorar({
 
       {!erroB3 && visao === "tabela" && restoB3.length > 0 && (
         <div className="mt-3">
-          <TabelaAcoes acoes={restoB3} aoVerDetalhe={aoVerDetalhe} aoComprar={aoComprar} />
+          <TabelaAcoes acoes={restoB3} favoritos={favoritos} aoVerDetalhe={aoVerDetalhe} aoComprar={aoComprar} />
         </div>
       )}
 
@@ -765,11 +800,13 @@ function Explorar({
 function CartaoAcaoPopular({
   acao,
   delay,
+  favorito,
   aoComprar,
   aoVerDetalhe,
 }: {
   acao: (typeof ACOES)[number];
   delay: number;
+  favorito?: boolean;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
@@ -818,21 +855,24 @@ function CartaoAcaoPopular({
           </div>
         </button>
 
-        <div className="text-right">
-          {dados ? (
-            <>
-              <p className="font-mono text-lg tabular text-ink">{brl(dados.preco)}</p>
-              <p
-                className={`font-mono text-xs tabular ${
-                  dados.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
-              >
-                {dados.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dados.variacao))}%
-              </p>
-            </>
-          ) : (
-            <p className="font-mono text-xs text-ink-muted">carregando…</p>
-          )}
+        <div className="flex items-start gap-3">
+          <div className="text-right">
+            {dados ? (
+              <>
+                <p className="font-mono text-lg tabular text-ink">{brl(dados.preco)}</p>
+                <p
+                  className={`font-mono text-xs tabular ${
+                    dados.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {dados.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dados.variacao))}%
+                </p>
+              </>
+            ) : (
+              <p className="font-mono text-xs text-ink-muted">carregando…</p>
+            )}
+          </div>
+          <BotaoFavorito ticker={acao.ticker} favorito={Boolean(favorito)} />
         </div>
       </div>
 
@@ -856,11 +896,13 @@ function CartaoAcaoPopular({
 function CartaoAcaoB3({
   acao,
   delay,
+  favorito,
   aoComprar,
   aoVerDetalhe,
 }: {
   acao: AcaoB3;
   delay: number;
+  favorito?: boolean;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
@@ -892,23 +934,26 @@ function CartaoAcaoB3({
           </div>
         </button>
 
-        <div className="text-right">
-          {disponivel ? (
-            <>
-              <p className="font-mono text-lg tabular text-ink">{brl(acao.preco!)}</p>
-              {acao.variacao != null && (
-                <p
-                  className={`font-mono text-xs tabular ${
-                    acao.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {acao.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(acao.variacao))}%
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="font-mono text-xs text-ink-muted">preço indisponível</p>
-          )}
+        <div className="flex items-start gap-3">
+          <div className="text-right">
+            {disponivel ? (
+              <>
+                <p className="font-mono text-lg tabular text-ink">{brl(acao.preco!)}</p>
+                {acao.variacao != null && (
+                  <p
+                    className={`font-mono text-xs tabular ${
+                      acao.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {acao.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(acao.variacao))}%
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="font-mono text-xs text-ink-muted">preço indisponível</p>
+            )}
+          </div>
+          <BotaoFavorito ticker={acao.ticker} favorito={Boolean(favorito)} />
         </div>
       </div>
 
@@ -924,6 +969,59 @@ function CartaoAcaoB3({
         {disponivel ? "Comprar" : "Indisponível agora"}
       </button>
     </motion.li>
+  );
+}
+
+/** Suas acoes favoritadas, buscando a cotacao de cada uma individualmente. */
+function FavoritasFaixa({
+  tickers,
+  aoComprar,
+  aoVerDetalhe,
+}: {
+  tickers: string[];
+  aoComprar: (ticker: string, preco: number, nome?: string) => void;
+  aoVerDetalhe: (ticker: string) => void;
+}) {
+  const [acoes, setAcoes] = useState<AcaoB3[]>([]);
+
+  useEffect(() => {
+    let cancelado = false;
+    Promise.all(
+      tickers.map((t) =>
+        fetch(`/api/acoes?q=${encodeURIComponent(t)}`)
+          .then((r) => r.json())
+          .then((json) => json.acoes?.find((a: AcaoB3) => a.ticker === t) ?? null)
+          .catch(() => null),
+      ),
+    ).then((resultados) => {
+      if (!cancelado) setAcoes(resultados.filter((a): a is AcaoB3 => a != null));
+    });
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickers.join(",")]);
+
+  if (acoes.length === 0) return null;
+
+  return (
+    <>
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+        Suas favoritas
+      </p>
+      <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+        {acoes.map((a, i) => (
+          <CartaoAcaoB3
+            key={a.ticker}
+            acao={a}
+            delay={Math.min(i * 0.04, 0.4)}
+            favorito
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+        ))}
+      </ul>
+    </>
   );
 }
 

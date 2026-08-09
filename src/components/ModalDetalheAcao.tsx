@@ -9,6 +9,7 @@ import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
+import { BotaoFavorito } from "./BotaoFavorito";
 
 type Cabecalho = {
   preco: number | null;
@@ -24,10 +25,12 @@ type EstadoGrafico =
 
 export function ModalDetalheAcao({
   ticker,
+  favorito,
   aoFechar,
   aoComprar,
 }: {
   ticker: string | null;
+  favorito?: boolean;
   aoFechar: () => void;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
 }) {
@@ -117,7 +120,10 @@ export function ModalDetalheAcao({
             >
               {cabecalho?.setor ??" "}
             </p>
-            <h2 className="font-display text-3xl text-ink">{ticker}</h2>
+            <h2 className="flex items-center gap-2 font-display text-3xl text-ink">
+              {ticker}
+              {ticker && <BotaoFavorito ticker={ticker} favorito={Boolean(favorito)} tamanho={18} />}
+            </h2>
               </div>
             </div>
             <p className="mt-1 text-sm text-ink-muted">{info?.nome}</p>

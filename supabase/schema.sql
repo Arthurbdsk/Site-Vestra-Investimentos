@@ -768,3 +768,52 @@ begin
 
   return json_build_object('ok', true);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- FAVORITOS (watchlist): acompanhar uma acao sem comprar
+-- ------------------------------------------------------------
+create table if not exists public.favoritos (
+  id         uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users(id) on delete cascade,
+  ticker     text not null,
+  criado_em  timestamptz not null default now(),
+  unique (usuario_id, ticker)
+);
+
+alter table public.favoritos enable row level security;
+
+drop policy if exists "favoritos proprios" on public.favoritos;
+create policy "favoritos proprios" on public.favoritos
+  for all using (auth.uid() = usuario_id) with check (auth.uid() = usuario_id);
+
+create or replace function public.favoritar_acao(p_ticker text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  insert into public.favoritos (usuario_id, ticker)
+  values (v_usuario, upper(p_ticker))
+  on conflict (usuario_id, ticker) do nothing;
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.desfavoritar_acao(p_ticker text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  delete from public.favoritos
+    where usuario_id = v_usuario and ticker = upper(p_ticker);
+
+  return json_build_object('ok', true);
+end $$;

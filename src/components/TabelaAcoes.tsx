@@ -6,6 +6,7 @@ import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { LogoAcao } from "./LogoAcao";
 import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
+import { BotaoFavorito } from "./BotaoFavorito";
 
 type Coluna = "ticker" | "preco" | "variacao" | "volume" | "valorMercado" | "setor";
 
@@ -28,10 +29,12 @@ function compacto(v: number | null): string {
 
 export function TabelaAcoes({
   acoes,
+  favoritos,
   aoVerDetalhe,
   aoComprar,
 }: {
   acoes: AcaoB3[];
+  favoritos?: Set<string>;
   aoVerDetalhe: (ticker: string) => void;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
 }) {
@@ -86,20 +89,23 @@ export function TabelaAcoes({
           {ordenadas.map((a) => (
             <tr key={a.ticker} className="border-b border-[var(--rule)] last:border-b-0 hover:bg-paper-alt">
               <td className="px-4 py-3">
-                <button
-                  onClick={() => aoVerDetalhe(a.ticker)}
-                  className="flex items-center gap-2.5 text-left"
-                >
-                  <LogoAcao logo={a.logo} ticker={a.ticker} size={26} />
-                  <span>
-                    <span className="block font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-blue hover:decoration-blue">
-                      {a.ticker}
+                <div className="flex items-center gap-2">
+                  <BotaoFavorito ticker={a.ticker} favorito={favoritos?.has(a.ticker) ?? false} tamanho={14} />
+                  <button
+                    onClick={() => aoVerDetalhe(a.ticker)}
+                    className="flex items-center gap-2.5 text-left"
+                  >
+                    <LogoAcao logo={a.logo} ticker={a.ticker} size={26} />
+                    <span>
+                      <span className="block font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-blue hover:decoration-blue">
+                        {a.ticker}
+                      </span>
+                      <span className="block max-w-[180px] truncate text-xs text-ink-muted">
+                        {a.nome}
+                      </span>
                     </span>
-                    <span className="block max-w-[180px] truncate text-xs text-ink-muted">
-                      {a.nome}
-                    </span>
-                  </span>
-                </button>
+                  </button>
+                </div>
               </td>
               <td className="px-4 py-3 text-right font-mono tabular text-ink">
                 {a.preco != null ? brl(a.preco) : "—"}
