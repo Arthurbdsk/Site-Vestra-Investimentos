@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Logomark } from "./Logomark";
 import { BotaoSair } from "./BotaoSair";
+import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
   { href: "/", label: "Início" },
@@ -70,6 +71,7 @@ export function Header({ logado = false }: { logado?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-5 md:flex">
+          <ThemeToggle />
           {logado && <BotaoSair />}
           <Link
             href="/simulador"
@@ -121,11 +123,10 @@ export function Header({ logado = false }: { logado?: boolean }) {
               >
                 {logado ? "Minha carteira" : "Testar o simulador"}
               </Link>
-              {logado && (
-                <div className="mt-4 flex justify-center">
-                  <BotaoSair />
-                </div>
-              )}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <ThemeToggle />
+                {logado && <BotaoSair />}
+              </div>
             </div>
           </motion.nav>
         )}

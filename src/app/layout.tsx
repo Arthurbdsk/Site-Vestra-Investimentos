@@ -36,6 +36,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
         <SmoothScroll />
         <ScrollProgress />
         {children}

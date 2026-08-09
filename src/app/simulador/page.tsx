@@ -11,6 +11,7 @@ import {
 import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
 import type { AlertaPreco } from "@/components/AlertasPreco";
+import type { Duelo } from "@/components/DuelosPainel";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
@@ -94,6 +95,9 @@ export default async function SimuladorPage() {
     .from("favoritos")
     .select("ticker");
   const favoritos: string[] = (favoritosData ?? []).map((f) => f.ticker);
+
+  const { data: duelosData } = await supabase.rpc("listar_meus_duelos");
+  const duelos: Duelo[] = duelosData ?? [];
 
   const { data: alertasData } = await supabase
     .from("alertas_preco")
@@ -198,6 +202,7 @@ export default async function SimuladorPage() {
         perfilInvestidorDefinido={perfilInvestidorDefinido}
         alertas={alertas}
         favoritos={favoritos}
+        duelos={duelos}
       />
       <Footer />
     </>

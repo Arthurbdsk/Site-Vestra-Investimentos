@@ -10,6 +10,7 @@ import { acaoPorTicker } from "@/lib/acoes";
 import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
 import { BotaoFavorito } from "./BotaoFavorito";
+import { NoticiasDaAcao } from "./NoticiasDaAcao";
 
 type Cabecalho = {
   preco: number | null;
@@ -190,6 +191,8 @@ export function ModalDetalheAcao({
               )}
               {grafico.fase === "feito" && <GraficoPreco serie={grafico.serie} />}
             </div>
+
+            <NoticiasDaAcao nome={info?.nome ?? ticker} />
 
             <button
               onClick={() => cabecalho?.preco != null && aoComprar(ticker, cabecalho.preco, info?.nome)}

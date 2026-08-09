@@ -817,3 +817,119 @@ begin
 
   return json_build_object('ok', true);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- MODO DUELO: competir com um amigo por X dias, ve quem cresce mais
+-- ------------------------------------------------------------
+create table if not exists public.duelos (
+  id                          uuid primary key default gen_random_uuid(),
+  criador_id                  uuid not null references auth.users(id) on delete cascade,
+  oponente_id                 uuid references auth.users(id) on delete cascade,
+  codigo_convite              text not null unique,
+  dias                        integer not null check (dias > 0 and dias <= 90),
+  patrimonio_inicial_criador  numeric(14,2),
+  patrimonio_inicial_oponente numeric(14,2),
+  data_inicio                 timestamptz,
+  status                      text not null default 'aguardando' check (status in ('aguardando', 'ativo')),
+  criado_em                   timestamptz not null default now()
+);
+
+alter table public.duelos enable row level security;
+
+drop policy if exists "duelos proprios" on public.duelos;
+create policy "duelos proprios" on public.duelos
+  for select using (auth.uid() = criador_id or auth.uid() = oponente_id);
+
+create or replace function public.criar_duelo(p_dias integer)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_codigo  text;
+  v_id      uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_dias is null or p_dias <= 0 or p_dias > 90 then
+    raise exception 'Duracao invalida (1 a 90 dias).';
+  end if;
+
+  loop
+    v_codigo := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from public.duelos where codigo_convite = v_codigo);
+  end loop;
+
+  insert into public.duelos (criador_id, codigo_convite, dias, patrimonio_inicial_criador)
+  values (v_usuario, v_codigo, p_dias, public.patrimonio_de(v_usuario))
+  returning id into v_id;
+
+  return json_build_object('ok', true, 'id', v_id, 'codigo', v_codigo);
+end $$;
+
+create or replace function public.entrar_duelo(p_codigo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_duelo   public.duelos%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_duelo from public.duelos
+    where codigo_convite = upper(p_codigo) and status = 'aguardando';
+
+  if not found then
+    raise exception 'Codigo invalido ou duelo ja comecou.';
+  end if;
+  if v_duelo.criador_id = v_usuario then
+    raise exception 'Voce nao pode entrar no proprio duelo.';
+  end if;
+
+  update public.duelos set
+    oponente_id = v_usuario,
+    patrimonio_inicial_oponente = public.patrimonio_de(v_usuario),
+    data_inicio = now(),
+    status = 'ativo'
+  where id = v_duelo.id;
+
+  return json_build_object('ok', true, 'id', v_duelo.id);
+end $$;
+
+create or replace function public.listar_meus_duelos()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  return coalesce((
+    select json_agg(json_build_object(
+      'id', d.id,
+      'codigoConvite', d.codigo_convite,
+      'dias', d.dias,
+      'status', d.status,
+      'souCriador', d.criador_id = v_usuario,
+      'dataInicio', d.data_inicio,
+      'meuApelido', case when d.criador_id = v_usuario then pc.apelido else po.apelido end,
+      'oponenteApelido', case when d.criador_id = v_usuario then po.apelido else pc.apelido end,
+      'meuPatrimonioInicial',
+        case when d.criador_id = v_usuario then d.patrimonio_inicial_criador else d.patrimonio_inicial_oponente end,
+      'oponentePatrimonioInicial',
+        case when d.criador_id = v_usuario then d.patrimonio_inicial_oponente else d.patrimonio_inicial_criador end,
+      'meuPatrimonioAtual', public.patrimonio_de(v_usuario),
+      'oponentePatrimonioAtual',
+        case
+          when d.oponente_id is null then null
+          else public.patrimonio_de(case when d.criador_id = v_usuario then d.oponente_id else d.criador_id end)
+        end
+    ) order by d.criado_em desc)
+    from public.duelos d
+    left join public.perfis pc on pc.id = d.criador_id
+    left join public.perfis po on po.id = d.oponente_id
+    where d.criador_id = v_usuario or d.oponente_id = v_usuario
+  ), '[]'::json);
+end $$;

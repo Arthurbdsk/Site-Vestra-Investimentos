@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2 } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -21,7 +21,10 @@ import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
 import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./AlertasPreco";
+import { DuelosPainel, type Duelo } from "./DuelosPainel";
+import { TourBoasVindas } from "./TourBoasVindas";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
+import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
@@ -30,6 +33,7 @@ import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
+import { exportarTransacoesCsv } from "@/lib/exportarCsv";
 import { corDoSetor } from "@/lib/coresSetor";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
@@ -60,7 +64,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -79,6 +83,7 @@ export function PainelSimulador({
   perfilInvestidorDefinido,
   alertas,
   favoritos,
+  duelos,
 }: {
   apelido: string;
   saldo: number;
@@ -96,6 +101,7 @@ export function PainelSimulador({
   perfilInvestidorDefinido: boolean;
   alertas: AlertaPreco[];
   favoritos: string[];
+  duelos: Duelo[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -146,6 +152,7 @@ export function PainelSimulador({
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
+    { id: "duelo", label: "Duelo", icone: Swords },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
 
@@ -313,6 +320,8 @@ export function PainelSimulador({
 
                 <ComposicaoCarteira posicoes={posicoes} precoDe={precoDe} />
 
+                <CalendarioDividendos transacoes={transacoes} />
+
                 <div className="mb-8">
                   <button
                     onClick={() => setMostrarCartao((v) => !v)}
@@ -401,6 +410,8 @@ export function PainelSimulador({
                 <RankingPainel ranking={ranking} rankingMensal={rankingMensal} />
               )}
 
+              {aba === "duelo" && <DuelosPainel duelos={duelos} />}
+
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>
           </AnimatePresence>
@@ -424,6 +435,8 @@ export function PainelSimulador({
       ) : (
         novoDia && <PopupStreak dias={diasSeguidos} />
       )}
+
+      <TourBoasVindas mostrar={posicoes.length === 0 && transacoes.length === 0} />
     </>
   );
 }
@@ -1045,7 +1058,16 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-ink">Tudo que você já fez</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl text-ink">Tudo que você já fez</h2>
+        <button
+          onClick={() => exportarTransacoesCsv(transacoes)}
+          className="flex items-center gap-2 border border-[var(--rule)] px-4 py-2 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
+        >
+          <Download size={14} />
+          Exportar CSV
+        </button>
+      </div>
 
       <ul className="mt-6 border-t border-[var(--rule)]">
         {transacoes.map((t, i) => (

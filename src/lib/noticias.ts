@@ -16,7 +16,7 @@ export type ResultadoNoticias =
  * e outras fontes). Mostramos so titulo + resumo + link pra fonte
  * original — nunca o artigo inteiro, por causa de direitos autorais.
  */
-export async function buscarNoticias(): Promise<ResultadoNoticias> {
+export async function buscarNoticias(busca?: string): Promise<ResultadoNoticias> {
   const token = process.env.MARKETAUX_API_TOKEN;
   if (!token) {
     return {
@@ -32,6 +32,7 @@ export async function buscarNoticias(): Promise<ResultadoNoticias> {
     filter_entities: "true",
     limit: "3",
   });
+  if (busca) params.set("search", busca);
 
   try {
     const resposta = await fetch(

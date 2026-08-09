@@ -31,6 +31,27 @@
   --rule-inv: rgba(245, 246, 247, 0.16);
 }
 
+/* Modo escuro: segue a preferencia do sistema por padrao, e pode ser
+   forcado manualmente via data-theme (ver ThemeToggle). Os tokens de
+   cor sao os mesmos em todo o site, entao trocar so aqui já retema tudo. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-paper: #14181c;
+    --color-paper-alt: #1b2025;
+    --color-ink: #e7eaed;
+    --color-ink-muted: #98a2ac;
+    --rule: rgba(231, 234, 237, 0.12);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-paper: #14181c;
+  --color-paper-alt: #1b2025;
+  --color-ink: #e7eaed;
+  --color-ink-muted: #98a2ac;
+  --rule: rgba(231, 234, 237, 0.12);
+}
+
 @theme inline {
   --color-paper: var(--color-paper);
   --color-paper-alt: var(--color-paper-alt);
