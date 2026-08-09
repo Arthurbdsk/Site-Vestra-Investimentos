@@ -13,12 +13,19 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
   const [passo, setPasso] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [resultado, setResultado] = useState<Perfil | null>(null);
+  const [erroSalvar, setErroSalvar] = useState(false);
 
   if (!aberto) return null;
 
   function fechar() {
     setAberto(false);
     router.refresh();
+  }
+
+  async function salvar(perfil: Perfil) {
+    setErroSalvar(false);
+    const r = await salvarPerfilInvestidor(perfil.id);
+    if (!r.ok) setErroSalvar(true);
   }
 
   function responder(pontos: number) {
@@ -31,7 +38,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
     } else {
       const perfil = calcularPerfil(novasRespostas);
       setResultado(perfil);
-      salvarPerfilInvestidor(perfil.id);
+      salvar(perfil);
     }
   }
 
@@ -69,6 +76,18 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
               <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
                 {resultado.descricao}
               </p>
+              {erroSalvar && (
+                <p className="mt-4 border-l-[3px] border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                  Não consegui salvar seu perfil agora — esse quiz pode
+                  aparecer de novo na próxima vez. Tente de novo:{" "}
+                  <button
+                    onClick={() => salvar(resultado)}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    tentar salvar
+                  </button>
+                </p>
+              )}
               <button
                 onClick={fechar}
                 className="group mt-7 flex w-full items-center justify-center gap-2 bg-blue px-6 py-3 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep"
