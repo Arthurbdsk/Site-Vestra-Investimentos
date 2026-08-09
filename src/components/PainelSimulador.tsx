@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -316,30 +316,6 @@ export function PainelSimulador({
                 <>
                 <ConquistasFaixa conquistas={conquistas} />
 
-                <PainelAlertas alertas={alertas} />
-
-                <ComposicaoCarteira posicoes={posicoes} precoDe={precoDe} />
-
-                <CalendarioDividendos transacoes={transacoes} />
-
-                <div className="mb-8">
-                  <button
-                    onClick={() => setMostrarCartao((v) => !v)}
-                    className="flex items-center gap-2 border border-[var(--rule)] px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
-                  >
-                    <Share2 size={14} />
-                    {mostrarCartao ? "Esconder cartão" : "Compartilhar desempenho"}
-                  </button>
-                  {mostrarCartao && (
-                    <div className="mt-4">
-                      <CartaoCompartilhavel
-                        apelido={apelido}
-                        patrimonio={patrimonio}
-                        lucroPct={lucroPct}
-                      />
-                    </div>
-                  )}
-                </div>
                 <Carteira
                   posicoes={posicoes}
                   ordensPendentes={ordensPendentes}
@@ -369,6 +345,18 @@ export function PainelSimulador({
                       });
                   }}
                   aoExplorar={() => setAba("explorar")}
+                />
+
+                <FerramentasCarteira
+                  alertas={alertas}
+                  posicoes={posicoes}
+                  precoDe={precoDe}
+                  transacoes={transacoes}
+                  apelido={apelido}
+                  patrimonio={patrimonio}
+                  lucroPct={lucroPct}
+                  mostrarCartao={mostrarCartao}
+                  setMostrarCartao={setMostrarCartao}
                 />
                 </>
               )}
@@ -591,6 +579,86 @@ function Carteira({
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Alertas, composicao, dividendos e cartao compartilhavel sao uteis mas
+ * secundarios — ficam atras de uma unica revelacao, em vez de 4 caixas
+ * sempre abertas competindo com a carteira em si pela atencao.
+ */
+function FerramentasCarteira({
+  alertas,
+  posicoes,
+  precoDe,
+  transacoes,
+  apelido,
+  patrimonio,
+  lucroPct,
+  mostrarCartao,
+  setMostrarCartao,
+}: {
+  alertas: AlertaPreco[];
+  posicoes: Posicao[];
+  precoDe: (t: string) => Cotacao | null;
+  transacoes: Transacao[];
+  apelido: string;
+  patrimonio: number;
+  lucroPct: number;
+  mostrarCartao: boolean;
+  setMostrarCartao: (fn: (v: boolean) => boolean) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+
+  return (
+    <div className="mt-10 border-t border-[var(--rule)] pt-6">
+      <button
+        onClick={() => setAberto((v) => !v)}
+        className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:text-blue"
+      >
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${aberto ? "rotate-180" : ""}`}
+        />
+        Mais sobre sua carteira
+      </button>
+
+      <AnimatePresence>
+        {aberto && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-5">
+              <PainelAlertas alertas={alertas} />
+              <ComposicaoCarteira posicoes={posicoes} precoDe={precoDe} />
+              <CalendarioDividendos transacoes={transacoes} />
+
+              <div className="mb-8">
+                <button
+                  onClick={() => setMostrarCartao((v) => !v)}
+                  className="flex items-center gap-2 border border-[var(--rule)] px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
+                >
+                  <Share2 size={14} />
+                  {mostrarCartao ? "Esconder cartão" : "Compartilhar desempenho"}
+                </button>
+                {mostrarCartao && (
+                  <div className="mt-4">
+                    <CartaoCompartilhavel
+                      apelido={apelido}
+                      patrimonio={patrimonio}
+                      lucroPct={lucroPct}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
