@@ -90,10 +90,13 @@ export function RendaFixaPainel({ posicoes }: { posicoes: PosicaoRendaFixa[] }) 
             <TrendingUp size={20} className="text-blue" />
             <div>
               <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                CDI hoje (aproximado pela Selic)
+                CDI aproximado
               </p>
               <p className="font-mono text-xl tabular text-ink">
                 {numero(estado.cdi * 100, 2)}% ao ano
+              </p>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                Valor de referência atualizado manualmente, não ao vivo.
               </p>
             </div>
           </div>

@@ -4,63 +4,20 @@
  * % do CDI, igual ao mercado de verdade).
  */
 
-export type ResultadoTaxa =
-  | { ok: true; taxaAnual: number; referencia: string }
-  | { ok: false; motivo: "config" | "erro"; mensagem: string };
+export type ResultadoTaxa = { ok: true; taxaAnual: number; referencia: string };
 
 /**
- * Taxa Selic anual atual. Usamos ela tambem como aproximacao do CDI: as
- * duas andam coladas na vida real (CDI fica ~0,1 ponto percentual abaixo
- * da Selic), e a brapi nao tem uma serie separada e confiavel de CDI no
- * plano gratuito.
+ * Taxa Selic/CDI. O endpoint ao vivo da brapi (/api/v2/prime-rate) exige
+ * plano pago ("FEATURE_NOT_AVAILABLE" no plano gratuito), entao usamos um
+ * valor fixo aproximado, atualizado manualmente aqui de vez em quando.
+ * Nao e ao vivo, mas fica perto o suficiente da taxa real pra fins
+ * educativos.
  */
+const CDI_APROXIMADO = 0.15; // 15% ao ano — atualize aqui quando a Selic mudar
+const CDI_ATUALIZADO_EM = "2026-01";
+
 export async function buscarTaxaCDI(): Promise<ResultadoTaxa> {
-  const token = process.env.BRAPI_TOKEN;
-  if (!token || token.startsWith("cole_aqui")) {
-    return {
-      ok: false,
-      motivo: "config",
-      mensagem: "O token da brapi ainda não foi preenchido no arquivo .env.local.",
-    };
-  }
-
-  try {
-    const resposta = await fetch(
-      `https://brapi.dev/api/v2/prime-rate?country=brazil&historical=false`,
-      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
-    );
-    if (!resposta.ok) {
-      const corpo = await resposta.text().catch(() => "");
-      return {
-        ok: false,
-        motivo: "erro",
-        mensagem: `Não foi possível buscar a taxa de juros agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
-      };
-    }
-
-    const json = await resposta.json();
-    const item = json.prime_rate?.[0] ?? json.results?.[0] ?? json[0];
-    const taxa = Number(
-      item?.value ?? item?.rate ?? item?.mid ?? item?.selic ?? item?.taxa,
-    );
-    const referencia = String(item?.date ?? item?.reference_date ?? "");
-
-    if (!Number.isFinite(taxa) || taxa <= 0) {
-      return {
-        ok: false,
-        motivo: "erro",
-        mensagem: `Não consegui ler a taxa de juros retornada (${JSON.stringify(json).slice(0, 300)}).`,
-      };
-    }
-
-    return { ok: true, taxaAnual: taxa, referencia };
-  } catch (e) {
-    return {
-      ok: false,
-      motivo: "erro",
-      mensagem: `Não foi possível buscar a taxa de juros agora (${e instanceof Error ? e.message : "erro desconhecido"}).`,
-    };
-  }
+  return { ok: true, taxaAnual: CDI_APROXIMADO, referencia: CDI_ATUALIZADO_EM };
 }
 
 export type TituloTesouro = {
