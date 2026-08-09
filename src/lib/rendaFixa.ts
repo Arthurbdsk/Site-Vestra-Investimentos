@@ -30,10 +30,11 @@ export async function buscarTaxaCDI(): Promise<ResultadoTaxa> {
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!resposta.ok) {
+      const corpo = await resposta.text().catch(() => "");
       return {
         ok: false,
         motivo: "erro",
-        mensagem: "Não foi possível buscar a taxa de juros agora.",
+        mensagem: `Não foi possível buscar a taxa de juros agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
       };
     }
 
@@ -48,16 +49,16 @@ export async function buscarTaxaCDI(): Promise<ResultadoTaxa> {
       return {
         ok: false,
         motivo: "erro",
-        mensagem: "Não consegui ler a taxa de juros retornada.",
+        mensagem: `Não consegui ler a taxa de juros retornada (${JSON.stringify(json).slice(0, 300)}).`,
       };
     }
 
     return { ok: true, taxaAnual: taxa, referencia };
-  } catch {
+  } catch (e) {
     return {
       ok: false,
       motivo: "erro",
-      mensagem: "Não foi possível buscar a taxa de juros agora.",
+      mensagem: `Não foi possível buscar a taxa de juros agora (${e instanceof Error ? e.message : "erro desconhecido"}).`,
     };
   }
 }

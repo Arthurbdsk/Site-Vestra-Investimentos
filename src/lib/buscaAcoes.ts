@@ -4,6 +4,8 @@ export type AcaoB3 = {
   preco: number | null;
   variacao: number | null;
   setor: string | null;
+  volume: number | null;
+  valorMercado: number | null;
 };
 
 export type ResultadoBusca =
@@ -55,6 +57,8 @@ export async function buscarAcoesB3(termo: string): Promise<ResultadoBusca> {
       preco: Number.isFinite(Number(s.close)) ? Number(s.close) : null,
       variacao: Number.isFinite(Number(s.change)) ? Number(s.change) : null,
       setor: s.sector ? String(s.sector) : null,
+      volume: Number.isFinite(Number(s.volume)) ? Number(s.volume) : null,
+      valorMercado: Number.isFinite(Number(s.market_cap)) ? Number(s.market_cap) : null,
     }));
 
     // O mercado fracionario duplica cada ticker com um "F" no final

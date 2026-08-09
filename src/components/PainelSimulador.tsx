@@ -12,6 +12,7 @@ import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
 import { RendaFixaPainel, type PosicaoRendaFixa } from "./RendaFixaPainel";
 import { StatusMercado } from "./StatusMercado";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
+import { TabelaAcoes } from "./TabelaAcoes";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -508,6 +509,7 @@ function Explorar({
   const [b3, setB3] = useState<AcaoB3[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erroB3, setErroB3] = useState<string | null>(null);
+  const [visao, setVisao] = useState<"cards" | "tabela">("cards");
 
   useEffect(() => {
     const id = setTimeout(() => setBuscaAtrasada(busca.trim()), 350);
@@ -588,18 +590,43 @@ function Explorar({
         </>
       )}
 
-      <div className="mt-10 flex items-center gap-3">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-          {t ? "Resultados na B3" : "Mais ações da B3"}
-        </p>
-        {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            {t ? "Resultados na B3" : "Mais ações da B3"}
+          </p>
+          {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
+        </div>
+
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setVisao("cards")}
+            className={`px-3 py-1.5 font-mono text-xs transition-colors ${
+              visao === "cards"
+                ? "bg-blue text-onblue"
+                : "border border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+            }`}
+          >
+            Cards
+          </button>
+          <button
+            onClick={() => setVisao("tabela")}
+            className={`px-3 py-1.5 font-mono text-xs transition-colors ${
+              visao === "tabela"
+                ? "bg-blue text-onblue"
+                : "border border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+            }`}
+          >
+            Tabela
+          </button>
+        </div>
       </div>
 
       {erroB3 && (
         <p className="mt-4 text-sm text-ink-muted">{erroB3}</p>
       )}
 
-      {!erroB3 && (
+      {!erroB3 && visao === "cards" && (
         <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
           {restoB3.map((a, i) => (
             <CartaoAcaoB3
@@ -611,6 +638,12 @@ function Explorar({
             />
           ))}
         </ul>
+      )}
+
+      {!erroB3 && visao === "tabela" && restoB3.length > 0 && (
+        <div className="mt-3">
+          <TabelaAcoes acoes={restoB3} aoVerDetalhe={aoVerDetalhe} aoComprar={aoComprar} />
+        </div>
       )}
 
       {!carregando && !erroB3 && populares.length === 0 && restoB3.length === 0 && (
