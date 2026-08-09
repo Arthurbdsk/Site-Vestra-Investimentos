@@ -111,7 +111,7 @@ export async function buscarHistorico(
         data: new Date(Number(p.date) * 1000).toISOString(),
         preco: Number(p.close),
       }))
-      .filter((p) => Number.isFinite(p.preco));
+      .filter((p: PontoSerie) => Number.isFinite(p.preco));
 
     return {
       ok: true,
