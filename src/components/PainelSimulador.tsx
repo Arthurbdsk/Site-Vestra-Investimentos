@@ -13,6 +13,7 @@ import { RendaFixaPainel, type PosicaoRendaFixa } from "./RendaFixaPainel";
 import { StatusMercado } from "./StatusMercado";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { TabelaAcoes } from "./TabelaAcoes";
+import { LogoAcao } from "./LogoAcao";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -370,12 +371,15 @@ function Carteira({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <button
                   onClick={() => aoVerDetalhe(p.ticker)}
-                  className="min-w-[140px] text-left"
+                  className="flex min-w-[140px] items-center gap-2.5 text-left"
                 >
-                  <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-                    {p.ticker}
-                  </p>
-                  <p className="text-xs text-ink-muted">{info?.nome}</p>
+                  <LogoAcao logo={null} ticker={p.ticker} size={28} />
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
+                      {p.ticker}
+                    </p>
+                    <p className="text-xs text-ink-muted">{info?.nome}</p>
+                  </div>
                 </button>
 
                 <MiniGraficoAcao ticker={p.ticker} />
@@ -666,7 +670,7 @@ function CartaoAcaoPopular({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
-  const [dados, setDados] = useState<{ preco: number; variacao: number } | null>(null);
+  const [dados, setDados] = useState<{ preco: number; variacao: number; logo: string | null } | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -678,7 +682,7 @@ function CartaoAcaoPopular({
           (a: AcaoB3) => a.ticker === acao.ticker,
         );
         if (encontrada?.preco != null) {
-          setDados({ preco: encontrada.preco, variacao: encontrada.variacao ?? 0 });
+          setDados({ preco: encontrada.preco, variacao: encontrada.variacao ?? 0, logo: encontrada.logo ?? null });
         }
       })
       .catch(() => {});
@@ -695,14 +699,17 @@ function CartaoAcaoPopular({
       className="bg-paper p-5"
     >
       <div className="flex items-start justify-between gap-4">
-        <button onClick={() => aoVerDetalhe(acao.ticker)} className="text-left">
-          <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-            {acao.ticker}
-          </p>
-          <p className="text-sm text-ink">{acao.nome}</p>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-            {acao.setor}
-          </p>
+        <button onClick={() => aoVerDetalhe(acao.ticker)} className="flex items-start gap-3 text-left">
+          <LogoAcao logo={dados?.logo ?? null} ticker={acao.ticker} />
+          <div>
+            <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
+              {acao.ticker}
+            </p>
+            <p className="text-sm text-ink">{acao.nome}</p>
+            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+              {acao.setor}
+            </p>
+          </div>
         </button>
 
         <div className="text-right">
@@ -761,16 +768,19 @@ function CartaoAcaoB3({
       className="bg-paper p-5"
     >
       <div className="flex items-start justify-between gap-4">
-        <button onClick={() => aoVerDetalhe(acao.ticker)} className="text-left">
-          <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-            {acao.ticker}
-          </p>
-          <p className="text-sm text-ink">{acao.nome}</p>
-          {acao.setor && (
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
-              {acao.setor}
+        <button onClick={() => aoVerDetalhe(acao.ticker)} className="flex items-start gap-3 text-left">
+          <LogoAcao logo={acao.logo} ticker={acao.ticker} />
+          <div>
+            <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
+              {acao.ticker}
             </p>
-          )}
+            <p className="text-sm text-ink">{acao.nome}</p>
+            {acao.setor && (
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+                {acao.setor}
+              </p>
+            )}
+          </div>
         </button>
 
         <div className="text-right">

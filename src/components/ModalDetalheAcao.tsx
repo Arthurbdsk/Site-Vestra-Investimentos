@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, AlertCircle } from "lucide-react";
 import { GraficoPreco } from "./GraficoPreco";
+import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl, numero } from "@/lib/formato";
@@ -12,6 +13,7 @@ type Cabecalho = {
   preco: number | null;
   variacaoDia: number | null;
   setor: string | null;
+  logo: string | null;
 };
 
 type EstadoGrafico =
@@ -46,9 +48,12 @@ export function ModalDetalheAcao({
           preco: a?.preco ?? null,
           variacaoDia: a?.variacao ?? null,
           setor: a?.setor ?? info?.setor ?? null,
+          logo: a?.logo ?? null,
         });
       })
-      .catch(() => setCabecalho({ preco: null, variacaoDia: null, setor: info?.setor ?? null }));
+      .catch(() =>
+        setCabecalho({ preco: null, variacaoDia: null, setor: info?.setor ?? null, logo: null }),
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
@@ -100,11 +105,16 @@ export function ModalDetalheAcao({
               <X size={20} />
             </button>
 
+            <div className="flex items-center gap-3">
+              <LogoAcao logo={cabecalho?.logo ?? null} ticker={ticker} size={40} />
+              <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
               {cabecalho?.setor ?? " "}
             </p>
-            <h2 className="mt-1 font-display text-3xl text-ink">{ticker}</h2>
-            <p className="text-sm text-ink-muted">{info?.nome}</p>
+            <h2 className="font-display text-3xl text-ink">{ticker}</h2>
+              </div>
+            </div>
+            <p className="mt-1 text-sm text-ink-muted">{info?.nome}</p>
 
             <div className="mt-4 flex items-baseline gap-3">
               {cabecalho ? (

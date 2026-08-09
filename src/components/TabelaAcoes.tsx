@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
+import { LogoAcao } from "./LogoAcao";
 import { brl, numero } from "@/lib/formato";
 
 type Coluna = "ticker" | "preco" | "variacao" | "volume" | "valorMercado" | "setor";
@@ -86,13 +87,16 @@ export function TabelaAcoes({
               <td className="px-4 py-3">
                 <button
                   onClick={() => aoVerDetalhe(a.ticker)}
-                  className="text-left"
+                  className="flex items-center gap-2.5 text-left"
                 >
-                  <span className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-blue hover:decoration-blue">
-                    {a.ticker}
-                  </span>
-                  <span className="block max-w-[180px] truncate text-xs text-ink-muted">
-                    {a.nome}
+                  <LogoAcao logo={a.logo} ticker={a.ticker} size={26} />
+                  <span>
+                    <span className="block font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-blue hover:decoration-blue">
+                      {a.ticker}
+                    </span>
+                    <span className="block max-w-[180px] truncate text-xs text-ink-muted">
+                      {a.nome}
+                    </span>
                   </span>
                 </button>
               </td>
