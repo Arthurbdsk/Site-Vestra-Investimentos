@@ -30,6 +30,10 @@ intenção). Use valores exatos abaixo, não aproximações.
 - `font-mono` (IBM Plex Mono) — rótulos em uppercase/tracking largo, números tabulares, badges. Já é o "tom" do site pra metadado (ex: `text-[11px] uppercase tracking-widest`).
 - Nunca usar Inter, system-ui ou qualquer sans-serif default como fonte principal — é a marca mais reconhecível de site genérico feito por IA.
 
+## Duas estéticas, dois lugares
+- **Landing/institucional** (`/`, componentes de marketing como `Hero`, `Manifesto`, `Valores`, `HowItWorks`, `CTASection`): editorial, espaçoso, tipografia grande — as regras abaixo valem à risca aqui.
+- **Simulador logado** (`PainelSimulador` e tudo dentro da área logada): estética deliberadamente **maximalista/densa**, tipo terminal de trading (referência: leaderboard do Investopedia Simulator). Tabelas de verdade (`<table>`), linhas compactas (`py-1.5`/`py-2`), pouco espaço em branco, números tabulares alinhados à direita, cantos retos (sem `rounded-full` em tags/badges). Prefira tabela a lista de cards sempre que houver 3+ colunas de dado (posições, transações, ranking).
+
 ## Regras específicas (o que NÃO fazer)
 - **Sem gradiente/blur decorativo** (bolhas `blur(90px)` soltas no fundo). Já foram removidas do Hero/Manifesto/CTASection de propósito — não trazer de volta.
 - **Sem grid de 3 cards genéricos** (ícone + título + descrição, todos do mesmo tamanho). Prefira listas numeradas, layouts assimétricos (`grid-cols-[1.15fr_0.85fr]` etc.), ou o padrão editorial já usado em `Valores.tsx`/`HowItWorks.tsx`.

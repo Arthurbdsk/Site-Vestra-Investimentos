@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Trophy } from "lucide-react";
-import { brl, pct } from "@/lib/formato";
+import { brl, numero } from "@/lib/formato";
 
 export type RankingLinha = {
   apelido: string;
@@ -23,6 +22,21 @@ const MEDALHAS = [
   { fundo: "#d6d9dc", texto: "#4a4f54" }, // prata
   { fundo: "#dba36a", texto: "#5a3818" }, // bronze
 ];
+
+function Posicao({ posicao }: { posicao: number }) {
+  if (posicao > 3) {
+    return <span className="font-mono text-xs tabular text-ink-muted">{posicao}.</span>;
+  }
+  const m = MEDALHAS[posicao - 1];
+  return (
+    <span
+      className="flex h-5 w-5 items-center justify-center rounded-full"
+      style={{ background: m.fundo, color: m.texto }}
+    >
+      <Trophy size={11} />
+    </span>
+  );
+}
 
 export function RankingPainel({
   ranking,
@@ -65,80 +79,93 @@ export function RankingPainel({
         ranking.length === 0 ? (
           <p className="mt-8 text-ink-muted">Ainda não há dados suficientes pro ranking.</p>
         ) : (
-          <ul className="mt-6 border-t border-[var(--rule)]">
-            {ranking.map((r, i) => (
-              <motion.li
-                key={`${r.posicao}-${r.apelido}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: Math.min(i * 0.02, 0.3) }}
-                className="flex items-center justify-between gap-4 border-b border-[var(--rule)] py-3.5"
-              >
-                <div className="flex items-center gap-4">
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold"
-                    style={
-                      r.posicao <= 3
-                        ? {
-                            background: MEDALHAS[r.posicao - 1].fundo,
-                            color: MEDALHAS[r.posicao - 1].texto,
-                          }
-                        : undefined
-                    }
+          <div className="mt-6 overflow-x-auto border border-[var(--rule)]">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-[var(--rule)] bg-paper-alt">
+                  <th className="w-14 px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Pos.
+                  </th>
+                  <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Investidor
+                  </th>
+                  <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Patrimônio
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranking.map((r) => (
+                  <tr
+                    key={`${r.posicao}-${r.apelido}`}
+                    className="border-b border-[var(--rule)] last:border-b-0 hover:bg-paper-alt"
                   >
-                    {r.posicao <= 3 ? (
-                      <Trophy size={15} />
-                    ) : (
-                      <span className="text-ink-muted">{r.posicao}</span>
-                    )}
-                  </span>
-                  <p className="font-semibold text-ink">{r.apelido}</p>
-                </div>
-                <p className="font-mono text-sm font-semibold tabular text-blue">
-                  {brl(r.patrimonio)}
-                </p>
-              </motion.li>
-            ))}
-          </ul>
+                    <td className="px-3 py-1.5">
+                      <Posicao posicao={r.posicao} />
+                    </td>
+                    <td className="px-3 py-1.5 font-medium text-ink">{r.apelido}</td>
+                    <td className="px-3 py-1.5 text-right font-mono tabular text-ink">
+                      {brl(r.patrimonio)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )
       ) : rankingMensal.length === 0 ? (
         <p className="mt-8 text-ink-muted">
           Ninguém com dados suficientes ainda este mês — volte depois de investir algo.
         </p>
       ) : (
-        <ul className="mt-6 border-t border-[var(--rule)]">
-          {rankingMensal.map((r, i) => (
-            <motion.li
-              key={`${r.posicao}-${r.apelido}`}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: Math.min(i * 0.02, 0.3) }}
-              className="flex items-center justify-between gap-4 border-b border-[var(--rule)] py-3.5"
-            >
-              <div className="flex items-center gap-4">
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center font-mono text-sm font-bold ${
-                    r.posicao <= 3 ? "bg-gold text-blue" : "text-ink-muted"
-                  }`}
+        <div className="mt-6 overflow-x-auto border border-[var(--rule)]">
+          <table className="w-full min-w-[520px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--rule)] bg-paper-alt">
+                <th className="w-14 px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                  Pos.
+                </th>
+                <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                  Investidor
+                </th>
+                <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                  Ganho no mês
+                </th>
+                <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                  Variação
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rankingMensal.map((r) => (
+                <tr
+                  key={`${r.posicao}-${r.apelido}`}
+                  className="border-b border-[var(--rule)] last:border-b-0 hover:bg-paper-alt"
                 >
-                  {r.posicao <= 3 ? <Trophy size={15} /> : r.posicao}
-                </span>
-                <p className="font-semibold text-ink">{r.apelido}</p>
-              </div>
-              <div className="text-right">
-                <p
-                  className={`font-mono text-sm font-semibold tabular ${
-                    r.ganho >= 0 ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {r.ganho >= 0 ? "+" : ""}
-                  {brl(r.ganho)}
-                </p>
-                <p className="font-mono text-xs tabular text-ink-muted">{pct(r.ganhoPct)}</p>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
+                  <td className="px-3 py-1.5">
+                    <Posicao posicao={r.posicao} />
+                  </td>
+                  <td className="px-3 py-1.5 font-medium text-ink">{r.apelido}</td>
+                  <td
+                    className={`px-3 py-1.5 text-right font-mono tabular ${
+                      r.ganho >= 0 ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {r.ganho >= 0 ? "+" : ""}
+                    {brl(r.ganho)}
+                  </td>
+                  <td
+                    className={`px-3 py-1.5 text-right font-mono tabular ${
+                      r.ganhoPct >= 0 ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {r.ganhoPct >= 0 ? "▲" : "▼"} {numero(Math.abs(r.ganhoPct))}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <p className="mt-6 font-mono text-[11px] text-ink-muted">

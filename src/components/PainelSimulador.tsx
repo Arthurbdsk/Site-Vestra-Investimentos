@@ -179,14 +179,14 @@ export function PainelSimulador({
 
       {/* Resumo em azul */}
       <section className="grain relative bg-blue">
-        <div className="relative z-[2] mx-auto max-w-6xl px-6 py-12">
+        <div className="relative z-[2] mx-auto max-w-6xl px-6 py-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
                 Olá, {apelido}
               </p>
               <span
-                className="rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                className="px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
                 style={{ background: `color-mix(in srgb, ${nivel.cor} 22%, transparent)`, color: nivel.cor }}
               >
                 {nivel.nome}
@@ -195,7 +195,7 @@ export function PainelSimulador({
             <StatusMercado />
           </div>
 
-          <div className="mt-6 grid gap-8 sm:grid-cols-3">
+          <div className="mt-5 grid gap-6 sm:grid-cols-3">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
                 Patrimônio total
@@ -279,7 +279,7 @@ export function PainelSimulador({
       </div>
 
       <main className="grain relative min-h-[50vh] flex-1 bg-paper">
-        <div className="mx-auto flex max-w-6xl gap-10 px-6 py-12">
+        <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
           <aside className="hidden w-56 shrink-0 md:block">
             <nav className="sticky top-[76px] space-y-0.5">
               {abas.map(({ id, label, icone: Icone }) => (
@@ -477,87 +477,90 @@ function Carteira({
             Você tem {posicoes.length} {posicoes.length === 1 ? "ação" : "ações"}
           </h2>
 
-          <ul className="mt-6 border-t border-[var(--rule)]">
-        {posicoes.map((p, i) => {
-          const c = precoDe(p.ticker);
-          const preco = c?.preco ?? p.preco_medio;
-          const info = acaoPorTicker(p.ticker);
-          const valor = p.quantidade * preco;
-          const custo = p.quantidade * p.preco_medio;
-          const dif = valor - custo;
-          const difPct = custo > 0 ? (dif / custo) * 100 : 0;
+          <div className="mt-6 overflow-x-auto border border-[var(--rule)]">
+            <table className="w-full min-w-[680px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-[var(--rule)] bg-paper-alt">
+                  <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Ação
+                  </th>
+                  <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Cotas
+                  </th>
+                  <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Preço médio
+                  </th>
+                  <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Preço atual
+                  </th>
+                  <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    Resultado
+                  </th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {posicoes.map((p) => {
+                  const c = precoDe(p.ticker);
+                  const preco = c?.preco ?? p.preco_medio;
+                  const info = acaoPorTicker(p.ticker);
+                  const valor = p.quantidade * preco;
+                  const custo = p.quantidade * p.preco_medio;
+                  const dif = valor - custo;
+                  const difPct = custo > 0 ? (dif / custo) * 100 : 0;
 
-          return (
-            <motion.li
-              key={p.ticker}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="border-b border-[var(--rule)] py-5"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <button
-                  onClick={() => aoVerDetalhe(p.ticker)}
-                  className="flex min-w-[140px] items-center gap-2.5 text-left"
-                >
-                  <LogoAcao logo={null} ticker={p.ticker} size={28} />
-                  <div>
-                    <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-                      {p.ticker}
-                    </p>
-                    <p className="text-xs text-ink-muted">{info?.nome}</p>
-                  </div>
-                </button>
-
-                <MiniGraficoAcao ticker={p.ticker} />
-
-                <div className="text-right">
-                  <p className="font-mono text-xs text-ink-muted">quantas</p>
-                  <p className="font-mono text-sm tabular text-ink">
-                    {p.quantidade}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-mono text-xs text-ink-muted">pagou por cota</p>
-                  <p className="font-mono text-sm tabular text-ink">
-                    {brl(p.preco_medio)}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-mono text-xs text-ink-muted">vale agora</p>
-                  <p className="font-mono text-sm tabular text-ink">{brl(preco)}</p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-mono text-xs text-ink-muted">seu resultado</p>
-                  <p
-                    className={`font-mono text-sm tabular ${
-                      dif >= 0 ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {dif >= 0 ? "+" : ""}
-                    {brl(dif)} ({pct(difPct)})
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => aoVender(p)}
-                  className="border border-[var(--rule)] px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-blue hover:text-blue"
-                >
-                  Vender
-                </button>
-              </div>
-
-              <p className="mt-3 text-xs leading-relaxed text-ink-muted">
-                Você tem {numero(p.quantidade, 0)} {p.quantidade === 1 ? "cota" : "cotas"} que
-                valem {brl(valor)} hoje. Você pagou {brl(custo)} por elas.
-              </p>
-            </motion.li>
-          );
-        })}
-          </ul>
+                  return (
+                    <tr
+                      key={p.ticker}
+                      className="border-b border-[var(--rule)] last:border-b-0 hover:bg-paper-alt"
+                    >
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => aoVerDetalhe(p.ticker)}
+                          className="flex items-center gap-2.5 text-left"
+                        >
+                          <LogoAcao logo={null} ticker={p.ticker} size={24} />
+                          <span>
+                            <span className="block font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-blue hover:decoration-blue">
+                              {p.ticker}
+                            </span>
+                            <span className="block max-w-[160px] truncate text-xs text-ink-muted">
+                              {info?.nome}
+                            </span>
+                          </span>
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono tabular text-ink">
+                        {numero(p.quantidade, 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono tabular text-ink-muted">
+                        {brl(p.preco_medio)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono tabular text-ink">
+                        {brl(preco)}
+                      </td>
+                      <td
+                        className={`px-3 py-2 text-right font-mono tabular ${
+                          dif >= 0 ? "text-emerald-600" : "text-rose-600"
+                        }`}
+                      >
+                        {dif >= 0 ? "+" : ""}
+                        {brl(dif)} ({pct(difPct)})
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => aoVender(p)}
+                          className="border border-[var(--rule)] px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-blue hover:text-blue"
+                        >
+                          Vender
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
@@ -1137,52 +1140,67 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
         </button>
       </div>
 
-      <ul className="mt-6 border-t border-[var(--rule)]">
-        {transacoes.map((t, i) => (
-          <motion.li
-            key={t.id}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: Math.min(i * 0.04, 0.4) }}
-            className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--rule)] py-4"
-          >
-            <div className="flex items-center gap-4">
-              <span
-                className={`px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
-                  t.tipo === "compra"
-                    ? "bg-blue text-onblue"
-                    : t.tipo === "dividendo"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gold text-blue"
-                }`}
-              >
-                {t.tipo}
-              </span>
-              <div>
-                <p className="font-mono text-sm font-semibold text-ink">
-                  {t.ticker}
-                </p>
-                <p className="text-xs text-ink-muted">{dataHora(t.criado_em)}</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-ink-muted">
-              {t.tipo === "dividendo"
-                ? `${t.quantidade} ${t.quantidade === 1 ? "cota" : "cotas"} a ${brl(t.preco)} cada`
-                : `${t.quantidade} ${t.quantidade === 1 ? "cota" : "cotas"} a ${brl(t.preco)}`}
-              {t.tipo === "venda" && t.imposto > 0 && (
-                <span className="ml-2 text-rose-600">
-                  (IR de {brl(t.imposto)})
-                </span>
-              )}
-            </p>
-
-            <p className="font-mono text-sm tabular font-semibold text-ink">
-              {brl(t.tipo === "venda" ? t.total - t.imposto : t.total)}
-            </p>
-          </motion.li>
-        ))}
-      </ul>
+      <div className="mt-6 overflow-x-auto border border-[var(--rule)]">
+        <table className="w-full min-w-[640px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-[var(--rule)] bg-paper-alt">
+              <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Data
+              </th>
+              <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Tipo
+              </th>
+              <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Ação
+              </th>
+              <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Quantidade
+              </th>
+              <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Preço
+              </th>
+              <th className="px-3 py-2 text-right font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {transacoes.map((t) => (
+              <tr key={t.id} className="border-b border-[var(--rule)] last:border-b-0 hover:bg-paper-alt">
+                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs tabular text-ink-muted">
+                  {dataHora(t.criado_em)}
+                </td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+                      t.tipo === "compra"
+                        ? "bg-blue text-onblue"
+                        : t.tipo === "dividendo"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-gold text-blue"
+                    }`}
+                  >
+                    {t.tipo}
+                  </span>
+                </td>
+                <td className="px-3 py-2 font-mono font-semibold text-ink">{t.ticker}</td>
+                <td className="px-3 py-2 text-right font-mono tabular text-ink-muted">
+                  {numero(t.quantidade, 0)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono tabular text-ink-muted">
+                  {brl(t.preco)}
+                  {t.tipo === "venda" && t.imposto > 0 && (
+                    <span className="ml-1.5 text-rose-600">(IR {brl(t.imposto)})</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right font-mono tabular font-semibold text-ink">
+                  {brl(t.tipo === "venda" ? t.total - t.imposto : t.total)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
