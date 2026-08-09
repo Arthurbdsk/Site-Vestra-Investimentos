@@ -6,10 +6,12 @@ import {
   PainelSimulador,
   type Posicao,
   type Transacao,
+  type OrdemPendente,
 } from "@/components/PainelSimulador";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
+import { processarPendencias } from "./processarPendencias";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,11 @@ export default async function SimuladorPage() {
     );
   }
 
-  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes] = await Promise.all([
+  // Executa ordens limitadas que atingiram o preco-alvo, e credita
+  // dividendos novos, antes de buscar o estado atual da carteira.
+  await processarPendencias(user.id);
+
+  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes] = await Promise.all([
     supabase.from("perfis").select("apelido, saldo").eq("id", user.id).single(),
     supabase
       .from("posicoes")
@@ -48,10 +54,15 @@ export default async function SimuladorPage() {
       .order("ticker"),
     supabase
       .from("transacoes")
-      .select("id, ticker, tipo, quantidade, preco, total, criado_em")
+      .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
       .order("criado_em", { ascending: false })
       .limit(50),
     buscarCotacoes(),
+    supabase
+      .from("ordens_pendentes")
+      .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
+      .eq("status", "pendente")
+      .order("criado_em", { ascending: false }),
   ]);
 
   const visitante = user.is_anonymous === true;
@@ -75,7 +86,17 @@ export default async function SimuladorPage() {
     quantidade: Number(t.quantidade),
     preco: Number(t.preco),
     total: Number(t.total),
+    imposto: Number(t.imposto ?? 0),
     criado_em: t.criado_em,
+  }));
+
+  const ordensPendentes: OrdemPendente[] = (ordensRes.data ?? []).map((o) => ({
+    id: o.id,
+    ticker: o.ticker,
+    tipo: o.tipo,
+    quantidade: Number(o.quantidade),
+    precoAlvo: Number(o.preco_alvo),
+    criadoEm: o.criado_em,
   }));
 
   const cotacoes = cotacoesRes.ok ? cotacoesRes.cotacoes : [];
@@ -96,6 +117,7 @@ export default async function SimuladorPage() {
         cotacoes={cotacoes}
         avisoCotacoes={avisoCotacoes}
         visitante={visitante}
+        ordensPendentes={ordensPendentes}
       />
       <Footer />
     </>

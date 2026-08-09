@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, CheckCircle2, AlertCircle, Minus, Plus } from "lucide-react";
-import { comprar, vender } from "@/app/simulador/operacoes";
+import { comprar, vender, criarOrdemLimitada } from "@/app/simulador/operacoes";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl } from "@/lib/formato";
 
@@ -33,6 +33,8 @@ export function ModalOrdem({
 }) {
   const router = useRouter();
   const [qtd, setQtd] = useState(1);
+  const [modo, setModo] = useState<"mercado" | "limitada">("mercado");
+  const [precoAlvo, setPrecoAlvo] = useState(0);
   const [estado, setEstado] = useState<Estado>({ fase: "formulario" });
   const [, iniciar] = useTransition();
 
@@ -45,6 +47,8 @@ export function ModalOrdem({
   useEffect(() => {
     if (ordem) {
       setQtd(1);
+      setModo("mercado");
+      setPrecoAlvo(ordem.preco);
       setEstado({ fase: "formulario" });
     }
   }, [ordem]);
@@ -61,20 +65,31 @@ export function ModalOrdem({
 
   const info = acaoPorTicker(ordem.ticker);
   const comprando = ordem.tipo === "comprar";
-  const custo = qtd * ordem.preco;
+  const limitada = modo === "limitada";
+  const custo = qtd * (limitada ? precoAlvo : ordem.preco);
 
   const maximo = comprando
     ? Math.max(0, Math.floor(ordem.limite / ordem.preco))
     : ordem.limite;
 
-  const passaDoLimite = qtd > maximo;
+  // Numa ordem limitada de compra o preco ainda vai cair ate o alvo, entao
+  // nao faz sentido travar pela sobra de caixa de agora.
+  const passaDoLimite = comprando && limitada ? false : qtd > maximo;
 
   function enviar() {
     setEstado({ fase: "enviando" });
     iniciar(async () => {
-      const r = comprando
-        ? await comprar(ordem!.ticker, qtd)
-        : await vender(ordem!.ticker, qtd);
+      const r =
+        modo === "limitada"
+          ? await criarOrdemLimitada(
+              comprando ? "comprar" : "vender",
+              ordem!.ticker,
+              qtd,
+              precoAlvo,
+            )
+          : comprando
+            ? await comprar(ordem!.ticker, qtd)
+            : await vender(ordem!.ticker, qtd);
       setEstado(
         r.ok
           ? { fase: "feito", mensagem: r.mensagem }
@@ -143,6 +158,50 @@ export function ModalOrdem({
                 </span>
               </div>
 
+              <div className="mt-5 grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => setModo("mercado")}
+                  className={`border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    modo === "mercado"
+                      ? "border-blue bg-blue text-onblue"
+                      : "border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+                  }`}
+                >
+                  A mercado, agora
+                </button>
+                <button
+                  onClick={() => setModo("limitada")}
+                  className={`border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    modo === "limitada"
+                      ? "border-blue bg-blue text-onblue"
+                      : "border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+                  }`}
+                >
+                  Só a um preço-alvo
+                </button>
+              </div>
+
+              {limitada && (
+                <div className="mt-4">
+                  <label className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+                    {comprando ? "Comprar quando cair para" : "Vender quando subir para"}
+                  </label>
+                  <input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    value={precoAlvo}
+                    onChange={(e) => setPrecoAlvo(Math.max(0, Number(e.target.value) || 0))}
+                    className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-3 font-mono text-lg tabular text-ink outline-none focus:border-blue"
+                  />
+                  <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+                    A ordem fica pendente e é executada sozinha na próxima
+                    vez que você abrir o simulador, se o preço já tiver
+                    {comprando ? " caído até esse valor." : " subido até esse valor."}
+                  </p>
+                </div>
+              )}
+
               <div className="mt-6">
                 <label className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
                   Quantas cotas?
@@ -198,13 +257,13 @@ export function ModalOrdem({
               <div className="mt-6 space-y-1.5 bg-paper-alt p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-ink-muted">
-                    {comprando ? "Vai custar" : "Você recebe"}
+                    {limitada ? "Se executar, vai custar" : comprando ? "Vai custar" : "Você recebe"}
                   </span>
                   <span className="font-mono font-semibold tabular text-ink">
                     {brl(custo)}
                   </span>
                 </div>
-                {comprando && (
+                {comprando && !limitada && (
                   <div className="flex justify-between text-sm">
                     <span className="text-ink-muted">Sobra em caixa</span>
                     <span
@@ -236,7 +295,11 @@ export function ModalOrdem({
 
               <button
                 onClick={enviar}
-                disabled={estado.fase === "enviando" || passaDoLimite || maximo < 1}
+                disabled={
+                  estado.fase === "enviando" ||
+                  passaDoLimite ||
+                  (limitada ? precoAlvo <= 0 : maximo < 1)
+                }
                 className={`mt-6 flex w-full items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
                   comprando
                     ? "bg-blue text-onblue hover:bg-blue-deep"
@@ -248,6 +311,8 @@ export function ModalOrdem({
                     <Loader2 size={16} className="animate-spin" />
                     Confirmando
                   </>
+                ) : limitada ? (
+                  `Criar ordem de ${comprando ? "compra" : "venda"}`
                 ) : (
                   `Confirmar ${comprando ? "compra" : "venda"} de ${brl(custo)}`
                 )}

@@ -37,7 +37,7 @@ async function executar(
     };
   }
 
-  const { error } = await supabase.rpc(operacao, {
+  const { data, error } = await supabase.rpc(operacao, {
     p_ticker: ticker,
     p_qtd: quantidade,
     p_preco: preco,
@@ -51,6 +51,15 @@ async function executar(
 
   const total = brl(preco * quantidade);
   const cotas = quantidade === 1 ? "1 cota" : `${quantidade} cotas`;
+  const imposto = Number((data as { imposto?: number } | null)?.imposto ?? 0);
+
+  if (operacao === "vender" && imposto > 0) {
+    const liquido = brl(Number((data as { liquido?: number }).liquido));
+    return {
+      ok: true,
+      mensagem: `Venda feita: ${cotas} de ${ticker} por ${total}. Imposto de renda de ${brl(imposto)} retido (lucro tributável); você recebeu ${liquido} líquido.`,
+    };
+  }
 
   return {
     ok: true,
@@ -67,6 +76,67 @@ export async function comprar(ticker: string, quantidade: number) {
 
 export async function vender(ticker: string, quantidade: number) {
   return executar("vender", ticker, quantidade);
+}
+
+export async function criarOrdemLimitada(
+  tipo: "comprar" | "vender",
+  ticker: string,
+  quantidade: number,
+  precoAlvo: number,
+): Promise<Resultado> {
+  const supabase = await criarClienteServidor();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, mensagem: "Sua sessão expirou. Entre de novo pra continuar." };
+  }
+
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    return { ok: false, mensagem: "Escolha uma quantidade de pelo menos 1 cota." };
+  }
+  if (!Number.isFinite(precoAlvo) || precoAlvo <= 0) {
+    return { ok: false, mensagem: "Escolha um preço-alvo válido." };
+  }
+
+  const { error } = await supabase.rpc("criar_ordem_limitada", {
+    p_ticker: ticker,
+    p_tipo: tipo,
+    p_qtd: quantidade,
+    p_preco_alvo: precoAlvo,
+  });
+
+  if (error) {
+    return { ok: false, mensagem: limparErro(error.message) };
+  }
+
+  revalidatePath("/simulador");
+
+  return {
+    ok: true,
+    mensagem: `Ordem criada: ${tipo === "comprar" ? "comprar" : "vender"} ${quantidade} ${quantidade === 1 ? "cota" : "cotas"} de ${ticker} quando o preço ${tipo === "comprar" ? "cair para" : "subir para"} ${brl(precoAlvo)}.`,
+  };
+}
+
+export async function cancelarOrdemLimitada(id: string): Promise<Resultado> {
+  const supabase = await criarClienteServidor();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, mensagem: "Sua sessão expirou. Entre de novo pra continuar." };
+  }
+
+  const { error } = await supabase.rpc("cancelar_ordem_limitada", { p_id: id });
+
+  if (error) {
+    return { ok: false, mensagem: limparErro(error.message) };
+  }
+
+  revalidatePath("/simulador");
+  return { ok: true, mensagem: "Ordem cancelada." };
 }
 
 /** As mensagens do banco ja vem em portugues; aqui so tiramos o ruido tecnico. */

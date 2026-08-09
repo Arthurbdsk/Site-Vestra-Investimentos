@@ -53,18 +53,26 @@ create policy "posicoes proprias" on public.posicoes
 
 
 -- ------------------------------------------------------------
--- TRANSACOES: historico de tudo que foi comprado e vendido
+-- TRANSACOES: historico de tudo que foi comprado, vendido e
+-- recebido de dividendo
 -- ------------------------------------------------------------
 create table if not exists public.transacoes (
   id          uuid primary key default gen_random_uuid(),
   usuario_id  uuid not null references auth.users(id) on delete cascade,
   ticker      text not null,
-  tipo        text not null check (tipo in ('compra','venda')),
+  tipo        text not null check (tipo in ('compra','venda','dividendo')),
   quantidade  integer not null check (quantidade > 0),
   preco       numeric(14,2) not null check (preco > 0),
   total       numeric(14,2) not null,
+  imposto     numeric(14,2) not null default 0,
   criado_em   timestamptz not null default now()
 );
+
+-- Se a tabela ja existia (de uma versao anterior), garante as colunas novas
+-- e afrouxa o check de tipo pra aceitar 'dividendo'.
+alter table public.transacoes add column if not exists imposto numeric(14,2) not null default 0;
+alter table public.transacoes drop constraint if exists transacoes_tipo_check;
+alter table public.transacoes add constraint transacoes_tipo_check check (tipo in ('compra','venda','dividendo'));
 
 create index if not exists transacoes_usuario_idx
   on public.transacoes(usuario_id, criado_em desc);
@@ -73,6 +81,51 @@ alter table public.transacoes enable row level security;
 
 drop policy if exists "transacoes proprias" on public.transacoes;
 create policy "transacoes proprias" on public.transacoes
+  for select using (auth.uid() = usuario_id);
+
+
+-- ------------------------------------------------------------
+-- ORDENS PENDENTES: ordens limitadas (compra/venda so quando o
+-- preco atingir um alvo), aguardando serem executadas
+-- ------------------------------------------------------------
+create table if not exists public.ordens_pendentes (
+  id           uuid primary key default gen_random_uuid(),
+  usuario_id   uuid not null references auth.users(id) on delete cascade,
+  ticker       text not null,
+  tipo         text not null check (tipo in ('comprar','vender')),
+  quantidade   integer not null check (quantidade > 0),
+  preco_alvo   numeric(14,2) not null check (preco_alvo > 0),
+  status       text not null default 'pendente' check (status in ('pendente','executada','cancelada')),
+  criado_em    timestamptz not null default now(),
+  executada_em timestamptz
+);
+
+create index if not exists ordens_pendentes_usuario_idx
+  on public.ordens_pendentes(usuario_id, status);
+
+alter table public.ordens_pendentes enable row level security;
+
+drop policy if exists "ordens proprias" on public.ordens_pendentes;
+create policy "ordens proprias" on public.ordens_pendentes
+  for select using (auth.uid() = usuario_id);
+
+
+-- ------------------------------------------------------------
+-- DIVIDENDOS CREDITADOS: evita creditar o mesmo pagamento 2x
+-- ------------------------------------------------------------
+create table if not exists public.dividendos_creditados (
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null references auth.users(id) on delete cascade,
+  ticker         text not null,
+  data_pagamento date not null,
+  criado_em      timestamptz not null default now(),
+  unique (usuario_id, ticker, data_pagamento)
+);
+
+alter table public.dividendos_creditados enable row level security;
+
+drop policy if exists "dividendos proprios" on public.dividendos_creditados;
+create policy "dividendos proprios" on public.dividendos_creditados
   for select using (auth.uid() = usuario_id);
 
 
@@ -151,14 +204,23 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- VENDER: devolve o dinheiro, baixa a posicao, registra
+-- VENDER: devolve o dinheiro (ja descontado o IR quando devido),
+-- baixa a posicao, registra.
+--
+-- Regra real simplificada da B3 pra acoes: vendas de ate R$20mil no
+-- mes sao isentas. Passando disso, paga 15% sobre o LUCRO da venda
+-- (nao sobre o valor total). Prejuizo nunca paga imposto.
 -- ------------------------------------------------------------
 create or replace function public.vender(p_ticker text, p_qtd integer, p_preco numeric)
 returns json language plpgsql security definer set search_path = public as $$
 declare
-  v_usuario uuid := auth.uid();
-  v_valor   numeric(14,2);
-  v_pos     public.posicoes%rowtype;
+  v_usuario     uuid := auth.uid();
+  v_valor       numeric(14,2);
+  v_lucro       numeric(14,2);
+  v_vendido_mes numeric(14,2);
+  v_imposto     numeric(14,2) := 0;
+  v_liquido     numeric(14,2);
+  v_pos         public.posicoes%rowtype;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -181,6 +243,18 @@ begin
   end if;
 
   v_valor := round(p_qtd * p_preco, 2);
+  v_lucro := v_valor - round(p_qtd * v_pos.preco_medio, 2);
+
+  select coalesce(sum(total), 0) into v_vendido_mes
+    from public.transacoes
+    where usuario_id = v_usuario and tipo = 'venda'
+      and date_trunc('month', criado_em) = date_trunc('month', now());
+
+  if v_lucro > 0 and (v_vendido_mes + v_valor) > 20000 then
+    v_imposto := round(v_lucro * 0.15, 2);
+  end if;
+
+  v_liquido := v_valor - v_imposto;
 
   if v_pos.quantidade = p_qtd then
     delete from public.posicoes where id = v_pos.id;
@@ -190,10 +264,125 @@ begin
       where id = v_pos.id;
   end if;
 
-  update public.perfis set saldo = saldo + v_valor where id = v_usuario;
+  update public.perfis set saldo = saldo + v_liquido where id = v_usuario;
+
+  insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total, imposto)
+  values (v_usuario, p_ticker, 'venda', p_qtd, p_preco, v_valor, v_imposto);
+
+  return json_build_object('ok', true, 'valor', v_valor, 'imposto', v_imposto, 'liquido', v_liquido);
+end $$;
+
+
+-- ------------------------------------------------------------
+-- ORDEM LIMITADA: cria um pedido pra comprar/vender so quando o
+-- preco atingir o alvo. A execucao em si acontece do lado do site,
+-- chamando comprar()/vender() quando a condicao bate (ver
+-- src/app/simulador/processarPendencias.ts), e so marca aqui como
+-- executada ou cancelada.
+-- ------------------------------------------------------------
+create or replace function public.criar_ordem_limitada(
+  p_ticker text, p_tipo text, p_qtd integer, p_preco_alvo numeric
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_id      uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_tipo not in ('comprar', 'vender') then
+    raise exception 'Tipo de ordem invalido.';
+  end if;
+  if p_qtd is null or p_qtd <= 0 then
+    raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+  if p_preco_alvo is null or p_preco_alvo <= 0 then
+    raise exception 'Preco alvo invalido.';
+  end if;
+
+  insert into public.ordens_pendentes (usuario_id, ticker, tipo, quantidade, preco_alvo)
+  values (v_usuario, p_ticker, p_tipo, p_qtd, p_preco_alvo)
+  returning id into v_id;
+
+  return json_build_object('ok', true, 'id', v_id);
+end $$;
+
+create or replace function public.cancelar_ordem_limitada(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_linhas  integer;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.ordens_pendentes
+    set status = 'cancelada'
+    where id = p_id and usuario_id = v_usuario and status = 'pendente';
+
+  get diagnostics v_linhas = row_count;
+  if v_linhas = 0 then
+    raise exception 'Ordem nao encontrada ou ja nao esta mais pendente.';
+  end if;
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.marcar_ordem_executada(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.ordens_pendentes
+    set status = 'executada', executada_em = now()
+    where id = p_id and usuario_id = v_usuario and status = 'pendente';
+
+  return json_build_object('ok', true);
+end $$;
+
+
+-- ------------------------------------------------------------
+-- CREDITAR DIVIDENDO: soma no saldo, registra no historico. O
+-- unique de dividendos_creditados garante que o mesmo pagamento
+-- nunca e creditado duas vezes.
+-- ------------------------------------------------------------
+create or replace function public.creditar_dividendo(
+  p_ticker text, p_data_pagamento date, p_quantidade integer, p_rate numeric
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_total   numeric(14,2);
+  v_novo_id uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_quantidade is null or p_quantidade <= 0 or p_rate is null or p_rate <= 0 then
+    raise exception 'Dados de dividendo invalidos.';
+  end if;
+
+  insert into public.dividendos_creditados (usuario_id, ticker, data_pagamento)
+  values (v_usuario, p_ticker, p_data_pagamento)
+  on conflict (usuario_id, ticker, data_pagamento) do nothing
+  returning id into v_novo_id;
+
+  if v_novo_id is null then
+    return json_build_object('ok', true, 'creditado', false);
+  end if;
+
+  v_total := round(p_quantidade * p_rate, 2);
+
+  update public.perfis set saldo = saldo + v_total where id = v_usuario;
 
   insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
-  values (v_usuario, p_ticker, 'venda', p_qtd, p_preco, v_valor);
+  values (v_usuario, p_ticker, 'dividendo', p_quantidade, p_rate, v_total);
 
-  return json_build_object('ok', true, 'valor', v_valor);
+  return json_build_object('ok', true, 'creditado', true, 'valor', v_total);
 end $$;

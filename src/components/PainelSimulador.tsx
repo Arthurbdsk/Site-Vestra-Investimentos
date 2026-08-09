@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
+import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
@@ -24,11 +26,21 @@ export type Posicao = {
 export type Transacao = {
   id: string;
   ticker: string;
-  tipo: "compra" | "venda";
+  tipo: "compra" | "venda" | "dividendo";
   quantidade: number;
   preco: number;
   total: number;
+  imposto: number;
   criado_em: string;
+};
+
+export type OrdemPendente = {
+  id: string;
+  ticker: string;
+  tipo: "comprar" | "vender";
+  quantidade: number;
+  precoAlvo: number;
+  criadoEm: string;
 };
 
 type Aba = "carteira" | "explorar" | "e-se" | "noticias" | "historico";
@@ -41,6 +53,7 @@ export function PainelSimulador({
   cotacoes,
   avisoCotacoes,
   visitante = false,
+  ordensPendentes,
 }: {
   apelido: string;
   saldo: number;
@@ -49,6 +62,7 @@ export function PainelSimulador({
   cotacoes: Cotacao[];
   avisoCotacoes: string | null;
   visitante?: boolean;
+  ordensPendentes: OrdemPendente[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -201,6 +215,7 @@ export function PainelSimulador({
               {aba === "carteira" && (
                 <Carteira
                   posicoes={posicoes}
+                  ordensPendentes={ordensPendentes}
                   precoDe={precoDe}
                   aoVerDetalhe={(ticker) => setDetalhe(ticker)}
                   aoVender={async (p) => {
@@ -272,18 +287,20 @@ export function PainelSimulador({
 
 function Carteira({
   posicoes,
+  ordensPendentes,
   precoDe,
   aoVender,
   aoExplorar,
   aoVerDetalhe,
 }: {
   posicoes: Posicao[];
+  ordensPendentes: OrdemPendente[];
   precoDe: (t: string) => Cotacao | null;
   aoVender: (p: Posicao) => void;
   aoExplorar: () => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
-  if (posicoes.length === 0) {
+  if (posicoes.length === 0 && ordensPendentes.length === 0) {
     return (
       <div className="mx-auto max-w-lg py-12 text-center">
         <TrendingUp size={44} className="mx-auto text-blue" />
@@ -308,11 +325,13 @@ function Carteira({
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-ink">
-        Você tem {posicoes.length} {posicoes.length === 1 ? "ação" : "ações"}
-      </h2>
+      {posicoes.length > 0 && (
+        <>
+          <h2 className="font-display text-2xl text-ink">
+            Você tem {posicoes.length} {posicoes.length === 1 ? "ação" : "ações"}
+          </h2>
 
-      <ul className="mt-6 border-t border-[var(--rule)]">
+          <ul className="mt-6 border-t border-[var(--rule)]">
         {posicoes.map((p, i) => {
           const c = precoDe(p.ticker);
           const preco = c?.preco ?? p.preco_medio;
@@ -389,8 +408,72 @@ function Carteira({
             </motion.li>
           );
         })}
-      </ul>
+          </ul>
+        </>
+      )}
+
+      {ordensPendentes.length > 0 && (
+        <div className={posicoes.length > 0 ? "mt-12" : ""}>
+          <h2 className="font-display text-2xl text-ink">
+            {ordensPendentes.length}{" "}
+            {ordensPendentes.length === 1 ? "ordem pendente" : "ordens pendentes"}
+          </h2>
+          <p className="mt-2 text-sm text-ink-muted">
+            Executam sozinhas na próxima vez que você abrir o simulador,
+            assim que o preço atingir o alvo.
+          </p>
+
+          <ul className="mt-6 border-t border-[var(--rule)]">
+            {ordensPendentes.map((o, i) => (
+              <OrdemPendenteLinha key={o.id} ordem={o} delay={i * 0.06} />
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+  );
+}
+
+function OrdemPendenteLinha({ ordem, delay }: { ordem: OrdemPendente; delay: number }) {
+  const [cancelando, setCancelando] = useState(false);
+  const router = useRouter();
+
+  async function cancelar() {
+    setCancelando(true);
+    await cancelarOrdemLimitada(ordem.id);
+    router.refresh();
+  }
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay }}
+      className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--rule)] py-4"
+    >
+      <div className="flex items-center gap-3">
+        <Timer size={16} className="text-gold" />
+        <div>
+          <p className="font-mono text-sm font-semibold text-ink">
+            {ordem.tipo === "comprar" ? "Comprar" : "Vender"} {ordem.ticker}
+          </p>
+          <p className="text-xs text-ink-muted">
+            {ordem.quantidade} {ordem.quantidade === 1 ? "cota" : "cotas"} quando
+            {ordem.tipo === "comprar" ? " cair pra " : " subir pra "}
+            {brl(ordem.precoAlvo)}
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={cancelar}
+        disabled={cancelando}
+        className="flex items-center gap-1.5 border border-[var(--rule)] px-3 py-2 font-mono text-xs text-ink-muted transition-colors hover:border-rose-400 hover:text-rose-600 disabled:opacity-50"
+      >
+        <X size={13} />
+        Cancelar
+      </button>
+    </motion.li>
   );
 }
 
@@ -711,7 +794,9 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
                 className={`px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
                   t.tipo === "compra"
                     ? "bg-blue text-onblue"
-                    : "bg-gold text-blue"
+                    : t.tipo === "dividendo"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-gold text-blue"
                 }`}
               >
                 {t.tipo}
@@ -725,12 +810,18 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
             </div>
 
             <p className="text-sm text-ink-muted">
-              {t.quantidade} {t.quantidade === 1 ? "cota" : "cotas"} a{" "}
-              {brl(t.preco)}
+              {t.tipo === "dividendo"
+                ? `${t.quantidade} ${t.quantidade === 1 ? "cota" : "cotas"} a ${brl(t.preco)} cada`
+                : `${t.quantidade} ${t.quantidade === 1 ? "cota" : "cotas"} a ${brl(t.preco)}`}
+              {t.tipo === "venda" && t.imposto > 0 && (
+                <span className="ml-2 text-rose-600">
+                  (IR de {brl(t.imposto)})
+                </span>
+              )}
             </p>
 
             <p className="font-mono text-sm tabular font-semibold text-ink">
-              {brl(t.total)}
+              {brl(t.tipo === "venda" ? t.total - t.imposto : t.total)}
             </p>
           </motion.li>
         ))}

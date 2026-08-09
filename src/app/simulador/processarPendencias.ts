@@ -1,0 +1,93 @@
+import { criarClienteServidor } from "@/lib/supabase/server";
+import { precoAtualQualquerTicker } from "@/lib/cotacoes";
+import { buscarDividendos } from "@/lib/dividendos";
+
+type OrdemPendente = {
+  id: string;
+  ticker: string;
+  tipo: "comprar" | "vender";
+  quantidade: number;
+  preco_alvo: number;
+};
+
+/**
+ * Roda toda vez que a pagina do simulador carrega: executa ordens
+ * limitadas cujo preco-alvo ja foi atingido, e credita dividendos novos
+ * das acoes que a pessoa tem. Nao ha worker em background (app fica na
+ * Vercel), entao "checar sempre que a pessoa entra na pagina" e o jeito
+ * simples de manter isso vivo sem infraestrutura extra.
+ */
+export async function processarPendencias(usuarioId: string): Promise<void> {
+  const supabase = await criarClienteServidor();
+
+  await Promise.all([
+    processarOrdens(supabase, usuarioId),
+    processarDividendos(supabase, usuarioId),
+  ]);
+}
+
+async function processarOrdens(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  usuarioId: string,
+) {
+  const { data: ordens } = await supabase
+    .from("ordens_pendentes")
+    .select("id, ticker, tipo, quantidade, preco_alvo")
+    .eq("usuario_id", usuarioId)
+    .eq("status", "pendente");
+
+  if (!ordens || ordens.length === 0) return;
+
+  for (const ordem of ordens as OrdemPendente[]) {
+    const preco = await precoAtualQualquerTicker(ordem.ticker);
+    if (preco === null) continue;
+
+    const precoAlvo = Number(ordem.preco_alvo);
+    const atingiu =
+      ordem.tipo === "comprar" ? preco <= precoAlvo : preco >= precoAlvo;
+    if (!atingiu) continue;
+
+    const { error } = await supabase.rpc(ordem.tipo, {
+      p_ticker: ordem.ticker,
+      p_qtd: ordem.quantidade,
+      p_preco: preco,
+    });
+
+    // Se falhar (ex: saldo ou cotas insuficientes agora), deixa
+    // pendente pra tentar de novo na proxima visita.
+    if (!error) {
+      await supabase.rpc("marcar_ordem_executada", { p_id: ordem.id });
+    }
+  }
+}
+
+async function processarDividendos(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  usuarioId: string,
+) {
+  const { data: posicoes } = await supabase
+    .from("posicoes")
+    .select("ticker, quantidade")
+    .eq("usuario_id", usuarioId);
+
+  if (!posicoes || posicoes.length === 0) return;
+
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  for (const pos of posicoes as { ticker: string; quantidade: number }[]) {
+    const dividendos = await buscarDividendos(pos.ticker);
+    for (const d of dividendos) {
+      const dataPagamento = d.dataPagamento.slice(0, 10);
+      if (dataPagamento > hoje) continue;
+
+      await supabase.rpc("creditar_dividendo", {
+        p_ticker: pos.ticker,
+        p_data_pagamento: dataPagamento,
+        p_quantidade: pos.quantidade,
+        p_rate: d.rate,
+      });
+      // O unique de dividendos_creditados garante que repetir essa
+      // chamada em visitas futuras nao credita de novo.
+    }
+  }
+}
