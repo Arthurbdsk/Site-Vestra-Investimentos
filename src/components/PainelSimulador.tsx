@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2 } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -19,6 +19,7 @@ import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { ConquistasFaixa } from "./ConquistasFaixa";
+import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -87,6 +88,7 @@ export function PainelSimulador({
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+  const [mostrarCartao, setMostrarCartao] = useState(false);
 
   const precoDe = useMemo(() => {
     const mapa = new Map(cotacoes.map((c) => [c.ticker, c]));
@@ -282,6 +284,25 @@ export function PainelSimulador({
               {aba === "carteira" && (
                 <>
                 <ConquistasFaixa conquistas={conquistas} />
+
+                <div className="mb-8">
+                  <button
+                    onClick={() => setMostrarCartao((v) => !v)}
+                    className="flex items-center gap-2 border border-[var(--rule)] px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
+                  >
+                    <Share2 size={14} />
+                    {mostrarCartao ? "Esconder cartão" : "Compartilhar desempenho"}
+                  </button>
+                  {mostrarCartao && (
+                    <div className="mt-4">
+                      <CartaoCompartilhavel
+                        apelido={apelido}
+                        patrimonio={patrimonio}
+                        lucroPct={lucroPct}
+                      />
+                    </div>
+                  )}
+                </div>
                 <Carteira
                   posicoes={posicoes}
                   ordensPendentes={ordensPendentes}
