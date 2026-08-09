@@ -30,7 +30,7 @@ export async function buscarNoticias(): Promise<ResultadoNoticias> {
     api_token: token,
     language: "en",
     filter_entities: "true",
-    limit: "12",
+    limit: "3",
   });
 
   try {
@@ -39,10 +39,11 @@ export async function buscarNoticias(): Promise<ResultadoNoticias> {
       { cache: "no-store" },
     );
     if (!resposta.ok) {
+      const corpo = await resposta.text().catch(() => "");
       return {
         ok: false,
         motivo: "erro",
-        mensagem: "Não foi possível buscar as notícias agora. Tente de novo em instantes.",
+        mensagem: `Não foi possível buscar as notícias agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
       };
     }
 
@@ -61,11 +62,11 @@ export async function buscarNoticias(): Promise<ResultadoNoticias> {
       .filter((n: Noticia) => n.titulo && n.url);
 
     return { ok: true, noticias };
-  } catch {
+  } catch (e) {
     return {
       ok: false,
       motivo: "erro",
-      mensagem: "Não foi possível buscar as notícias agora. Tente de novo em instantes.",
+      mensagem: `Não foi possível buscar as notícias agora (${e instanceof Error ? e.message : "erro desconhecido"}).`,
     };
   }
 }
