@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -14,6 +14,9 @@ import { StatusMercado } from "./StatusMercado";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { TabelaAcoes } from "./TabelaAcoes";
 import { LogoAcao } from "./LogoAcao";
+import { RankingPainel, type RankingLinha } from "./RankingPainel";
+import { PopupStreak } from "./PopupStreak";
+import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -47,7 +50,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "e-se" | "noticias" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "e-se" | "noticias" | "ranking" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -59,6 +62,10 @@ export function PainelSimulador({
   visitante = false,
   ordensPendentes,
   posicoesRendaFixa,
+  ranking,
+  diasSeguidos,
+  novoDia,
+  perfilInvestidorDefinido,
 }: {
   apelido: string;
   saldo: number;
@@ -69,6 +76,10 @@ export function PainelSimulador({
   visitante?: boolean;
   ordensPendentes: OrdemPendente[];
   posicoesRendaFixa: PosicaoRendaFixa[];
+  ranking: RankingLinha[];
+  diasSeguidos: number;
+  novoDia: boolean;
+  perfilInvestidorDefinido: boolean;
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -104,6 +115,7 @@ export function PainelSimulador({
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
+    { id: "ranking", label: "Ranking", icone: Trophy },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
 
@@ -283,6 +295,8 @@ export function PainelSimulador({
 
               {aba === "noticias" && <NoticiasFinanceiras />}
 
+              {aba === "ranking" && <RankingPainel ranking={ranking} />}
+
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>
           </AnimatePresence>
@@ -298,6 +312,12 @@ export function PainelSimulador({
           setOrdem({ ticker, preco, tipo: "comprar", limite: saldo, nome });
         }}
       />
+
+      {!perfilInvestidorDefinido ? (
+        <PopupPerfilInvestidor mostrar />
+      ) : (
+        novoDia && <PopupStreak dias={diasSeguidos} />
+      )}
     </>
   );
 }

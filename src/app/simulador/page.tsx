@@ -9,6 +9,7 @@ import {
   type OrdemPendente,
 } from "@/components/PainelSimulador";
 import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
+import type { RankingLinha } from "@/components/RankingPainel";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
@@ -47,9 +48,17 @@ export default async function SimuladorPage() {
   // dividendos novos, antes de buscar o estado atual da carteira.
   await processarPendencias(user.id);
 
-  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes, rendaFixaRes] =
+  const { data: acessoData } = await supabase.rpc("registrar_acesso");
+  const diasSeguidos = Number(acessoData?.diasSeguidos ?? 0);
+  const novoDia = Boolean(acessoData?.novoDia);
+
+  const [perfilRes, posicoesRes, transacoesRes, cotacoesRes, ordensRes, rendaFixaRes, rankingRes] =
     await Promise.all([
-      supabase.from("perfis").select("apelido, saldo").eq("id", user.id).single(),
+      supabase
+        .from("perfis")
+        .select("apelido, saldo, perfil_investidor")
+        .eq("id", user.id)
+        .single(),
       supabase
         .from("posicoes")
         .select("ticker, quantidade, preco_medio")
@@ -70,6 +79,7 @@ export default async function SimuladorPage() {
         .select("id, tipo, nome, valor_investido, taxa_anual, data_aplicacao")
         .eq("resgatado", false)
         .order("criado_em", { ascending: false }),
+      supabase.rpc("ranking", { p_limite: 50 }),
     ]);
 
   const visitante = user.is_anonymous === true;
@@ -79,6 +89,7 @@ export default async function SimuladorPage() {
     : (perfilRes.data?.apelido ?? user.email?.split("@")[0] ?? "investidor");
 
   const saldo = Number(perfilRes.data?.saldo ?? 0);
+  const perfilInvestidorDefinido = Boolean(perfilRes.data?.perfil_investidor);
 
   const posicoes: Posicao[] = (posicoesRes.data ?? []).map((p) => ({
     ticker: p.ticker,
@@ -115,6 +126,14 @@ export default async function SimuladorPage() {
     dataAplicacao: p.data_aplicacao,
   }));
 
+  const ranking: RankingLinha[] = (rankingRes.data ?? []).map(
+    (r: { apelido: string; patrimonio: number | string; posicao: number }) => ({
+      apelido: r.apelido,
+      patrimonio: Number(r.patrimonio),
+      posicao: Number(r.posicao),
+    }),
+  );
+
   const cotacoes = cotacoesRes.ok ? cotacoesRes.cotacoes : [];
   const avisoCotacoes = cotacoesRes.ok
     ? cotacoesRes.doCache
@@ -135,6 +154,10 @@ export default async function SimuladorPage() {
         visitante={visitante}
         ordensPendentes={ordensPendentes}
         posicoesRendaFixa={posicoesRendaFixa}
+        ranking={ranking}
+        diasSeguidos={diasSeguidos}
+        novoDia={novoDia}
+        perfilInvestidorDefinido={perfilInvestidorDefinido}
       />
       <Footer />
     </>

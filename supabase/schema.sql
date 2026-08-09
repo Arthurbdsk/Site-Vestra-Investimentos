@@ -13,11 +13,18 @@ returns numeric language sql immutable as $$ select 100000.00::numeric $$;
 -- PERFIS: um por usuario, guarda o dinheiro ficticio em caixa
 -- ------------------------------------------------------------
 create table if not exists public.perfis (
-  id          uuid primary key references auth.users(id) on delete cascade,
-  apelido     text,
-  saldo       numeric(14,2) not null default saldo_inicial(),
-  criado_em   timestamptz not null default now()
+  id                uuid primary key references auth.users(id) on delete cascade,
+  apelido           text,
+  saldo             numeric(14,2) not null default saldo_inicial(),
+  dias_seguidos     integer not null default 0,
+  ultimo_acesso     date,
+  perfil_investidor text,
+  criado_em         timestamptz not null default now()
 );
+
+alter table public.perfis add column if not exists dias_seguidos integer not null default 0;
+alter table public.perfis add column if not exists ultimo_acesso date;
+alter table public.perfis add column if not exists perfil_investidor text;
 
 alter table public.perfis enable row level security;
 
@@ -491,4 +498,100 @@ begin
   update public.perfis set saldo = saldo + v_valor where id = v_usuario;
 
   return json_build_object('ok', true, 'valor', v_valor, 'dias', v_dias);
+end $$;
+
+
+-- ------------------------------------------------------------
+-- REGISTRAR ACESSO: streak de dias seguidos usando o simulador.
+-- Chamada uma vez por carregamento da pagina (ver
+-- src/app/simulador/processarPendencias.ts). So conta a primeira
+-- visita de cada dia: entrar varias vezes no mesmo dia nao aumenta.
+-- ------------------------------------------------------------
+create or replace function public.registrar_acesso()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_perfil  public.perfis%rowtype;
+  v_novo_dia boolean;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_perfil from public.perfis where id = v_usuario for update;
+  if not found then
+    raise exception 'Perfil nao encontrado.';
+  end if;
+
+  if v_perfil.ultimo_acesso = current_date then
+    v_novo_dia := false;
+  else
+    v_novo_dia := true;
+    if v_perfil.ultimo_acesso = current_date - 1 then
+      update public.perfis
+        set dias_seguidos = dias_seguidos + 1, ultimo_acesso = current_date
+        where id = v_usuario;
+    else
+      update public.perfis
+        set dias_seguidos = 1, ultimo_acesso = current_date
+        where id = v_usuario;
+    end if;
+  end if;
+
+  select dias_seguidos into v_perfil.dias_seguidos
+    from public.perfis where id = v_usuario;
+
+  return json_build_object('ok', true, 'diasSeguidos', v_perfil.dias_seguidos, 'novoDia', v_novo_dia);
+end $$;
+
+
+-- ------------------------------------------------------------
+-- RANKING: top usuarios por patrimonio (saldo + acoes pelo preco
+-- medio + renda fixa pelo valor investido). Usa preco medio em vez do
+-- preco de mercado agora pra nao precisar buscar cotacao de todo mundo
+-- so pra montar o ranking — e uma aproximacao, nao o patrimonio exato
+-- de cada um.
+-- ------------------------------------------------------------
+create or replace function public.ranking(p_limite integer default 50)
+returns table(apelido text, patrimonio numeric, posicao bigint)
+language sql security definer set search_path = public as $$
+  select
+    coalesce(p.apelido, 'Investidor') as apelido,
+    p.saldo
+      + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p.id), 0)
+      + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p.id and resgatado = false), 0)
+      as patrimonio,
+    row_number() over (order by
+      p.saldo
+        + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p.id), 0)
+        + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p.id and resgatado = false), 0)
+      desc
+    ) as posicao
+  from public.perfis p
+  order by patrimonio desc
+  limit p_limite
+$$;
+
+grant execute on function public.ranking(integer) to authenticated;
+
+
+-- ------------------------------------------------------------
+-- DEFINIR PERFIL: guarda o resultado do quiz de perfil de investidor
+-- (conservador/moderado/arrojado), pra so mostrar o pop-up uma vez.
+-- ------------------------------------------------------------
+create or replace function public.definir_perfil_investidor(p_perfil text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_perfil not in ('conservador', 'moderado', 'arrojado') then
+    raise exception 'Perfil invalido.';
+  end if;
+
+  update public.perfis set perfil_investidor = p_perfil where id = v_usuario;
+
+  return json_build_object('ok', true);
 end $$;
