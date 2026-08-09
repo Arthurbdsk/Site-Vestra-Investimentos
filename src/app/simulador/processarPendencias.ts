@@ -10,6 +10,13 @@ type OrdemPendente = {
   preco_alvo: number;
 };
 
+type AlertaPreco = {
+  id: string;
+  ticker: string;
+  direcao: "acima" | "abaixo";
+  preco_alvo: number;
+};
+
 /**
  * Roda toda vez que a pagina do simulador carrega: executa ordens
  * limitadas cujo preco-alvo ja foi atingido, e credita dividendos novos
@@ -23,7 +30,33 @@ export async function processarPendencias(usuarioId: string): Promise<void> {
   await Promise.all([
     processarOrdens(supabase, usuarioId),
     processarDividendos(supabase, usuarioId),
+    processarAlertas(supabase, usuarioId),
   ]);
+}
+
+async function processarAlertas(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  usuarioId: string,
+) {
+  const { data: alertas } = await supabase
+    .from("alertas_preco")
+    .select("id, ticker, direcao, preco_alvo")
+    .eq("usuario_id", usuarioId)
+    .eq("status", "ativo");
+
+  if (!alertas || alertas.length === 0) return;
+
+  for (const alerta of alertas as AlertaPreco[]) {
+    const preco = await precoAtualQualquerTicker(alerta.ticker);
+    if (preco === null) continue;
+
+    const precoAlvo = Number(alerta.preco_alvo);
+    const atingiu =
+      alerta.direcao === "acima" ? preco >= precoAlvo : preco <= precoAlvo;
+    if (!atingiu) continue;
+
+    await supabase.rpc("marcar_alerta_disparado", { p_id: alerta.id });
+  }
 }
 
 async function processarOrdens(

@@ -667,3 +667,104 @@ begin
 
   return json_build_object('ok', true);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- ALERTAS DE PRECO: avisa (dentro do site, nao por e-mail — sem
+-- infraestrutura de envio configurada) quando uma acao bate um preco.
+-- A checagem roda a cada carregamento do simulador (ver
+-- processarPendencias.ts), igual as ordens limitadas.
+-- ------------------------------------------------------------
+create table if not exists public.alertas_preco (
+  id           uuid primary key default gen_random_uuid(),
+  usuario_id   uuid not null references auth.users(id) on delete cascade,
+  ticker       text not null,
+  direcao      text not null check (direcao in ('acima', 'abaixo')),
+  preco_alvo   numeric(14,2) not null check (preco_alvo > 0),
+  status       text not null default 'ativo' check (status in ('ativo', 'disparado', 'cancelado')),
+  visto        boolean not null default false,
+  criado_em    timestamptz not null default now(),
+  disparado_em timestamptz
+);
+
+create index if not exists alertas_preco_usuario_idx
+  on public.alertas_preco(usuario_id, status);
+
+alter table public.alertas_preco enable row level security;
+
+drop policy if exists "alertas proprios" on public.alertas_preco;
+create policy "alertas proprios" on public.alertas_preco
+  for select using (auth.uid() = usuario_id);
+
+create or replace function public.criar_alerta_preco(
+  p_ticker text, p_direcao text, p_preco_alvo numeric
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_id      uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_direcao not in ('acima', 'abaixo') then
+    raise exception 'Direcao invalida.';
+  end if;
+  if p_preco_alvo is null or p_preco_alvo <= 0 then
+    raise exception 'Preco alvo invalido.';
+  end if;
+
+  insert into public.alertas_preco (usuario_id, ticker, direcao, preco_alvo)
+  values (v_usuario, p_ticker, p_direcao, p_preco_alvo)
+  returning id into v_id;
+
+  return json_build_object('ok', true, 'id', v_id);
+end $$;
+
+create or replace function public.cancelar_alerta_preco(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.alertas_preco
+    set status = 'cancelado'
+    where id = p_id and usuario_id = v_usuario and status = 'ativo';
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.marcar_alerta_disparado(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.alertas_preco
+    set status = 'disparado', disparado_em = now()
+    where id = p_id and usuario_id = v_usuario and status = 'ativo';
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.marcar_alerta_visto(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.alertas_preco
+    set visto = true
+    where id = p_id and usuario_id = v_usuario;
+
+  return json_build_object('ok', true);
+end $$;

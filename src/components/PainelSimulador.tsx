@@ -20,6 +20,7 @@ import { PopupStreak } from "./PopupStreak";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
+import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./AlertasPreco";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -71,6 +72,7 @@ export function PainelSimulador({
   diasSeguidos,
   novoDia,
   perfilInvestidorDefinido,
+  alertas,
 }: {
   apelido: string;
   saldo: number;
@@ -86,6 +88,7 @@ export function PainelSimulador({
   diasSeguidos: number;
   novoDia: boolean;
   perfilInvestidorDefinido: boolean;
+  alertas: AlertaPreco[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -155,6 +158,8 @@ export function PainelSimulador({
           </div>
         </div>
       )}
+
+      <BannerAlertasDisparados alertas={alertas} />
 
       {/* Resumo em azul */}
       <section className="grain relative bg-blue">
@@ -286,6 +291,8 @@ export function PainelSimulador({
               {aba === "carteira" && (
                 <>
                 <ConquistasFaixa conquistas={conquistas} />
+
+                <PainelAlertas alertas={alertas} />
 
                 <div className="mb-8">
                   <button

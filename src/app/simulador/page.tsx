@@ -10,6 +10,7 @@ import {
 } from "@/components/PainelSimulador";
 import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
+import type { AlertaPreco } from "@/components/AlertasPreco";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { buscarCotacoes } from "@/lib/cotacoes";
@@ -88,6 +89,21 @@ export default async function SimuladorPage() {
     ]);
 
   const { data: rankingMensalData } = await supabase.rpc("ranking_mensal", { p_limite: 50 });
+
+  const { data: alertasData } = await supabase
+    .from("alertas_preco")
+    .select("id, ticker, direcao, preco_alvo, status, visto")
+    .in("status", ["ativo", "disparado"])
+    .order("criado_em", { ascending: false });
+  const alertas: AlertaPreco[] = (alertasData ?? [])
+    .filter((a) => a.status === "ativo" || !a.visto)
+    .map((a) => ({
+      id: a.id,
+      ticker: a.ticker,
+      direcao: a.direcao,
+      precoAlvo: Number(a.preco_alvo),
+      status: a.status,
+    }));
 
   const visitante = user.is_anonymous === true;
 
@@ -175,6 +191,7 @@ export default async function SimuladorPage() {
         diasSeguidos={diasSeguidos}
         novoDia={novoDia}
         perfilInvestidorDefinido={perfilInvestidorDefinido}
+        alertas={alertas}
       />
       <Footer />
     </>
