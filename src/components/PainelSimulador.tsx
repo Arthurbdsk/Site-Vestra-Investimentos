@@ -207,8 +207,8 @@ export function PainelSimulador({
         </div>
       </section>
 
-      {/* Abas */}
-      <div className="sticky top-[57px] z-30 border-b border-[var(--rule)] bg-paper/95 backdrop-blur-md">
+      {/* Abas — barra horizontal so no celular, sidebar a partir do md */}
+      <div className="sticky top-[57px] z-30 border-b border-[var(--rule)] bg-paper/95 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6">
           {abas.map(({ id, label, icone: Icone }) => (
             <button
@@ -221,7 +221,7 @@ export function PainelSimulador({
               {label}
               {aba === id && (
                 <motion.span
-                  layoutId="aba-ativa"
+                  layoutId="aba-ativa-mobile"
                   className="absolute inset-x-0 bottom-0 h-[3px] bg-gold"
                   transition={{ type: "spring", stiffness: 320, damping: 30 }}
                 />
@@ -232,7 +232,31 @@ export function PainelSimulador({
       </div>
 
       <main className="grain relative min-h-[50vh] flex-1 bg-paper">
-        <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="mx-auto flex max-w-6xl gap-10 px-6 py-12">
+          <aside className="hidden w-56 shrink-0 md:block">
+            <nav className="sticky top-[76px] space-y-0.5">
+              {abas.map(({ id, label, icone: Icone }) => (
+                <button
+                  key={id}
+                  onClick={() => setAba(id)}
+                  className="relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors"
+                  style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+                >
+                  {aba === id && (
+                    <motion.span
+                      layoutId="aba-ativa-sidebar"
+                      className="absolute inset-y-0.5 left-0 w-[3px] bg-gold"
+                      transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                    />
+                  )}
+                  <Icone size={16} className="shrink-0" />
+                  <span className="leading-snug">{label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <div className="min-w-0 flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={aba}
@@ -300,6 +324,7 @@ export function PainelSimulador({
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>
           </AnimatePresence>
+          </div>
         </div>
       </main>
 
