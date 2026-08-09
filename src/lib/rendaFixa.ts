@@ -78,7 +78,7 @@ export async function buscarTesouroDireto(): Promise<ResultadoTesouro> {
   return { ok: true, titulos: TITULOS_TESOURO };
 }
 
-export { TESOURO_ATUALIZADO_EM };
+export { TESOURO_ATUALIZADO_EM, TITULOS_TESOURO };
 
 export type Cdb = {
   id: string;

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -15,6 +15,7 @@ import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { TabelaAcoes } from "./TabelaAcoes";
 import { LogoAcao } from "./LogoAcao";
 import { RankingPainel, type RankingLinha } from "./RankingPainel";
+import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { CountUp } from "./CountUp";
@@ -50,7 +51,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "e-se" | "noticias" | "ranking" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -113,6 +114,7 @@ export function PainelSimulador({
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
+    { id: "planejador", label: "Planejador", icone: Target },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
@@ -314,6 +316,14 @@ export function PainelSimulador({
               )}
 
               {aba === "renda-fixa" && <RendaFixaPainel posicoes={posicoesRendaFixa} />}
+
+              {aba === "planejador" && (
+                <PlanejadorPainel
+                  aoComprar={(ticker, preco, nome) => {
+                    setOrdem({ ticker, preco, tipo: "comprar", limite: saldo, nome });
+                  }}
+                />
+              )}
 
               {aba === "e-se" && <SeTivesseInvestido />}
 
