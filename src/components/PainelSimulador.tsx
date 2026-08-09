@@ -18,10 +18,12 @@ import { RankingPainel, type RankingLinha } from "./RankingPainel";
 import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
+import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CountUp } from "./CountUp";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
+import { calcularConquistas } from "@/lib/conquistas";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
 
@@ -109,6 +111,16 @@ export function PainelSimulador({
   const patrimonio = saldo + valorAtual + valorRendaFixa;
   const lucro = valorAtual - investido;
   const lucroPct = investido > 0 ? (lucro / investido) * 100 : 0;
+
+  const conquistas = calcularConquistas({
+    temCompra: transacoes.some((t) => t.tipo === "compra"),
+    temVenda: transacoes.some((t) => t.tipo === "venda"),
+    temDividendo: transacoes.some((t) => t.tipo === "dividendo"),
+    tickersDistintos: new Set(posicoes.map((p) => p.ticker)).size,
+    temRendaFixa: posicoesRendaFixa.length > 0,
+    diasSeguidos,
+    patrimonio,
+  });
 
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "carteira", label: "Minha carteira", icone: Wallet },
@@ -268,6 +280,8 @@ export function PainelSimulador({
               transition={{ duration: 0.3 }}
             >
               {aba === "carteira" && (
+                <>
+                <ConquistasFaixa conquistas={conquistas} />
                 <Carteira
                   posicoes={posicoes}
                   ordensPendentes={ordensPendentes}
@@ -298,6 +312,7 @@ export function PainelSimulador({
                   }}
                   aoExplorar={() => setAba("explorar")}
                 />
+                </>
               )}
 
               {aba === "explorar" && (
