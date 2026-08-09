@@ -186,13 +186,171 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- COMPRAR: tira do saldo, soma na posicao, registra a transacao.
--- Tudo junto, ou nada. Assim o saldo nunca fica errado.
+-- COTACOES: cache de preco atualizada dentro do proprio banco (via
+-- extensao http, direto na brapi), nunca confiando no preco que o
+-- navegador manda. E o que fecha a brecha de "preco forjado" — comprar
+-- e vender descobrem o preco sozinhos, chamando garantir_cotacao().
 -- ------------------------------------------------------------
-create or replace function public.comprar(p_ticker text, p_qtd integer, p_preco numeric)
-returns json language plpgsql security definer set search_path = public as $$
+create extension if not exists http with schema extensions;
+
+create table if not exists public.ativos_permitidos (
+  ticker text primary key
+);
+
+insert into public.ativos_permitidos (ticker) values
+  ('PETR4'), ('VALE3'), ('ITUB4'), ('BBDC4'), ('BBAS3'), ('ABEV3'),
+  ('WEGE3'), ('MGLU3'), ('B3SA3'), ('RENT3'), ('SUZB3'), ('RAIL3'),
+  ('PRIO3'), ('EQTL3'), ('RADL3'), ('LREN3')
+on conflict (ticker) do nothing;
+
+alter table public.ativos_permitidos enable row level security;
+drop policy if exists "ativos: leitura publica" on public.ativos_permitidos;
+create policy "ativos: leitura publica" on public.ativos_permitidos for select using (true);
+
+create table if not exists public.cotacoes (
+  ticker        text primary key,
+  preco         numeric(14,2) not null,
+  variacao      numeric(6,2) not null default 0,
+  atualizado_em timestamptz not null default now()
+);
+
+alter table public.cotacoes enable row level security;
+drop policy if exists "cotacoes: leitura publica" on public.cotacoes;
+create policy "cotacoes: leitura publica" on public.cotacoes for select using (true);
+
+-- Guarda o token da brapi dentro do banco, nunca exposto por API — sem
+-- policy nenhuma (RLS ligado, zero policies = ninguem le por fora de uma
+-- funcao security definer). Depois de rodar este arquivo, insira o seu
+-- token manualmente uma vez (nao commitar o valor real no repositorio):
+--   insert into public.segredos (chave, valor) values ('brapi_token', 'SEU_TOKEN_AQUI')
+--   on conflict (chave) do update set valor = excluded.valor;
+create table if not exists public.segredos (
+  chave text primary key,
+  valor text not null
+);
+
+alter table public.segredos enable row level security;
+
+create or replace function public.garantir_cotacao(p_ticker text)
+returns numeric language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_token    text;
+  v_preco    numeric;
+  v_idade    interval;
+  v_resposta jsonb;
+  v_variacao numeric;
+begin
+  -- Formato de ticker da B3: 4 letras + 1 ou 2 digitos (ex: PETR4, TAEE11).
+  -- Barra a entrada de lixo antes de gastar uma chamada na fonte.
+  if p_ticker !~ '^[A-Z]{4}[0-9]{1,2}$' then
+    return null;
+  end if;
+
+  select preco, now() - atualizado_em into v_preco, v_idade
+  from public.cotacoes where ticker = p_ticker;
+
+  -- Preco fresco o suficiente, reaproveita.
+  if v_preco is not null and v_idade < interval '5 minutes' then
+    return v_preco;
+  end if;
+
+  select valor into v_token from public.segredos where chave = 'brapi_token';
+  if v_token is null then
+    return v_preco;
+  end if;
+
+  begin
+    select content::jsonb into v_resposta
+    from extensions.http_get(
+      'https://brapi.dev/api/v2/stocks/quote?symbols=' || p_ticker || '&token=' || v_token
+    );
+
+    v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
+    v_variacao := coalesce(
+      (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+
+    if v_preco is not null and v_preco > 0 then
+      insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
+      values (p_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+      on conflict (ticker) do update
+        set preco = excluded.preco, variacao = excluded.variacao,
+            atualizado_em = excluded.atualizado_em;
+      return round(v_preco, 2);
+    end if;
+  exception when others then
+    -- Se a fonte falhar, entrega o ultimo preco conhecido (pode ser null).
+    return v_preco;
+  end;
+
+  return v_preco;
+end $$;
+
+-- Atualiza a cotacao de todos os ativos permitidos de uma vez (chamada
+-- pelo pg_cron a cada 5 minutos em horario de pregao — ver final do
+-- arquivo). No maximo uma vez por minuto, pra nao martelar a brapi.
+create or replace function public.atualizar_cotacoes(p_forcar boolean default false)
+returns integer language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_token     text;
+  v_ticker    text;
+  v_resposta  jsonb;
+  v_preco     numeric;
+  v_variacao  numeric;
+  v_mais_novo timestamptz;
+  v_contador  integer := 0;
+begin
+  select max(atualizado_em) into v_mais_novo from public.cotacoes;
+  if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '60 seconds' then
+    return 0;
+  end if;
+
+  select valor into v_token from public.segredos where chave = 'brapi_token';
+  if v_token is null then
+    raise exception 'Token da brapi nao configurado.';
+  end if;
+
+  for v_ticker in select ticker from public.ativos_permitidos loop
+    begin
+      select content::jsonb into v_resposta
+      from extensions.http_get(
+        'https://brapi.dev/api/v2/stocks/quote?symbols=' || v_ticker || '&token=' || v_token
+      );
+
+      v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
+      v_variacao := coalesce(
+        (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+
+      if v_preco is not null and v_preco > 0 then
+        insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
+        values (v_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+        on conflict (ticker) do update
+          set preco = excluded.preco,
+              variacao = excluded.variacao,
+              atualizado_em = excluded.atualizado_em;
+        v_contador := v_contador + 1;
+      end if;
+    exception when others then
+      -- Um papel que falhou nao derruba os outros. Fica a cotacao anterior.
+      continue;
+    end;
+  end loop;
+
+  return v_contador;
+end $$;
+
+
+-- ------------------------------------------------------------
+-- COMPRAR: tira do saldo, soma na posicao, registra a transacao.
+-- Tudo junto, ou nada. Assim o saldo nunca fica errado. O preco vem de
+-- garantir_cotacao() — nunca do parametro do cliente.
+-- ------------------------------------------------------------
+drop function if exists public.comprar(text, integer, numeric);
+
+create or replace function public.comprar(p_ticker text, p_qtd integer)
+returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_usuario uuid := auth.uid();
+  v_preco   numeric(14,2);
   v_custo   numeric(14,2);
   v_saldo   numeric(14,2);
   v_pos     public.posicoes%rowtype;
@@ -203,11 +361,13 @@ begin
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
   end if;
-  if p_preco is null or p_preco <= 0 then
-    raise exception 'Preco invalido.';
+
+  v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
+  if v_preco is null or v_preco <= 0 then
+    raise exception 'Nao consegui confirmar o preco de %. Tente de novo em instantes.', p_ticker;
   end if;
 
-  v_custo := round(p_qtd * p_preco, 2);
+  v_custo := round(p_qtd * v_preco, 2);
 
   select saldo into v_saldo from public.perfis where id = v_usuario for update;
   if v_saldo is null then
@@ -220,7 +380,7 @@ begin
   update public.perfis set saldo = saldo - v_custo where id = v_usuario;
 
   select * into v_pos from public.posicoes
-    where usuario_id = v_usuario and ticker = p_ticker for update;
+    where usuario_id = v_usuario and ticker = upper(trim(p_ticker)) for update;
 
   if found then
     update public.posicoes set
@@ -231,28 +391,31 @@ begin
     where id = v_pos.id;
   else
     insert into public.posicoes (usuario_id, ticker, quantidade, preco_medio)
-    values (v_usuario, p_ticker, p_qtd, p_preco);
+    values (v_usuario, upper(trim(p_ticker)), p_qtd, v_preco);
   end if;
 
   insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
-  values (v_usuario, p_ticker, 'compra', p_qtd, p_preco, v_custo);
+  values (v_usuario, upper(trim(p_ticker)), 'compra', p_qtd, v_preco, v_custo);
 
-  return json_build_object('ok', true, 'custo', v_custo, 'saldo', v_saldo - v_custo);
+  return json_build_object('ok', true, 'preco', v_preco, 'custo', v_custo, 'saldo', v_saldo - v_custo);
 end $$;
 
 
 -- ------------------------------------------------------------
 -- VENDER: devolve o dinheiro (ja descontado o IR quando devido),
--- baixa a posicao, registra.
+-- baixa a posicao, registra. Preco tambem vem de garantir_cotacao().
 --
 -- Regra real simplificada da B3 pra acoes: vendas de ate R$20mil no
 -- mes sao isentas. Passando disso, paga 15% sobre o LUCRO da venda
 -- (nao sobre o valor total). Prejuizo nunca paga imposto.
 -- ------------------------------------------------------------
-create or replace function public.vender(p_ticker text, p_qtd integer, p_preco numeric)
-returns json language plpgsql security definer set search_path = public as $$
+drop function if exists public.vender(text, integer, numeric);
+
+create or replace function public.vender(p_ticker text, p_qtd integer)
+returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_usuario     uuid := auth.uid();
+  v_preco       numeric(14,2);
   v_valor       numeric(14,2);
   v_lucro       numeric(14,2);
   v_vendido_mes numeric(14,2);
@@ -266,12 +429,14 @@ begin
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
   end if;
-  if p_preco is null or p_preco <= 0 then
-    raise exception 'Preco invalido.';
+
+  v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
+  if v_preco is null or v_preco <= 0 then
+    raise exception 'Nao consegui confirmar o preco de %. Tente de novo em instantes.', p_ticker;
   end if;
 
   select * into v_pos from public.posicoes
-    where usuario_id = v_usuario and ticker = p_ticker for update;
+    where usuario_id = v_usuario and ticker = upper(trim(p_ticker)) for update;
 
   if not found then
     raise exception 'Voce nao tem % na carteira.', p_ticker;
@@ -280,7 +445,7 @@ begin
     raise exception 'Voce tem apenas % cotas de %.', v_pos.quantidade, p_ticker;
   end if;
 
-  v_valor := round(p_qtd * p_preco, 2);
+  v_valor := round(p_qtd * v_preco, 2);
   v_lucro := v_valor - round(p_qtd * v_pos.preco_medio, 2);
 
   select coalesce(sum(total), 0) into v_vendido_mes
@@ -305,9 +470,20 @@ begin
   update public.perfis set saldo = saldo + v_liquido where id = v_usuario;
 
   insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total, imposto)
-  values (v_usuario, p_ticker, 'venda', p_qtd, p_preco, v_valor, v_imposto);
+  values (v_usuario, upper(trim(p_ticker)), 'venda', p_qtd, v_preco, v_valor, v_imposto);
 
-  return json_build_object('ok', true, 'valor', v_valor, 'imposto', v_imposto, 'liquido', v_liquido);
+  return json_build_object('ok', true, 'preco', v_preco, 'valor', v_valor, 'imposto', v_imposto, 'liquido', v_liquido);
+end $$;
+
+-- Agenda a atualizacao automatica das cotacoes a cada 5 minutos, em
+-- horario de pregao da B3 (10h-21h, seg-sex). Exige a extensao pg_cron
+-- habilitada no projeto (Database > Extensions, no painel do Supabase).
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'atualizar-cotacoes';
+    perform cron.schedule('atualizar-cotacoes', '*/5 10-21 * * 1-5', 'select public.atualizar_cotacoes(true)');
+  end if;
 end $$;
 
 

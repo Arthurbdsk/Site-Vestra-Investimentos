@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { precoAtualQualquerTicker } from "@/lib/cotacoes";
 import { brl } from "@/lib/formato";
 
 export type Resultado =
@@ -27,20 +26,13 @@ async function executar(
     return { ok: false, mensagem: "Escolha uma quantidade de pelo menos 1 cota." };
   }
 
-  // O preco vem da fonte, no servidor. O navegador nunca decide o valor.
-  // Um ticker invalido tambem cai aqui, ja que a busca simplesmente falha.
-  const preco = await precoAtualQualquerTicker(ticker);
-  if (preco === null) {
-    return {
-      ok: false,
-      mensagem: "Não consegui confirmar o preço dessa ação agora. Tente de novo em instantes.",
-    };
-  }
-
+  // O preco e descoberto inteiramente dentro do banco (garantir_cotacao),
+  // a partir de uma cache atualizada direto na B3. O navegador nunca
+  // decide o valor, nem manda ele pra RPC — fecha a brecha de preco
+  // forjado por chamada direta a funcao.
   const { data, error } = await supabase.rpc(operacao, {
     p_ticker: ticker,
     p_qtd: quantidade,
-    p_preco: preco,
   });
 
   if (error) {
@@ -49,6 +41,7 @@ async function executar(
 
   revalidatePath("/simulador");
 
+  const preco = Number((data as { preco?: number } | null)?.preco ?? 0);
   const total = brl(preco * quantidade);
   const cotas = quantidade === 1 ? "1 cota" : `${quantidade} cotas`;
   const imposto = Number((data as { imposto?: number } | null)?.imposto ?? 0);

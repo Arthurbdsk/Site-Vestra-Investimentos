@@ -80,10 +80,11 @@ async function processarOrdens(
       ordem.tipo === "comprar" ? preco <= precoAlvo : preco >= precoAlvo;
     if (!atingiu) continue;
 
+    // O preco de execucao e confirmado de novo dentro do banco
+    // (garantir_cotacao), nao pelo que foi lido aqui so pra checar o alvo.
     const { error } = await supabase.rpc(ordem.tipo, {
       p_ticker: ordem.ticker,
       p_qtd: ordem.quantidade,
-      p_preco: preco,
     });
 
     // Se falhar (ex: saldo ou cotas insuficientes agora), deixa
