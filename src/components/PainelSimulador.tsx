@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
+import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
 import { MiniGraficoAcao } from "./MiniGraficoAcao";
 import { CountUp } from "./CountUp";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
@@ -30,7 +31,7 @@ export type Transacao = {
   criado_em: string;
 };
 
-type Aba = "carteira" | "explorar" | "e-se" | "historico";
+type Aba = "carteira" | "explorar" | "e-se" | "noticias" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -74,6 +75,7 @@ export function PainelSimulador({
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
+    { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
 
@@ -244,6 +246,8 @@ export function PainelSimulador({
               )}
 
               {aba === "e-se" && <SeTivesseInvestido />}
+
+              {aba === "noticias" && <NoticiasFinanceiras />}
 
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>

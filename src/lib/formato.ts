@@ -36,3 +36,20 @@ export function dataHora(iso: string): string {
     minute: "2-digit",
   });
 }
+
+/** "ha 5 minutos", "ha 3 horas", ou a data curta se ja faz mais de 1 dia. */
+export function tempoRelativo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutos = Math.floor(diffMs / 60_000);
+
+  if (minutos < 1) return "agora mesmo";
+  if (minutos < 60) return `há ${minutos} min`;
+
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `há ${horas}h`;
+
+  const dias = Math.floor(horas / 24);
+  if (dias < 7) return `há ${dias}d`;
+
+  return data(iso);
+}
