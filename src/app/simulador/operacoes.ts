@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { precoAtualQualquerTicker } from "@/lib/cotacoes";
-import { assinarPreco } from "@/lib/assinaturaPreco";
 import { brl } from "@/lib/formato";
 
 export type Resultado =
@@ -38,18 +37,10 @@ async function executar(
     };
   }
 
-  // Assinamos o preco pra fechar uma brecha real: chamar esse RPC direto
-  // (por fora do site, com o proprio token de sessao do usuario) permitia
-  // mandar qualquer p_preco. O banco recalcula essa assinatura com o mesmo
-  // segredo e rejeita se nao bater ou se a cotacao ja tiver expirado.
-  const assinada = assinarPreco(ticker, preco);
-
   const { error } = await supabase.rpc(operacao, {
     p_ticker: ticker,
     p_qtd: quantidade,
-    p_preco_texto: assinada.precoTexto,
-    p_expira_em: assinada.expiraEm,
-    p_assinatura: assinada.assinatura,
+    p_preco: preco,
   });
 
   if (error) {
