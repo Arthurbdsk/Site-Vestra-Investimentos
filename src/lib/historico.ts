@@ -45,12 +45,16 @@ export async function buscarHistorico(
   }
 
   const t = ticker.trim().toUpperCase();
-  // "1 dia" precisa de granularidade intraday; o resto usa fechamento diario.
-  const interval = periodo === "1d" ? "15m" : "1d";
+  // "1 dia" precisa de granularidade intraday. Pedimos 5 dias pra sempre
+  // cair num pregao de verdade (fim de semana/feriado deixaria "hoje" vazio)
+  // e depois filtramos só o ultimo dia que tem dado.
+  const intraday = periodo === "1d";
+  const rangeConsulta = intraday ? "5d" : periodo;
+  const interval = intraday ? "15m" : "1d";
 
   try {
     const resposta = await fetch(
-      `https://brapi.dev/api/quote/${t}?range=${periodo}&interval=${interval}`,
+      `https://brapi.dev/api/quote/${t}?range=${rangeConsulta}&interval=${interval}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!resposta.ok) {
@@ -63,8 +67,26 @@ export async function buscarHistorico(
 
     const json = await resposta.json();
     const r = json.results?.[0];
-    const serie = r?.historicalDataPrice;
-    if (!Array.isArray(serie) || serie.length < 2) {
+    let serie = r?.historicalDataPrice;
+    if (!Array.isArray(serie) || serie.length === 0) {
+      return {
+        ok: false,
+        motivo: "erro",
+        mensagem: "Não há histórico suficiente pra essa ação nesse período.",
+      };
+    }
+
+    if (intraday) {
+      const ultimoDia = new Date(
+        Number(serie[serie.length - 1].date) * 1000,
+      ).toDateString();
+      serie = serie.filter(
+        (p: Record<string, unknown>) =>
+          new Date(Number(p.date) * 1000).toDateString() === ultimoDia,
+      );
+    }
+
+    if (serie.length < 2) {
       return {
         ok: false,
         motivo: "erro",
