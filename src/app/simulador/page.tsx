@@ -114,6 +114,7 @@ export default async function SimuladorPage() {
     }
   });
 
+
   const diasSeguidos = Number(acessoRes.data?.diasSeguidos ?? 0);
   const novoDia = Boolean(acessoRes.data?.novoDia);
 
@@ -143,6 +144,23 @@ export default async function SimuladorPage() {
   const perfilInvestidorDefinido =
     Boolean(perfilRes.data?.perfil_investidor) ||
     Boolean(perfilRes.data?.quiz_perfil_visto_em);
+
+  // Se o quiz vai aparecer agora, ja registra aqui que perguntamos.
+  //
+  // O popup tambem avisa ao ser fechado, mas isso depende de a pessoa
+  // esperar a resposta do servidor: quem clica em "pular" e fecha a aba
+  // na hora perde a gravacao, e o quiz voltaria na visita seguinte.
+  // Marcando no servidor, ninguem e perguntado duas vezes. Quem quiser
+  // responder depois acha o teste em /conta.
+  if (!perfilInvestidorDefinido) {
+    after(async () => {
+      try {
+        await supabase.rpc("marcar_quiz_perfil_visto");
+      } catch {
+        // Nao pode atrapalhar quem ja recebeu a pagina.
+      }
+    });
+  }
 
   const posicoes: Posicao[] = (posicoesRes.data ?? []).map((p) => ({
     ticker: p.ticker,
