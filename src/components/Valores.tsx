@@ -8,21 +8,25 @@ const principios = [
     titulo: "Conhecimento não pode ter porteiro",
     texto:
       "Se você precisar de um dicionário pra entender a gente, o erro é nosso. Aqui se fala português.",
+    cor: "var(--color-teal)",
   },
   {
     titulo: "Errar aqui não custa nada",
     texto:
       "Você treina com dinheiro fictício. O erro vira aprendizado em vez de virar prejuízo.",
+    cor: "var(--color-coral)",
   },
   {
     titulo: "Começar pequeno já é começar",
     texto:
       "Ninguém precisa esperar sobrar muito. O que muda um futuro é a constância, não o tamanho do primeiro passo.",
+    cor: "var(--color-violet)",
   },
   {
     titulo: "A gente não vende sonho",
     texto:
       "Sem fórmula secreta, sem promessa de ficar rico rápido. Só o que é real, dito de forma clara.",
+    cor: "var(--color-sky)",
   },
 ];
 
@@ -34,7 +38,7 @@ export function Valores() {
           {/* Missao, fica parada enquanto os principios passam */}
           <div className="md:sticky md:top-28 md:self-start">
             <Surge>
-              <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue">
+              <span className="bg-teal px-2 py-1 font-mono text-[11px] font-semibold text-onblue">
                 02
               </span>
             </Surge>
@@ -71,7 +75,10 @@ export function Valores() {
                 className="grupo border-b border-[var(--rule)] py-8 transition-colors hover:bg-paper"
               >
                 <div className="flex gap-6">
-                  <span className="mt-1 font-mono text-xs tabular text-blue">
+                  <span
+                    className="mt-1 font-mono text-xs tabular font-semibold"
+                    style={{ color: p.cor }}
+                  >
                     0{i + 1}
                   </span>
                   <div>

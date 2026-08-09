@@ -5,6 +5,7 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { LogoAcao } from "./LogoAcao";
 import { brl, numero } from "@/lib/formato";
+import { corDoSetor } from "@/lib/coresSetor";
 
 type Coluna = "ticker" | "preco" | "variacao" | "volume" | "valorMercado" | "setor";
 
@@ -122,7 +123,12 @@ export function TabelaAcoes({
               <td className="px-4 py-3 text-right font-mono tabular text-ink-muted">
                 {a.valorMercado != null ? `R$ ${compacto(a.valorMercado)}` : "—"}
               </td>
-              <td className="px-4 py-3 text-xs text-ink-muted">{a.setor ?? "—"}</td>
+              <td
+                className="px-4 py-3 text-xs font-medium"
+                style={{ color: a.setor ? corDoSetor(a.setor) : "var(--color-ink-muted)" }}
+              >
+                {a.setor ?? "—"}
+              </td>
               <td className="px-4 py-3 text-right">
                 <button
                   onClick={() => a.preco != null && aoComprar(a.ticker, a.preco, a.nome)}

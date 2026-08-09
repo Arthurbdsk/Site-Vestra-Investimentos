@@ -8,6 +8,7 @@ import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl, numero } from "@/lib/formato";
+import { corDoSetor } from "@/lib/coresSetor";
 
 type Cabecalho = {
   preco: number | null;
@@ -108,8 +109,13 @@ export function ModalDetalheAcao({
             <div className="flex items-center gap-3">
               <LogoAcao logo={cabecalho?.logo ?? null} ticker={ticker} size={40} />
               <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
-              {cabecalho?.setor ?? " "}
+            <p
+              className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
+              style={{
+                color: cabecalho?.setor ? corDoSetor(cabecalho.setor) : "var(--color-ink-muted)",
+              }}
+            >
+              {cabecalho?.setor ??" "}
             </p>
             <h2 className="font-display text-3xl text-ink">{ticker}</h2>
               </div>

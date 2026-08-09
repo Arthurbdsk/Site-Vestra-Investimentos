@@ -49,7 +49,7 @@ export function HowItWorks() {
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 flex items-center gap-4">
-          <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue">
+          <span className="bg-violet px-2 py-1 font-mono text-[11px] font-semibold text-onblue">
             04
           </span>
           <span className="h-px flex-1 bg-[var(--rule)]" />
@@ -68,7 +68,7 @@ export function HowItWorks() {
                   <button
                     onClick={() => setAtivo(i)}
                     className="group relative w-full border-l-[3px] py-5 pl-6 text-left transition-colors"
-                    style={{ borderColor: on ? "var(--color-gold)" : "var(--rule)" }}
+                    style={{ borderColor: on ? "var(--color-violet)" : "var(--rule)" }}
                   >
                     {on && (
                       <motion.span
@@ -80,7 +80,7 @@ export function HowItWorks() {
                     <div className="flex items-baseline gap-3">
                       <span
                         className={`font-mono text-xs tabular transition-colors ${
-                          on ? "text-blue" : "text-ink-muted"
+                          on ? "text-violet" : "text-ink-muted"
                         }`}
                       >
                         0{i + 1}
@@ -114,7 +114,7 @@ export function HowItWorks() {
                         initial={{ scaleY: 0 }}
                         animate={{ scaleY: 1 }}
                         transition={{ duration: 4.2, ease: "linear" }}
-                        className="absolute -left-[3px] top-0 h-full w-[3px] origin-top bg-blue"
+                        className="absolute -left-[3px] top-0 h-full w-[3px] origin-top bg-violet"
                       />
                     )}
                   </button>

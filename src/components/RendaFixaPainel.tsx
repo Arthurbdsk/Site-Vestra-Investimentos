@@ -212,7 +212,7 @@ function CdbCartao({
       className="bg-paper p-5"
     >
       <div className="flex items-start gap-3">
-        <Landmark size={18} className="mt-0.5 shrink-0 text-blue" />
+        <Landmark size={18} className="mt-0.5 shrink-0 text-teal" />
         <div>
           <p className="font-semibold text-ink">{cdb.banco}</p>
           <p className="text-sm text-ink-muted">
@@ -221,7 +221,7 @@ function CdbCartao({
           </p>
         </div>
       </div>
-      <p className="mt-3 font-mono text-lg tabular text-blue">
+      <p className="mt-3 font-mono text-lg tabular text-teal">
         {numero(taxaAnual * 100, 2)}% ao ano
       </p>
       <FormularioInvestir

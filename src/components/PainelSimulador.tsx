@@ -26,6 +26,7 @@ import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
+import { corDoSetor } from "@/lib/coresSetor";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
 
@@ -808,7 +809,10 @@ function CartaoAcaoPopular({
               {acao.ticker}
             </p>
             <p className="text-sm text-ink">{acao.nome}</p>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+            <p
+              className="font-mono text-[11px] font-medium uppercase tracking-wider"
+              style={{ color: corDoSetor(acao.setor) }}
+            >
               {acao.setor}
             </p>
           </div>
@@ -878,7 +882,10 @@ function CartaoAcaoB3({
             </p>
             <p className="text-sm text-ink">{acao.nome}</p>
             {acao.setor && (
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">
+              <p
+                className="font-mono text-[11px] font-medium uppercase tracking-wider"
+                style={{ color: corDoSetor(acao.setor) }}
+              >
                 {acao.setor}
               </p>
             )}

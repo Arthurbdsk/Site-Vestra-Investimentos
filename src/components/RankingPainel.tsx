@@ -18,6 +18,12 @@ export type RankingMensalLinha = {
   posicao: number;
 };
 
+const MEDALHAS = [
+  { fundo: "#f5d371", texto: "#5c4400" }, // ouro
+  { fundo: "#d6d9dc", texto: "#4a4f54" }, // prata
+  { fundo: "#dba36a", texto: "#5a3818" }, // bronze
+];
+
 export function RankingPainel({
   ranking,
   rankingMensal,
@@ -70,11 +76,21 @@ export function RankingPainel({
               >
                 <div className="flex items-center gap-4">
                   <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center font-mono text-sm font-bold ${
-                      r.posicao <= 3 ? "bg-gold text-blue" : "text-ink-muted"
-                    }`}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold"
+                    style={
+                      r.posicao <= 3
+                        ? {
+                            background: MEDALHAS[r.posicao - 1].fundo,
+                            color: MEDALHAS[r.posicao - 1].texto,
+                          }
+                        : undefined
+                    }
                   >
-                    {r.posicao <= 3 ? <Trophy size={15} /> : r.posicao}
+                    {r.posicao <= 3 ? (
+                      <Trophy size={15} />
+                    ) : (
+                      <span className="text-ink-muted">{r.posicao}</span>
+                    )}
                   </span>
                   <p className="font-semibold text-ink">{r.apelido}</p>
                 </div>

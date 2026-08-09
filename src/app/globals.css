@@ -12,6 +12,12 @@
   --color-gold: #f5a623;
   --color-gold-soft: #f5c56a;
 
+  /* Acentos extras, usados com moderação pra tirar o site do bicromático */
+  --color-teal: #1f7a6c;
+  --color-coral: #d1603d;
+  --color-violet: #6b5b9a;
+  --color-sky: #2f6690;
+
   /* Texto sobre branco */
   --color-ink: #0f2d44;
   --color-ink-muted: #5c666f;
@@ -32,6 +38,10 @@
   --color-blue-deep: var(--color-blue-deep);
   --color-gold: var(--color-gold);
   --color-gold-soft: var(--color-gold-soft);
+  --color-teal: var(--color-teal);
+  --color-coral: var(--color-coral);
+  --color-violet: var(--color-violet);
+  --color-sky: var(--color-sky);
   --color-ink: var(--color-ink);
   --color-ink-muted: var(--color-ink-muted);
   --color-onblue: var(--color-onblue);
