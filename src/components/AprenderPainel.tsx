@@ -2,13 +2,14 @@
 
 import { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Newspaper, Calculator, ChevronDown } from "lucide-react";
+import { BookOpen, Newspaper, Calculator, ChevronDown, UserCheck } from "lucide-react";
 import { GLOSSARIO } from "@/lib/glossario";
 import { ARTIGOS } from "@/lib/artigos";
 import { caminhoSuave } from "@/lib/svgPath";
 import { brl } from "@/lib/formato";
+import { QuizPerfil } from "./QuizPerfil";
 
-type Aba = "dicionario" | "artigos" | "calculadora";
+type Aba = "dicionario" | "artigos" | "calculadora" | "perfil";
 
 export function AprenderPainel() {
   const [aba, setAba] = useState<Aba>("dicionario");
@@ -17,6 +18,7 @@ export function AprenderPainel() {
     { id: "dicionario", label: "Dicionário", icone: BookOpen },
     { id: "artigos", label: "Artigos", icone: Newspaper },
     { id: "calculadora", label: "Calculadora", icone: Calculator },
+    { id: "perfil", label: "Seu perfil", icone: UserCheck },
   ];
 
   return (
@@ -67,6 +69,7 @@ export function AprenderPainel() {
             {aba === "dicionario" && <Dicionario />}
             {aba === "artigos" && <Artigos />}
             {aba === "calculadora" && <CalculadoraJuros />}
+            {aba === "perfil" && <QuizPerfil />}
           </motion.div>
         </AnimatePresence>
       </div>
