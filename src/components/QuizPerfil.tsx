@@ -33,10 +33,10 @@ export function QuizPerfil() {
   if (resultado) {
     return (
       <div>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-gold-soft">
           Seu perfil é
         </p>
-        <h2 className="mt-1 font-display text-3xl text-ink">{resultado.nome}</h2>
+        <h2 className="mt-1 font-display text-4xl font-bold text-blue">{resultado.nome}</h2>
         <p className="mt-4 max-w-xl border-l-[3px] border-gold pl-5 leading-relaxed text-ink-muted">
           {resultado.descricao}
         </p>

@@ -116,20 +116,25 @@ function Dicionario() {
       />
 
       <ul className="mt-6 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-        {lista.map((g, i) => (
-          <motion.li
-            key={g.termo}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(i * 0.03, 0.4) }}
-            className="bg-paper p-5"
-          >
-            <p className="font-display text-lg text-ink">{g.termo}</p>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              {g.definicao}
-            </p>
-          </motion.li>
-        ))}
+        {lista.map((g, i) => {
+          const cor = i % 2 === 0 ? "border-blue" : "border-gold";
+          return (
+            <motion.li
+              key={g.termo}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.03, 0.4) }}
+              className={`border-l-4 bg-paper p-5 ${cor}`}
+            >
+              <p className={`font-display text-xl font-bold ${i % 2 === 0 ? "text-blue" : "text-ink"}`}>
+                {g.termo}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                {g.definicao}
+              </p>
+            </motion.li>
+          );
+        })}
       </ul>
 
       {lista.length === 0 && (
@@ -170,16 +175,33 @@ function Artigos() {
           Voltar pros artigos
         </button>
 
-        <h2 className="mt-6 font-display text-3xl text-ink">{artigo.titulo}</h2>
+        <h2 className="mt-6 font-display text-3xl font-bold text-ink sm:text-4xl">
+          {artigo.titulo}
+        </h2>
         <p className="mt-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
           <Clock size={12} />
           {tempoLeitura(artigo)} min de leitura
         </p>
 
-        <div className="mt-6 space-y-4 text-base leading-relaxed text-ink-muted">
-          {artigo.corpo.map((par, i) => (
-            <p key={i}>{par}</p>
-          ))}
+        <div className="mt-6 border-l-4 border-gold bg-gold/10 p-5">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-blue">
+            Resumo
+          </p>
+          <p className="mt-1.5 text-lg font-semibold leading-snug text-ink">
+            {artigo.resumo}
+          </p>
+        </div>
+
+        <div className="mt-8 space-y-4 text-base leading-relaxed text-ink-muted">
+          {artigo.corpo.map((par, i) =>
+            i === 0 ? (
+              <p key={i} className="text-lg font-semibold leading-relaxed text-ink">
+                {par}
+              </p>
+            ) : (
+              <p key={i}>{par}</p>
+            ),
+          )}
         </div>
       </div>
     );
@@ -205,15 +227,22 @@ function Artigos() {
               transition={{ delay: Math.min(i * 0.05, 0.4) }}
               className="group flex flex-col overflow-hidden border border-[var(--rule)] bg-paper text-left transition-colors hover:border-blue"
             >
-              <div className={`flex h-28 items-center justify-center ${estilo.fundo}`}>
+              <div className={`relative flex h-28 items-center justify-center ${estilo.fundo}`}>
+                <span
+                  className={`absolute left-3 top-3 font-mono text-[10px] font-bold uppercase tracking-widest ${
+                    estilo.fundo === "bg-gold" ? "text-blue/70" : "text-onblue-muted"
+                  }`}
+                >
+                  Artigo
+                </span>
                 <Icone size={36} className={estilo.fundo === "bg-gold" ? "text-blue" : "text-gold"} />
               </div>
               <div className="p-5">
-                <p className="font-display text-lg leading-snug text-ink group-hover:text-blue">
+                <p className="font-display text-xl font-bold leading-snug text-ink group-hover:text-blue">
                   {a.titulo}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">{a.resumo}</p>
-                <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-gold-soft">
                   <Clock size={12} />
                   {tempoLeitura(a)} min de leitura
                 </p>
