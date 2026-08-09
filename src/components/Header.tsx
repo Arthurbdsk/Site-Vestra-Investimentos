@@ -72,6 +72,14 @@ export function Header({ logado = false }: { logado?: boolean }) {
 
         <div className="hidden items-center gap-5 md:flex">
           <ThemeToggle />
+          {logado && (
+            <Link
+              href="/conta"
+              className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted transition-colors hover:text-blue"
+            >
+              Minha conta
+            </Link>
+          )}
           {logado && <BotaoSair />}
           <Link
             href="/simulador"
@@ -123,6 +131,15 @@ export function Header({ logado = false }: { logado?: boolean }) {
               >
                 {logado ? "Minha carteira" : "Testar o simulador"}
               </Link>
+              {logado && (
+                <Link
+                  href="/conta"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-3 block text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+                >
+                  Minha conta
+                </Link>
+              )}
               <div className="mt-4 flex items-center justify-center gap-4">
                 <ThemeToggle />
                 {logado && <BotaoSair />}

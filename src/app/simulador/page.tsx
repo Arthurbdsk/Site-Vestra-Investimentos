@@ -69,7 +69,7 @@ export default async function SimuladorPage() {
   ] = await Promise.all([
     supabase
       .from("perfis")
-      .select("apelido, saldo, perfil_investidor")
+      .select("apelido, saldo, perfil_investidor, quiz_perfil_visto_em")
       .eq("id", user.id)
       .single(),
     supabase.from("posicoes").select("ticker, quantidade, preco_medio").order("ticker"),
@@ -137,7 +137,12 @@ export default async function SimuladorPage() {
     : (perfilRes.data?.apelido ?? user.email?.split("@")[0] ?? "investidor");
 
   const saldo = Number(perfilRes.data?.saldo ?? 0);
-  const perfilInvestidorDefinido = Boolean(perfilRes.data?.perfil_investidor);
+  // O quiz so aparece pra quem nunca foi perguntado. Quem respondeu OU
+  // quem pulou nao ve de novo: antes o "pular" nao gravava nada e o quiz
+  // voltava em toda visita.
+  const perfilInvestidorDefinido =
+    Boolean(perfilRes.data?.perfil_investidor) ||
+    Boolean(perfilRes.data?.quiz_perfil_visto_em);
 
   const posicoes: Posicao[] = (posicoesRes.data ?? []).map((p) => ({
     ticker: p.ticker,
