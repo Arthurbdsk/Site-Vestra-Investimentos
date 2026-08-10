@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Check } from "lucide-react";
 import { perguntarAssistente } from "@/app/simulador/operacoesAssistente";
 
-type Mensagem = { autor: "usuario" | "assistente"; texto: string };
+type Mensagem = { autor: "usuario" | "assistente"; texto: string; executouAcao?: boolean };
 
 export function AssistenteChat() {
   const [aberto, setAberto] = useState(false);
@@ -38,7 +38,7 @@ export function AssistenteChat() {
         setErro(r.mensagem);
         return;
       }
-      setMensagens((m) => [...m, { autor: "assistente", texto: r.resposta }]);
+      setMensagens((m) => [...m, { autor: "assistente", texto: r.resposta, executouAcao: r.executouAcao }]);
       setRestantes(r.restantes);
     });
   }
@@ -87,6 +87,12 @@ export function AssistenteChat() {
                       : "bg-paper-alt text-ink"
                   }`}
                 >
+                  {m.executouAcao && (
+                    <p className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-emerald-500">
+                      <Check size={11} />
+                      Operação executada
+                    </p>
+                  )}
                   {m.texto}
                 </div>
               ))}
