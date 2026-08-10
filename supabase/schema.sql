@@ -1112,50 +1112,51 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- NOTICIAS: busca na marketaux de dentro do banco, mesmo padrao das
+-- NOTICIAS: busca na finnhub de dentro do banco, mesmo padrao das
 -- cotacoes — o token fica em segredos, nunca numa env var da Vercel.
+-- Trocamos de marketaux pra finnhub porque o plano gratuito da
+-- marketaux capava em 3 manchetes por busca; a finnhub nao tem esse
+-- limite por chamada no plano gratuito (so 60 chamadas/minuto).
 -- Depois de rodar este arquivo, insira o seu token uma vez:
---   insert into public.segredos (chave, valor) values ('marketaux_token', 'SEU_TOKEN_AQUI')
+--   insert into public.segredos (chave, valor) values ('finnhub_token', 'SEU_TOKEN_AQUI')
 --   on conflict (chave) do update set valor = excluded.valor;
 -- ------------------------------------------------------------
 create or replace function public.buscar_noticias(p_busca text default null)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_token    text;
-  v_url      text;
   v_resposta jsonb;
-  v_itens    jsonb;
 begin
-  select valor into v_token from public.segredos where chave = 'marketaux_token';
+  select valor into v_token from public.segredos where chave = 'finnhub_token';
   if v_token is null then
-    raise exception 'Token da marketaux nao configurado.';
+    raise exception 'Token da finnhub nao configurado.';
   end if;
 
-  v_url := 'https://api.marketaux.com/v1/news/all?api_token=' || v_token
-    || '&language=en&filter_entities=true&limit=3';
-  if p_busca is not null and length(trim(p_busca)) > 0 then
-    v_url := v_url || '&search=' || replace(trim(p_busca), ' ', '+');
-  end if;
-
-  select content::jsonb into v_resposta from extensions.http_get(v_url);
-
-  if v_resposta -> 'error' is not null then
-    raise exception '%', (v_resposta -> 'error' ->> 'message');
-  end if;
-
-  v_itens := coalesce(v_resposta -> 'data', '[]'::jsonb);
+  select content::jsonb into v_resposta
+  from extensions.http_get(
+    'https://finnhub.io/api/v1/news?category=general&token=' || v_token
+  );
 
   return (
     select coalesce(json_agg(json_build_object(
-      'titulo', item ->> 'title',
-      'resumo', coalesce(item ->> 'snippet', item ->> 'description', ''),
+      'titulo', item ->> 'headline',
+      'resumo', coalesce(item ->> 'summary', ''),
       'url', item ->> 'url',
       'fonte', coalesce(item ->> 'source', 'Fonte externa'),
-      'publicadoEm', item ->> 'published_at',
-      'imagem', item ->> 'image_url'
+      'publicadoEm', to_char(to_timestamp((item ->> 'datetime')::bigint), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+      'imagem', case when item ->> 'image' = '' then null else item ->> 'image' end
     )), '[]'::json)
-    from jsonb_array_elements(v_itens) as item
-    where item ->> 'title' is not null and item ->> 'url' is not null
+    from (
+      select item
+      from jsonb_array_elements(v_resposta) as item
+      where item ->> 'headline' is not null and item ->> 'url' is not null
+        and (
+          p_busca is null or length(trim(p_busca)) = 0
+          or item ->> 'headline' ilike '%' || p_busca || '%'
+          or item ->> 'summary' ilike '%' || p_busca || '%'
+        )
+      limit 6
+    ) t
   );
 end $$;
 

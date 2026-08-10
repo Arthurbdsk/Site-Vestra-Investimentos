@@ -43,8 +43,8 @@ export function NoticiasFinanceiras() {
     <div>
       <h2 className="font-display text-2xl text-ink">Notícias do mercado</h2>
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Manchetes agregadas de fontes como Yahoo Finance, Reuters e WSJ.
-        Clique pra ler a matéria completa na fonte original.
+        Manchetes agregadas de fontes como Reuters e outras agências
+        internacionais. Clique pra ler a matéria completa na fonte original.
       </p>
 
       {estado.fase === "carregando" && (
