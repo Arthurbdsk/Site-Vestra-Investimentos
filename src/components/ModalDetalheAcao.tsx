@@ -19,6 +19,12 @@ type Cabecalho = {
   logo: string | null;
 };
 
+type Fundamentos = {
+  beta: number | null;
+  precoLucro: number | null;
+  dividendYield: number | null;
+};
+
 type EstadoGrafico =
   | { fase: "carregando" }
   | { fase: "erro"; mensagem: string }
@@ -51,10 +57,20 @@ export function ModalDetalheAcao({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
 }) {
   const [cabecalho, setCabecalho] = useState<Cabecalho | null>(null);
+  const [fundamentos, setFundamentos] = useState<Fundamentos | null>(null);
   const [periodo, setPeriodo] = useState<Periodo>("3mo");
   const [grafico, setGrafico] = useState<EstadoGrafico>({ fase: "carregando" });
 
   const info = ticker ? acaoPorTicker(ticker) : undefined;
+
+  useEffect(() => {
+    if (!ticker) return;
+    setFundamentos(null);
+    fetch(`/api/fundamentos?ticker=${encodeURIComponent(ticker)}`)
+      .then((r) => r.json())
+      .then((json) => setFundamentos(json.fundamentos ?? null))
+      .catch(() => setFundamentos(null));
+  }, [ticker]);
 
   useEffect(() => {
     if (!ticker) return;
@@ -171,6 +187,29 @@ export function ModalDetalheAcao({
                 <Loader2 size={16} className="animate-spin text-ink-muted" />
               )}
                 </div>
+
+                {fundamentos && (fundamentos.beta != null || fundamentos.precoLucro != null || fundamentos.dividendYield != null) && (
+                  <div className="mt-3 flex flex-wrap gap-4">
+                    {fundamentos.beta != null && (
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">Beta</p>
+                        <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.beta, 2)}</p>
+                      </div>
+                    )}
+                    {fundamentos.precoLucro != null && (
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">P/L</p>
+                        <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.precoLucro, 1)}</p>
+                      </div>
+                    )}
+                    {fundamentos.dividendYield != null && (
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">Dividend yield</p>
+                        <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.dividendYield * 100, 1)}%</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {info && (
                   <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">

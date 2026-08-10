@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bot, Loader2, Play, TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
+import { Bot, Loader2, Play, TrendingUp, TrendingDown, Minus, AlertCircle, Settings2 } from "lucide-react";
 import { criarAgente, rodarAgente } from "@/app/simulador/operacoesAgente";
 import { dataHora } from "@/lib/formato";
 
@@ -12,6 +12,9 @@ export type PerfilRisco = "conservador" | "moderado" | "agressivo";
 export type Agente = {
   existe: boolean;
   perfilRisco?: PerfilRisco;
+  regraPersonalizada?: string | null;
+  stopLossPct?: number | null;
+  stopGainPct?: number | null;
   restantesHoje?: number;
 };
 
@@ -35,18 +38,9 @@ const PERFIS: { id: PerfilRisco; nome: string; descricao: string }[] = [
 export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: DecisaoAgente[] }) {
   const router = useRouter();
   const [, iniciar] = useTransition();
-  const [criando, setCriando] = useState(false);
+  const [editando, setEditando] = useState(!agente.existe);
   const [rodando, setRodando] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
-
-  function configurar(perfil: PerfilRisco) {
-    setCriando(true);
-    iniciar(async () => {
-      await criarAgente(perfil);
-      setCriando(false);
-      router.refresh();
-    });
-  }
 
   function rodar() {
     setRodando(true);
@@ -66,25 +60,19 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
         Agente de investimento
       </h2>
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Um modelo de IA analisa sua carteira e as cotações reais da B3, e decide
-        sozinho comprar, vender ou manter, respeitando o perfil de risco que
-        você escolher. Limite de 3 execuções por dia.
+        Um modelo de IA analisa sua carteira, cotações reais da B3 e fundamentos
+        (beta, P/L, dividend yield), e decide sozinho comprar, vender ou manter.
+        Limite de 3 execuções por dia.
       </p>
 
-      {!agente.existe ? (
-        <div className="mt-8 grid gap-px bg-[var(--rule)] sm:grid-cols-3">
-          {PERFIS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => configurar(p.id)}
-              disabled={criando}
-              className="bg-paper p-5 text-left transition-colors hover:bg-paper-alt disabled:opacity-50"
-            >
-              <p className="font-display text-lg text-ink">{p.nome}</p>
-              <p className="mt-1.5 text-sm text-ink-muted">{p.descricao}</p>
-            </button>
-          ))}
-        </div>
+      {editando ? (
+        <ConfiguracaoAgente
+          agente={agente}
+          aoSalvar={() => {
+            setEditando(false);
+            router.refresh();
+          }}
+        />
       ) : (
         <>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border border-[var(--rule)] p-5">
@@ -93,11 +81,25 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
                 Perfil ativo
               </p>
               <p className="mt-1 font-display text-xl text-ink capitalize">{agente.perfilRisco}</p>
+              {(agente.stopLossPct || agente.stopGainPct) && (
+                <p className="mt-1 text-xs text-ink-muted">
+                  {agente.stopLossPct ? `Stop loss em -${agente.stopLossPct}%` : null}
+                  {agente.stopLossPct && agente.stopGainPct ? " · " : null}
+                  {agente.stopGainPct ? `Stop gain em +${agente.stopGainPct}%` : null}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <p className="text-sm text-ink-muted">
                 {agente.restantesHoje ?? 0} de 3 execuções restantes hoje
               </p>
+              <button
+                onClick={() => setEditando(true)}
+                className="text-ink-muted transition-colors hover:text-blue"
+                aria-label="Editar configuração"
+              >
+                <Settings2 size={18} />
+              </button>
               <button
                 onClick={rodar}
                 disabled={rodando || (agente.restantesHoje ?? 0) <= 0}
@@ -109,22 +111,11 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {PERFIS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => configurar(p.id)}
-                disabled={criando}
-                className={`px-3 py-1.5 font-mono text-xs uppercase tracking-widest transition-colors ${
-                  agente.perfilRisco === p.id
-                    ? "bg-blue text-onblue"
-                    : "border border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
-                }`}
-              >
-                {p.nome}
-              </button>
-            ))}
-          </div>
+          {agente.regraPersonalizada && (
+            <p className="mt-3 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
+              Regra própria: "{agente.regraPersonalizada}"
+            </p>
+          )}
 
           {mensagem && (
             <p className="mt-4 border-l-[3px] border-gold bg-gold/10 px-4 py-3 text-sm text-ink">
@@ -146,6 +137,116 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function ConfiguracaoAgente({ agente, aoSalvar }: { agente: Agente; aoSalvar: () => void }) {
+  const [, iniciar] = useTransition();
+  const [perfil, setPerfil] = useState<PerfilRisco>(agente.perfilRisco ?? "moderado");
+  const [regra, setRegra] = useState(agente.regraPersonalizada ?? "");
+  const [stopLoss, setStopLoss] = useState(agente.stopLossPct?.toString() ?? "");
+  const [stopGain, setStopGain] = useState(agente.stopGainPct?.toString() ?? "");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  function salvar() {
+    setSalvando(true);
+    setErro(null);
+    iniciar(async () => {
+      const r = await criarAgente(
+        perfil,
+        regra.trim() || null,
+        stopLoss.trim() ? Number(stopLoss) : null,
+        stopGain.trim() ? Number(stopGain) : null,
+      );
+      setSalvando(false);
+      if (!r.ok) {
+        setErro(r.mensagem);
+        return;
+      }
+      aoSalvar();
+    });
+  }
+
+  return (
+    <div className="mt-6 border border-[var(--rule)] p-5">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+        Perfil de risco
+      </p>
+      <div className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-3">
+        {PERFIS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPerfil(p.id)}
+            className={`p-4 text-left transition-colors ${
+              perfil === p.id ? "bg-blue text-onblue" : "bg-paper hover:bg-paper-alt"
+            }`}
+          >
+            <p className="font-display text-base">{p.nome}</p>
+            <p className={`mt-1 text-xs ${perfil === p.id ? "text-onblue-muted" : "text-ink-muted"}`}>
+              {p.descricao}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5">
+        <label className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+          Regra própria (opcional)
+        </label>
+        <textarea
+          value={regra}
+          onChange={(e) => setRegra(e.target.value)}
+          maxLength={500}
+          rows={2}
+          placeholder='Ex: "só compre ações com beta acima de 1" ou "prefira dividend yield alto"'
+          className="mt-2 w-full resize-none border border-[var(--rule)] bg-paper px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+        />
+        <p className="mt-1 text-right font-mono text-[10px] text-ink-muted">{regra.length}/500</p>
+      </div>
+
+      <div className="mt-2 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            Stop loss (%, opcional)
+          </label>
+          <p className="mt-1 text-xs text-ink-muted">Vende automaticamente se cair esse tanto após comprar.</p>
+          <input
+            type="number"
+            min={1}
+            max={99}
+            value={stopLoss}
+            onChange={(e) => setStopLoss(e.target.value)}
+            placeholder="Ex: 10"
+            className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-2.5 text-sm tabular text-ink outline-none focus:border-blue"
+          />
+        </div>
+        <div>
+          <label className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            Stop gain (%, opcional)
+          </label>
+          <p className="mt-1 text-xs text-ink-muted">Vende automaticamente se subir esse tanto após comprar.</p>
+          <input
+            type="number"
+            min={1}
+            value={stopGain}
+            onChange={(e) => setStopGain(e.target.value)}
+            placeholder="Ex: 20"
+            className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-2.5 text-sm tabular text-ink outline-none focus:border-blue"
+          />
+        </div>
+      </div>
+
+      {erro && <p className="mt-4 text-sm text-rose-600">{erro}</p>}
+
+      <button
+        onClick={salvar}
+        disabled={salvando}
+        className="mt-5 bg-blue px-6 py-3 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
+      >
+        {agente.existe ? "Salvar configuração" : "Criar agente"}
+      </button>
     </div>
   );
 }

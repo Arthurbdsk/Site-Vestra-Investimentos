@@ -1208,8 +1208,15 @@ create table if not exists public.agentes (
   ativo               boolean not null default true,
   execucoes_hoje      integer not null default 0,
   ultimo_dia_execucao date,
+  regra_personalizada text,
+  stop_loss_pct       numeric(5,2),
+  stop_gain_pct       numeric(5,2),
   criado_em           timestamptz not null default now()
 );
+
+alter table public.agentes add column if not exists regra_personalizada text;
+alter table public.agentes add column if not exists stop_loss_pct numeric(5,2);
+alter table public.agentes add column if not exists stop_gain_pct numeric(5,2);
 
 alter table public.agentes enable row level security;
 
@@ -1240,7 +1247,10 @@ create policy "decisoes do proprio agente" on public.agente_decisoes
     agente_id in (select id from public.agentes where usuario_id = auth.uid())
   );
 
-create or replace function public.criar_ou_atualizar_agente(p_perfil_risco text)
+create or replace function public.criar_ou_atualizar_agente(
+  p_perfil_risco text, p_regra_personalizada text default null,
+  p_stop_loss_pct numeric default null, p_stop_gain_pct numeric default null
+)
 returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
@@ -1251,11 +1261,24 @@ begin
   if p_perfil_risco not in ('conservador', 'moderado', 'agressivo') then
     raise exception 'Perfil de risco invalido.';
   end if;
+  if p_regra_personalizada is not null and length(p_regra_personalizada) > 500 then
+    raise exception 'Regra personalizada muito longa (maximo 500 caracteres).';
+  end if;
+  if p_stop_loss_pct is not null and (p_stop_loss_pct <= 0 or p_stop_loss_pct >= 100) then
+    raise exception 'Stop loss precisa ser entre 0 e 100 por cento.';
+  end if;
+  if p_stop_gain_pct is not null and p_stop_gain_pct <= 0 then
+    raise exception 'Stop gain precisa ser maior que zero.';
+  end if;
 
-  insert into public.agentes (usuario_id, perfil_risco)
-  values (v_usuario, p_perfil_risco)
+  insert into public.agentes (usuario_id, perfil_risco, regra_personalizada, stop_loss_pct, stop_gain_pct)
+  values (v_usuario, p_perfil_risco, p_regra_personalizada, p_stop_loss_pct, p_stop_gain_pct)
   on conflict (usuario_id) do update
-    set perfil_risco = excluded.perfil_risco, ativo = true;
+    set perfil_risco = excluded.perfil_risco,
+        regra_personalizada = excluded.regra_personalizada,
+        stop_loss_pct = excluded.stop_loss_pct,
+        stop_gain_pct = excluded.stop_gain_pct,
+        ativo = true;
 
   return json_build_object('ok', true);
 end $$;
@@ -1366,6 +1389,9 @@ begin
   return json_build_object(
     'existe', true,
     'perfilRisco', v_agente.perfil_risco,
+    'regraPersonalizada', v_agente.regra_personalizada,
+    'stopLossPct', v_agente.stop_loss_pct,
+    'stopGainPct', v_agente.stop_gain_pct,
     'restantesHoje', v_restantes
   );
 end $$;

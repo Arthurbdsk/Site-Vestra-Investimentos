@@ -7,9 +7,19 @@ export type DecisaoAgente = {
 
 export type ContextoAgente = {
   perfilRisco: "conservador" | "moderado" | "agressivo";
+  regraPersonalizada: string | null;
   saldo: number;
   posicoes: { ticker: string; quantidade: number; precoMedio: number; precoAtual: number }[];
-  cotacoesDisponiveis: { ticker: string; nome: string; setor: string; preco: number; variacao: number }[];
+  cotacoesDisponiveis: {
+    ticker: string;
+    nome: string;
+    setor: string;
+    preco: number;
+    variacao: number;
+    beta: number | null;
+    precoLucro: number | null;
+    dividendYield: number | null;
+  }[];
 };
 
 const LIMITE_POR_PERFIL: Record<ContextoAgente["perfilRisco"], number> = {
@@ -43,19 +53,28 @@ export async function decidirOperacao(ctx: ContextoAgente): Promise<DecisaoAgent
     .join("\n") || "(carteira vazia)";
 
   const dadosCotacoes = ctx.cotacoesDisponiveis
-    .map((c) => `${c.ticker} (${c.nome}, setor ${c.setor}): R$ ${c.preco.toFixed(2)}, variação hoje ${c.variacao.toFixed(2)}%`)
+    .map((c) => {
+      const beta = c.beta != null ? `beta ${c.beta.toFixed(2)}` : "beta indisponível";
+      const pl = c.precoLucro != null ? `P/L ${c.precoLucro.toFixed(1)}` : "P/L indisponível";
+      const dy = c.dividendYield != null ? `dividend yield ${(c.dividendYield * 100).toFixed(1)}%` : "dividend yield indisponível";
+      return `${c.ticker} (${c.nome}, setor ${c.setor}): R$ ${c.preco.toFixed(2)}, variação hoje ${c.variacao.toFixed(2)}%, ${beta}, ${pl}, ${dy}`;
+    })
     .join("\n");
+
+  const regraTexto = ctx.regraPersonalizada
+    ? `\nRegra própria definida pelo usuário, priorize ela ao decidir (mas nunca ultrapasse o limite de valor por operação): "${ctx.regraPersonalizada}"\n`
+    : "";
 
   const prompt = `Você é um agente de investimentos de um simulador educativo brasileiro (dinheiro fictício, ações reais da B3).
 
 Perfil de risco escolhido pelo usuário: ${ctx.perfilRisco}.
 Saldo em caixa disponível: R$ ${ctx.saldo.toFixed(2)}.
 Limite máximo por operação, dado esse perfil: R$ ${limiteReais.toFixed(2)} (${limitePct * 100}% do saldo).
-
+${regraTexto}
 Carteira atual:
 ${dadosPosicoes}
 
-Ações disponíveis pra negociar:
+Ações disponíveis pra negociar (com fundamentos reais: beta, P/L e dividend yield):
 ${dadosCotacoes}
 
 Decida UMA única operação: comprar uma ação disponível, vender uma ação que já está na carteira, ou manter (não fazer nada). Respeite o limite de valor por operação. Se decidir manter, quantidade deve ser 0 e ticker pode ficar vazio. Justifique em português, em 1-2 frases curtas, mencionando o dado real que motivou a decisão. Chame sempre a função decidir_operacao com sua decisão.`;
