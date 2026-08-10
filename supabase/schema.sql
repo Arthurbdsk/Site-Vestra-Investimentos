@@ -709,14 +709,21 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- PATRIMONIO DE: saldo + acoes pelo preco medio + renda fixa pelo
--- valor investido. Usada pelo ranking geral e pelo snapshot mensal.
+-- PATRIMONIO DE: saldo + acoes pela cotacao ao vivo (cache atualizada
+-- por cron; cai pro preco medio se por algum motivo a acao nao tiver
+-- cotacao em cache) + renda fixa pelo valor investido. Usada pelo
+-- ranking geral e pelo snapshot mensal.
 -- ------------------------------------------------------------
 create or replace function public.patrimonio_de(p_usuario uuid)
 returns numeric language sql stable security definer set search_path = public as $$
   select
     coalesce((select saldo from public.perfis where id = p_usuario), 0)
-      + coalesce((select sum(quantidade * preco_medio) from public.posicoes where usuario_id = p_usuario), 0)
+      + coalesce((
+          select sum(p.quantidade * coalesce(c.preco, p.preco_medio))
+          from public.posicoes p
+          left join public.cotacoes c on c.ticker = p.ticker
+          where p.usuario_id = p_usuario
+        ), 0)
       + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p_usuario and resgatado = false), 0)
 $$;
 

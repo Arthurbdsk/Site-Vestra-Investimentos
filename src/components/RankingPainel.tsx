@@ -169,8 +169,8 @@ export function RankingPainel({
       )}
 
       <p className="mt-6 font-mono text-[11px] text-ink-muted">
-        Ações contam pelo preço médio de compra, não pela cotação atual:
-        uma aproximação, não o patrimônio exato de cada pessoa.
+        Patrimônio calculado com a cotação mais recente em cache (atualizada
+        a cada poucos minutos), não em tempo real segundo a segundo.
       </p>
     </div>
   );
