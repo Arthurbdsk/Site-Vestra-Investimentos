@@ -24,6 +24,7 @@ import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./Aler
 import { DuelosPainel, type Duelo } from "./DuelosPainel";
 import { AgentePainel, type Agente, type DecisaoAgente } from "./AgentePainel";
 import { TourBoasVindas } from "./TourBoasVindas";
+import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
@@ -434,6 +435,8 @@ export function PainelSimulador({
       )}
 
       <TourBoasVindas mostrar={posicoes.length === 0 && transacoes.length === 0} />
+
+      <AssistenteChat />
     </>
   );
 }

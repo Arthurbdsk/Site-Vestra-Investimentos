@@ -1568,3 +1568,71 @@ begin
     'restantesHoje', v_restantes
   );
 end $$;
+
+
+-- ------------------------------------------------------------
+-- ASSISTENTE DE CHAT: so conversa e explica, nunca executa operacao
+-- (diferente do agente de investimento). Limite diario por pessoa pra
+-- controlar custo do Gemini.
+-- ------------------------------------------------------------
+create table if not exists public.assistente_uso (
+  usuario_id     uuid primary key references auth.users(id) on delete cascade,
+  mensagens_hoje integer not null default 0,
+  ultimo_dia     date
+);
+
+alter table public.assistente_uso enable row level security;
+
+drop policy if exists "uso proprio do assistente" on public.assistente_uso;
+create policy "uso proprio do assistente" on public.assistente_uso
+  for select using (auth.uid() = usuario_id);
+
+create or replace function public.reservar_mensagem_assistente()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_uso     public.assistente_uso%rowtype;
+  v_limite  constant integer := 20;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  insert into public.assistente_uso (usuario_id, mensagens_hoje, ultimo_dia)
+  values (v_usuario, 0, null)
+  on conflict (usuario_id) do nothing;
+
+  select * into v_uso from public.assistente_uso where usuario_id = v_usuario for update;
+
+  if v_uso.ultimo_dia is distinct from current_date then
+    update public.assistente_uso
+      set mensagens_hoje = 1, ultimo_dia = current_date
+      where usuario_id = v_usuario;
+    return json_build_object('ok', true, 'restantes', v_limite - 1);
+  end if;
+
+  if v_uso.mensagens_hoje >= v_limite then
+    raise exception 'Limite diario de % mensagens atingido. Volte amanha.', v_limite;
+  end if;
+
+  update public.assistente_uso set mensagens_hoje = mensagens_hoje + 1 where usuario_id = v_usuario;
+  return json_build_object('ok', true, 'restantes', v_limite - (v_uso.mensagens_hoje + 1));
+end $$;
+
+create or replace function public.restantes_assistente_hoje()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_uso     public.assistente_uso%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_uso from public.assistente_uso where usuario_id = v_usuario;
+  if not found or v_uso.ultimo_dia is distinct from current_date then
+    return 20;
+  end if;
+
+  return greatest(0, 20 - v_uso.mensagens_hoje);
+end $$;
