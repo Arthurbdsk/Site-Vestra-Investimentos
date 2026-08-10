@@ -287,6 +287,11 @@ end $$;
 revoke all on function public.garantir_fx_usd_brl() from public;
 grant execute on function public.garantir_fx_usd_brl() to authenticated;
 
+-- O mercado e detectado pelo FORMATO do ticker (B3 sempre termina em
+-- digito, ex PETR4; NYSE/NASDAQ e so letras, ex MSFT), nao por estar
+-- cadastrado em ativos_permitidos — assim qualquer acao americana pode
+-- ser negociada, nao so as curadas. B3 usa brapi; EUA usa finnhub
+-- (mesmo token das noticias), convertido pra R$.
 create or replace function public.garantir_cotacao(p_ticker text)
 returns numeric language plpgsql security definer set search_path = public, extensions as $$
 declare
@@ -301,104 +306,115 @@ begin
   select preco, now() - atualizado_em into v_preco, v_idade
   from public.cotacoes where ticker = p_ticker;
 
-  -- Preco fresco o suficiente, reaproveita.
   if v_preco is not null and v_idade < interval '5 minutes' then
     return v_preco;
   end if;
 
-  select mercado into v_mercado from public.ativos_permitidos where ticker = p_ticker;
-
-  if v_mercado = 'us' then
-    -- Ticker americano (NYSE/NASDAQ): formato mais solto (so letras).
-    if p_ticker !~ '^[A-Z]{1,5}$' then
-      return null;
-    end if;
+  if p_ticker ~ '^[A-Z]{4}[0-9]{1,2}$' then
+    v_mercado := 'br';
+  elsif p_ticker ~ '^[A-Z]{1,5}$' then
+    v_mercado := 'us';
   else
-    -- Formato de ticker da B3: 4 letras + 1 ou 2 digitos (ex: PETR4, TAEE11).
-    if p_ticker !~ '^[A-Z]{4}[0-9]{1,2}$' then
-      return null;
+    return null;
+  end if;
+
+  if v_mercado = 'br' then
+    select valor into v_token from public.segredos where chave = 'brapi_token';
+    if v_token is null then
+      return v_preco;
     end if;
-  end if;
 
-  select valor into v_token from public.segredos where chave = 'brapi_token';
-  if v_token is null then
-    return v_preco;
-  end if;
+    begin
+      select content::jsonb into v_resposta
+      from extensions.http_get(
+        'https://brapi.dev/api/v2/stocks/quote?symbols=' || p_ticker || '&token=' || v_token
+      );
+      v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
+      v_variacao := coalesce(
+        (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+    exception when others then
+      return v_preco;
+    end;
+  else
+    select valor into v_token from public.segredos where chave = 'finnhub_token';
+    if v_token is null then
+      return v_preco;
+    end if;
 
-  begin
-    select content::jsonb into v_resposta
-    from extensions.http_get(
-      'https://brapi.dev/api/v2/stocks/quote?symbols=' || p_ticker || '&token=' || v_token
-    );
+    begin
+      select content::jsonb into v_resposta
+      from extensions.http_get(
+        'https://finnhub.io/api/v1/quote?symbol=' || p_ticker || '&token=' || v_token
+      );
+      v_preco := (v_resposta ->> 'c')::numeric;
+      v_variacao := coalesce((v_resposta ->> 'dp')::numeric, 0);
 
-    v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
-    v_variacao := coalesce(
-      (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
-
-    if v_mercado = 'us' and v_preco is not null then
-      v_fx := public.garantir_fx_usd_brl();
-      if v_fx is not null then
-        v_preco := v_preco * v_fx;
+      if v_preco is not null and v_preco > 0 then
+        v_fx := public.garantir_fx_usd_brl();
+        if v_fx is not null then
+          v_preco := v_preco * v_fx;
+        end if;
       end if;
-    end if;
+    exception when others then
+      return v_preco;
+    end;
+  end if;
 
-    if v_preco is not null and v_preco > 0 then
-      insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
-      values (p_ticker, round(v_preco, 2), round(v_variacao, 2), now())
-      on conflict (ticker) do update
-        set preco = excluded.preco, variacao = excluded.variacao,
-            atualizado_em = excluded.atualizado_em;
-      return round(v_preco, 2);
-    end if;
-  exception when others then
-    -- Se a fonte falhar, entrega o ultimo preco conhecido (pode ser null).
-    return v_preco;
-  end;
+  if v_preco is not null and v_preco > 0 then
+    insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
+    values (p_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+    on conflict (ticker) do update
+      set preco = excluded.preco, variacao = excluded.variacao,
+          atualizado_em = excluded.atualizado_em;
+    return round(v_preco, 2);
+  end if;
 
   return v_preco;
 end $$;
 
--- Atualiza a cotacao de todos os ativos permitidos de uma vez (chamada
--- pelo pg_cron a cada 5 minutos em horario de pregao — ver final do
--- arquivo). No maximo uma vez por minuto, pra nao martelar a brapi.
+-- Atualiza a cotacao dos ativos curados de uma vez (chamada pelo pg_cron
+-- a cada 5 minutos em horario de pregao — ver final do arquivo). No
+-- maximo uma vez por minuto, pra nao martelar as fontes.
 create or replace function public.atualizar_cotacoes(p_forcar boolean default false)
 returns integer language plpgsql security definer set search_path = public, extensions as $$
 declare
-  v_token     text;
-  v_ticker    text;
-  v_mercado   text;
-  v_resposta  jsonb;
-  v_preco     numeric;
-  v_variacao  numeric;
-  v_fx        numeric;
-  v_mais_novo timestamptz;
-  v_contador  integer := 0;
+  v_token_brapi   text;
+  v_token_finnhub text;
+  v_ticker        text;
+  v_mercado       text;
+  v_resposta      jsonb;
+  v_preco         numeric;
+  v_variacao      numeric;
+  v_fx            numeric;
+  v_mais_novo     timestamptz;
+  v_contador      integer := 0;
 begin
   select max(atualizado_em) into v_mais_novo from public.cotacoes;
   if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '60 seconds' then
     return 0;
   end if;
 
-  select valor into v_token from public.segredos where chave = 'brapi_token';
-  if v_token is null then
-    raise exception 'Token da brapi nao configurado.';
-  end if;
-
+  select valor into v_token_brapi from public.segredos where chave = 'brapi_token';
+  select valor into v_token_finnhub from public.segredos where chave = 'finnhub_token';
   v_fx := public.garantir_fx_usd_brl();
 
   for v_ticker, v_mercado in select ticker, mercado from public.ativos_permitidos loop
     begin
-      select content::jsonb into v_resposta
-      from extensions.http_get(
-        'https://brapi.dev/api/v2/stocks/quote?symbols=' || v_ticker || '&token=' || v_token
-      );
-
-      v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
-      v_variacao := coalesce(
-        (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
-
-      if v_mercado = 'us' and v_preco is not null and v_fx is not null then
-        v_preco := v_preco * v_fx;
+      if v_mercado = 'us' then
+        if v_token_finnhub is null then continue; end if;
+        select content::jsonb into v_resposta
+        from extensions.http_get('https://finnhub.io/api/v1/quote?symbol=' || v_ticker || '&token=' || v_token_finnhub);
+        v_preco := (v_resposta ->> 'c')::numeric;
+        v_variacao := coalesce((v_resposta ->> 'dp')::numeric, 0);
+        if v_preco is not null and v_fx is not null then
+          v_preco := v_preco * v_fx;
+        end if;
+      else
+        if v_token_brapi is null then continue; end if;
+        select content::jsonb into v_resposta
+        from extensions.http_get('https://brapi.dev/api/v2/stocks/quote?symbols=' || v_ticker || '&token=' || v_token_brapi);
+        v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
+        v_variacao := coalesce((v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
       end if;
 
       if v_preco is not null and v_preco > 0 then
@@ -418,6 +434,75 @@ begin
 
   return v_contador;
 end $$;
+
+-- Busca qualquer acao da NYSE/NASDAQ por nome ou ticker (nao so os
+-- curados), via finnhub. Filtra pra ticker "puro" (sem sufixo de bolsa
+-- estrangeira tipo .TW/.SS/.PA) e ja devolve preco convertido pra R$.
+create or replace function public.buscar_acoes_usa(p_busca text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_token    text;
+  v_fx       numeric;
+  v_resposta jsonb;
+  v_item     jsonb;
+  v_ticker   text;
+  v_quote    jsonb;
+  v_preco    numeric;
+  v_resultado json[] := array[]::json[];
+  v_contador integer := 0;
+begin
+  if p_busca is null or length(trim(p_busca)) < 2 then
+    return '[]'::json;
+  end if;
+
+  select valor into v_token from public.segredos where chave = 'finnhub_token';
+  if v_token is null then
+    raise exception 'Token da finnhub nao configurado.';
+  end if;
+
+  v_fx := public.garantir_fx_usd_brl();
+
+  select content::jsonb into v_resposta
+  from extensions.http_get(
+    'https://finnhub.io/api/v1/search?q=' || extensions.urlencode(trim(p_busca)) || '&token=' || v_token
+  );
+
+  for v_item in select * from jsonb_array_elements(coalesce(v_resposta -> 'result', '[]'::jsonb))
+  loop
+    exit when v_contador >= 12;
+
+    v_ticker := v_item ->> 'symbol';
+    if v_ticker !~ '^[A-Za-z]{1,5}$' then
+      continue;
+    end if;
+    if coalesce(v_item ->> 'type', '') <> 'Common Stock' then
+      continue;
+    end if;
+
+    begin
+      select content::jsonb into v_quote
+      from extensions.http_get('https://finnhub.io/api/v1/quote?symbol=' || upper(v_ticker) || '&token=' || v_token);
+      v_preco := (v_quote ->> 'c')::numeric;
+    exception when others then
+      v_preco := null;
+    end;
+
+    if v_preco is not null and v_preco > 0 then
+      v_resultado := v_resultado || json_build_object(
+        'ticker', upper(v_ticker),
+        'nome', v_item ->> 'description',
+        'preco', round(v_preco * coalesce(v_fx, 1), 2),
+        'variacao', round(coalesce((v_quote ->> 'dp')::numeric, 0), 2)
+      );
+      v_contador := v_contador + 1;
+    end if;
+  end loop;
+
+  return array_to_json(v_resultado);
+end $$;
+
+revoke all on function public.buscar_acoes_usa(text) from public;
+grant execute on function public.buscar_acoes_usa(text) to authenticated;
 
 
 -- ------------------------------------------------------------

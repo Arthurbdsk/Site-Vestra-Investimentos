@@ -738,6 +738,11 @@ function Explorar({
   const [visao, setVisao] = useState<"cards" | "tabela">("cards");
 
   const [acoesUsa, setAcoesUsa] = useState<AcaoB3[] | null>(null);
+  const [buscaUsa, setBuscaUsa] = useState("");
+  const [buscaUsaAtrasada, setBuscaUsaAtrasada] = useState("");
+  const [resultadosBuscaUsa, setResultadosBuscaUsa] = useState<AcaoB3[]>([]);
+  const [carregandoUsa, setCarregandoUsa] = useState(false);
+  const [erroUsa, setErroUsa] = useState<string | null>(null);
 
   useEffect(() => {
     if (mercado !== "us" || acoesUsa) return;
@@ -746,6 +751,41 @@ function Explorar({
       .then((json) => setAcoesUsa(json.acoes ?? []))
       .catch(() => setAcoesUsa([]));
   }, [mercado, acoesUsa]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setBuscaUsaAtrasada(buscaUsa.trim()), 400);
+    return () => clearTimeout(id);
+  }, [buscaUsa]);
+
+  useEffect(() => {
+    if (mercado !== "us" || buscaUsaAtrasada.length < 2) {
+      setResultadosBuscaUsa([]);
+      setErroUsa(null);
+      return;
+    }
+    let cancelado = false;
+    setCarregandoUsa(true);
+    fetch(`/api/acoes-usa?q=${encodeURIComponent(buscaUsaAtrasada)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelado) return;
+        if (json.acoes) {
+          setResultadosBuscaUsa(json.acoes);
+          setErroUsa(null);
+        } else {
+          setErroUsa(json.mensagem ?? "Não foi possível buscar agora.");
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setErroUsa("Não foi possível buscar agora.");
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoUsa(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [mercado, buscaUsaAtrasada]);
 
   useEffect(() => {
     const id = setTimeout(() => setBuscaAtrasada(busca.trim()), 350);
@@ -818,36 +858,83 @@ function Explorar({
             Escolha uma ação dos EUA
           </h2>
           <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-            Empresas conhecidas da NYSE/NASDAQ, com preço já convertido pra
-            reais (câmbio atualizado periodicamente).
+            Destacamos algumas empresas conhecidas, mas a NYSE/NASDAQ inteira
+            é sua: busque qualquer ticker ou nome. Preço já convertido pra
+            reais.
           </p>
 
-          {acoesUsa === null ? (
-            <div className="mt-10 flex items-center gap-2 text-ink-muted">
-              <Loader2 size={16} className="animate-spin" />
-              Carregando ações americanas…
+          <input
+            value={buscaUsa}
+            onChange={(e) => setBuscaUsa(e.target.value)}
+            placeholder="Buscar por nome ou ticker (ex: Netflix, GOOG)"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+
+          {!buscaUsaAtrasada && (
+            <>
+              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                Populares
+              </p>
+              {acoesUsa === null ? (
+                <div className="mt-6 flex items-center gap-2 text-ink-muted">
+                  <Loader2 size={16} className="animate-spin" />
+                  Carregando ações americanas…
+                </div>
+              ) : (
+                <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+                  {ACOES_USA.map((a, i) => {
+                    const dado = acoesUsa.find((x) => x.ticker === a.ticker);
+                    return (
+                      <CartaoAcaoPopular
+                        key={a.ticker}
+                        acao={a}
+                        delay={Math.min(i * 0.04, 0.4)}
+                        favorito={favoritos.has(a.ticker)}
+                        dadosPre={{
+                          preco: dado?.preco ?? null,
+                          variacao: dado?.variacao ?? null,
+                          logo: null,
+                        }}
+                        aoComprar={aoComprar}
+                        aoVerDetalhe={aoVerDetalhe}
+                      />
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+
+          {buscaUsaAtrasada && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                  Resultados
+                </p>
+                {carregandoUsa && <Loader2 size={13} className="animate-spin text-ink-muted" />}
+              </div>
+
+              {erroUsa && <p className="mt-4 text-sm text-ink-muted">{erroUsa}</p>}
+
+              {!erroUsa && !carregandoUsa && resultadosBuscaUsa.length === 0 && (
+                <p className="mt-4 text-ink-muted">Nenhuma ação encontrada com esse termo.</p>
+              )}
+
+              {!erroUsa && resultadosBuscaUsa.length > 0 && (
+                <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+                  {resultadosBuscaUsa.map((a, i) => (
+                    <CartaoAcaoB3
+                      key={a.ticker}
+                      acao={a}
+                      delay={Math.min(i * 0.04, 0.4)}
+                      favorito={favoritos.has(a.ticker)}
+                      aoComprar={aoComprar}
+                      aoVerDetalhe={aoVerDetalhe}
+                    />
+                  ))}
+                </ul>
+              )}
             </div>
-          ) : (
-            <ul className="mt-6 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-              {ACOES_USA.map((a, i) => {
-                const dado = acoesUsa.find((x) => x.ticker === a.ticker);
-                return (
-                  <CartaoAcaoPopular
-                    key={a.ticker}
-                    acao={a}
-                    delay={Math.min(i * 0.04, 0.4)}
-                    favorito={favoritos.has(a.ticker)}
-                    dadosPre={{
-                      preco: dado?.preco ?? null,
-                      variacao: dado?.variacao ?? null,
-                      logo: null,
-                    }}
-                    aoComprar={aoComprar}
-                    aoVerDetalhe={aoVerDetalhe}
-                  />
-                );
-              })}
-            </ul>
           )}
         </>
       ) : (
