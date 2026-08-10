@@ -1066,10 +1066,10 @@ function CartaoAcaoPopular({
 
       <button
         onClick={() => dadosFinais && aoComprar(acao.ticker, dadosFinais.preco, acao.nome)}
-        disabled={!dados}
+        disabled={!dadosFinais}
         className="mt-4 w-full bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
       >
-        {dados ? "Comprar" : "Indisponível agora"}
+        {dadosFinais ? "Comprar" : "Indisponível agora"}
       </button>
     </motion.li>
   );
