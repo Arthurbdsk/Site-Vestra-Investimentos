@@ -1,7 +1,6 @@
-export type Periodo = "1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
+export type Periodo = "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
 
 export const PERIODOS: { valor: Periodo; label: string }[] = [
-  { valor: "1d", label: "1 dia" },
   { valor: "1mo", label: "1 mês" },
   { valor: "3mo", label: "3 meses" },
   { valor: "6mo", label: "6 meses" },
@@ -45,16 +44,12 @@ export async function buscarHistorico(
   }
 
   const t = ticker.trim().toUpperCase();
-  // "1 dia" precisa de granularidade intraday. Pedimos 5 dias pra sempre
-  // cair num pregao de verdade (fim de semana/feriado deixaria "hoje" vazio)
-  // e depois filtramos só o ultimo dia que tem dado.
-  const intraday = periodo === "1d";
-  const rangeConsulta = intraday ? "5d" : periodo;
-  const interval = intraday ? "15m" : "1d";
+  // O plano gratuito da brapi so libera granularidade diaria (1d) pro
+  // intervalo, entao nao ha como oferecer um grafico intraday de verdade.
 
   try {
     const resposta = await fetch(
-      `https://brapi.dev/api/quote/${t}?range=${rangeConsulta}&interval=${interval}`,
+      `https://brapi.dev/api/quote/${t}?range=${periodo}&interval=1d`,
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!resposta.ok) {
@@ -74,16 +69,6 @@ export async function buscarHistorico(
         motivo: "erro",
         mensagem: "Não há histórico suficiente pra essa ação nesse período.",
       };
-    }
-
-    if (intraday) {
-      const ultimoDia = new Date(
-        Number(serie[serie.length - 1].date) * 1000,
-      ).toDateString();
-      serie = serie.filter(
-        (p: Record<string, unknown>) =>
-          new Date(Number(p.date) * 1000).toDateString() === ultimoDia,
-      );
     }
 
     if (serie.length < 2) {
