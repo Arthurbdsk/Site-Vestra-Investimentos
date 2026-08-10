@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, AlertCircle } from "lucide-react";
+import { X, Loader2, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { GraficoPreco } from "./GraficoPreco";
 import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
@@ -23,6 +23,21 @@ type EstadoGrafico =
   | { fase: "carregando" }
   | { fase: "erro"; mensagem: string }
   | { fase: "feito"; serie: PontoSerie[] };
+
+/**
+ * Sinal automatico (nao e opinião de analista humano — brapi nao tem
+ * esse dado pra acoes da B3): compara o preco atual com a media do
+ * periodo carregado no grafico.
+ */
+function calcularSinalTecnico(serie: PontoSerie[], precoAtual: number | null) {
+  if (serie.length < 5 || precoAtual == null) return null;
+  const media = serie.reduce((s, p) => s + p.preco, 0) / serie.length;
+  if (media <= 0) return null;
+  const difPct = ((precoAtual - media) / media) * 100;
+  const direcao: "acima" | "abaixo" | "neutro" =
+    difPct > 1.5 ? "acima" : difPct < -1.5 ? "abaixo" : "neutro";
+  return { media, difPct, direcao };
+}
 
 export function ModalDetalheAcao({
   ticker,
@@ -192,6 +207,14 @@ export function ModalDetalheAcao({
               {grafico.fase === "feito" && <GraficoPreco serie={grafico.serie} />}
             </div>
 
+            {grafico.fase === "feito" && (
+              <SinalTecnico
+                serie={grafico.serie}
+                precoAtual={cabecalho?.preco ?? null}
+                periodoLabel={PERIODOS.find((p) => p.valor === periodo)?.label ?? periodo}
+              />
+            )}
+
             <NoticiasDaAcao nome={info?.nome ?? ticker} />
 
             <button
@@ -205,5 +228,45 @@ export function ModalDetalheAcao({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function SinalTecnico({
+  serie,
+  precoAtual,
+  periodoLabel,
+}: {
+  serie: PontoSerie[];
+  precoAtual: number | null;
+  periodoLabel: string;
+}) {
+  const sinal = calcularSinalTecnico(serie, precoAtual);
+  if (!sinal) return null;
+
+  const { media, difPct, direcao } = sinal;
+  const Icone = direcao === "acima" ? TrendingUp : direcao === "abaixo" ? TrendingDown : Minus;
+  const cor =
+    direcao === "acima" ? "text-emerald-600" : direcao === "abaixo" ? "text-rose-600" : "text-ink-muted";
+  const texto =
+    direcao === "acima"
+      ? "acima da média do período"
+      : direcao === "abaixo"
+        ? "abaixo da média do período"
+        : "perto da média do período";
+
+  return (
+    <div className="mt-6 border-l-[3px] border-[var(--rule)] pl-4">
+      <p className="flex items-center gap-2 text-sm">
+        <Icone size={15} className={`shrink-0 ${cor}`} />
+        <span className="text-ink">
+          Preço atual está <strong className={cor}>{numero(Math.abs(difPct))}% {texto}</strong>{" "}
+          ({periodoLabel})
+        </span>
+      </p>
+      <p className="mt-1 text-xs text-ink-muted">
+        Média do período: {brl(media)}. Sinal automático calculado a partir do
+        preço histórico — não é opinião de analista humano nem recomendação de compra ou venda.
+      </p>
+    </div>
   );
 }
