@@ -8,7 +8,7 @@ import {
   type MensagemChat,
   type ResultadoAcao,
 } from "@/lib/assistenteIA";
-import { comprar, vender } from "./operacoes";
+import { comprar, vender, criarOrdemMercadoAbertura } from "./operacoes";
 
 export type ResultadoChat =
   | { ok: true; resposta: string; restantes: number; executouAcao: boolean }
@@ -75,7 +75,9 @@ export async function perguntarAssistente(
       const r =
         acao.ferramenta === "comprar_acao"
           ? await comprar(acao.ticker, acao.quantidade)
-          : await vender(acao.ticker, acao.quantidade);
+          : acao.ferramenta === "vender_acao"
+            ? await vender(acao.ticker, acao.quantidade)
+            : await criarOrdemMercadoAbertura(acao.tipoOrdem ?? "comprar", acao.ticker, acao.quantidade);
       resultados.push({ ferramenta: acao.ferramenta, ticker: acao.ticker, ok: r.ok, mensagem: r.mensagem });
     }
 
@@ -83,7 +85,10 @@ export async function perguntarAssistente(
       primeiraResposta._contents ?? [],
       primeiraResposta.acoesPedidas.map((a) => ({
         name: a.ferramenta,
-        args: { ticker: a.ticker, quantidade: a.quantidade },
+        args:
+          a.ferramenta === "criar_ordem_abertura"
+            ? { ticker: a.ticker, quantidade: a.quantidade, tipo: a.tipoOrdem }
+            : { ticker: a.ticker, quantidade: a.quantidade },
       })),
       resultados,
     );

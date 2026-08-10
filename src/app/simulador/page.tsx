@@ -84,7 +84,7 @@ export default async function SimuladorPage() {
     supabase.from("cotacoes").select("ticker, preco, variacao, atualizado_em"),
     supabase
       .from("ordens_pendentes")
-      .select("id, ticker, tipo, quantidade, preco_alvo, criado_em")
+      .select("id, ticker, tipo, quantidade, preco_alvo, executar_na_abertura, criado_em")
       .eq("status", "pendente")
       .order("criado_em", { ascending: false }),
     supabase
@@ -192,7 +192,8 @@ export default async function SimuladorPage() {
     ticker: o.ticker,
     tipo: o.tipo,
     quantidade: Number(o.quantidade),
-    precoAlvo: Number(o.preco_alvo),
+    precoAlvo: o.preco_alvo != null ? Number(o.preco_alvo) : null,
+    executarNaAbertura: Boolean(o.executar_na_abertura),
     criadoEm: o.criado_em,
   }));
 

@@ -100,16 +100,25 @@ create policy "transacoes proprias" on public.transacoes
 -- preco atingir um alvo), aguardando serem executadas
 -- ------------------------------------------------------------
 create table if not exists public.ordens_pendentes (
-  id           uuid primary key default gen_random_uuid(),
-  usuario_id   uuid not null references auth.users(id) on delete cascade,
-  ticker       text not null,
-  tipo         text not null check (tipo in ('comprar','vender')),
-  quantidade   integer not null check (quantidade > 0),
-  preco_alvo   numeric(14,2) not null check (preco_alvo > 0),
-  status       text not null default 'pendente' check (status in ('pendente','executada','cancelada')),
-  criado_em    timestamptz not null default now(),
-  executada_em timestamptz
+  id                    uuid primary key default gen_random_uuid(),
+  usuario_id            uuid not null references auth.users(id) on delete cascade,
+  ticker                text not null,
+  tipo                  text not null check (tipo in ('comprar','vender')),
+  quantidade            integer not null check (quantidade > 0),
+  preco_alvo            numeric(14,2) check (preco_alvo > 0),
+  status                text not null default 'pendente' check (status in ('pendente','executada','cancelada')),
+  criado_em             timestamptz not null default now(),
+  executada_em          timestamptz,
+  executar_na_abertura  boolean not null default false
 );
+
+-- preco_alvo ficou opcional: ordem "na abertura" nao tem preco-alvo, so
+-- espera o pregao abrir e executa pelo preco de mercado do momento.
+alter table public.ordens_pendentes alter column preco_alvo drop not null;
+alter table public.ordens_pendentes add column if not exists executar_na_abertura boolean not null default false;
+alter table public.ordens_pendentes drop constraint if exists ordens_pendentes_alvo_ou_abertura;
+alter table public.ordens_pendentes add constraint ordens_pendentes_alvo_ou_abertura
+  check (executar_na_abertura or preco_alvo is not null);
 
 create index if not exists ordens_pendentes_usuario_idx
   on public.ordens_pendentes(usuario_id, status);
@@ -162,7 +171,7 @@ create trigger ao_criar_usuario
 -- GARANTIR PERFIL: cria o perfil se por algum motivo o gatilho acima
 -- nao rodou (ex: login social/OAuth em alguns fluxos nao dispara
 -- "after insert" do mesmo jeito). Chamada toda vez que a pagina do
--- simulador carrega, antes de ler o saldo — assim ninguem fica preso
+-- simulador carrega, antes de ler o saldo, assim ninguem fica preso
 -- vendo R$ 0,00 por causa de um perfil que nunca foi criado.
 -- ------------------------------------------------------------
 create or replace function public.garantir_perfil()
@@ -188,7 +197,7 @@ end $$;
 -- ------------------------------------------------------------
 -- COTACOES: cache de preco atualizada dentro do proprio banco (via
 -- extensao http, direto na brapi), nunca confiando no preco que o
--- navegador manda. E o que fecha a brecha de "preco forjado" — comprar
+-- navegador manda. E o que fecha a brecha de "preco forjado", comprar
 -- e vender descobrem o preco sozinhos, chamando garantir_cotacao().
 -- ------------------------------------------------------------
 create extension if not exists http with schema extensions;
@@ -226,7 +235,7 @@ alter table public.cotacoes enable row level security;
 drop policy if exists "cotacoes: leitura publica" on public.cotacoes;
 create policy "cotacoes: leitura publica" on public.cotacoes for select using (true);
 
--- Guarda o token da brapi dentro do banco, nunca exposto por API — sem
+-- Guarda o token da brapi dentro do banco, nunca exposto por API, sem
 -- policy nenhuma (RLS ligado, zero policies = ninguem le por fora de uma
 -- funcao security definer). Depois de rodar este arquivo, insira o seu
 -- token manualmente uma vez (nao commitar o valor real no repositorio):
@@ -289,7 +298,7 @@ grant execute on function public.garantir_fx_usd_brl() to authenticated;
 
 -- O mercado e detectado pelo FORMATO do ticker (B3 sempre termina em
 -- digito, ex PETR4; NYSE/NASDAQ e so letras, ex MSFT), nao por estar
--- cadastrado em ativos_permitidos — assim qualquer acao americana pode
+-- cadastrado em ativos_permitidos, assim qualquer acao americana pode
 -- ser negociada, nao so as curadas. B3 usa brapi; EUA usa finnhub
 -- (mesmo token das noticias), convertido pra R$.
 create or replace function public.garantir_cotacao(p_ticker text)
@@ -373,7 +382,7 @@ begin
 end $$;
 
 -- Atualiza a cotacao dos ativos curados de uma vez (chamada pelo pg_cron
--- a cada 5 minutos em horario de pregao — ver final do arquivo). No
+-- a cada 5 minutos em horario de pregao, ver final do arquivo). No
 -- maximo uma vez por minuto, pra nao martelar as fontes.
 create or replace function public.atualizar_cotacoes(p_forcar boolean default false)
 returns integer language plpgsql security definer set search_path = public, extensions as $$
@@ -508,7 +517,7 @@ grant execute on function public.buscar_acoes_usa(text) to authenticated;
 -- ------------------------------------------------------------
 -- COMPRAR: tira do saldo, soma na posicao, registra a transacao.
 -- Tudo junto, ou nada. Assim o saldo nunca fica errado. O preco vem de
--- garantir_cotacao() — nunca do parametro do cliente.
+-- garantir_cotacao(), nunca do parametro do cliente.
 -- ------------------------------------------------------------
 drop function if exists public.comprar(text, integer, numeric);
 
@@ -683,6 +692,36 @@ begin
 
   insert into public.ordens_pendentes (usuario_id, ticker, tipo, quantidade, preco_alvo)
   values (v_usuario, p_ticker, p_tipo, p_qtd, p_preco_alvo)
+  returning id into v_id;
+
+  return json_build_object('ok', true, 'id', v_id);
+end $$;
+
+-- ------------------------------------------------------------
+-- ORDEM NA ABERTURA: mesma ideia da ordem limitada, mas sem preco
+-- alvo, so espera o pregao abrir (ver src/lib/mercadoStatus.ts) e
+-- executa pelo preco de mercado do momento.
+-- ------------------------------------------------------------
+create or replace function public.criar_ordem_mercado_abertura(
+  p_ticker text, p_tipo text, p_qtd integer
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_id      uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_tipo not in ('comprar', 'vender') then
+    raise exception 'Tipo de ordem invalido.';
+  end if;
+  if p_qtd is null or p_qtd <= 0 then
+    raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+
+  insert into public.ordens_pendentes (usuario_id, ticker, tipo, quantidade, executar_na_abertura)
+  values (v_usuario, p_ticker, p_tipo, p_qtd, true)
   returning id into v_id;
 
   return json_build_object('ok', true, 'id', v_id);
@@ -951,7 +990,7 @@ end $$;
 -- RANKING: top usuarios por patrimonio (saldo + acoes pelo preco
 -- medio + renda fixa pelo valor investido). Usa preco medio em vez do
 -- preco de mercado agora pra nao precisar buscar cotacao de todo mundo
--- so pra montar o ranking — e uma aproximacao, nao o patrimonio exato
+-- so pra montar o ranking, e uma aproximacao, nao o patrimonio exato
 -- de cada um.
 -- ------------------------------------------------------------
 create or replace function public.ranking(p_limite integer default 50)
@@ -1019,7 +1058,7 @@ end $$;
 
 
 -- ------------------------------------------------------------
--- ALERTAS DE PRECO: avisa (dentro do site, nao por e-mail — sem
+-- ALERTAS DE PRECO: avisa (dentro do site, nao por e-mail, sem
 -- infraestrutura de envio configurada) quando uma acao bate um preco.
 -- A checagem roda a cada carregamento do simulador (ver
 -- processarPendencias.ts), igual as ordens limitadas.
@@ -1286,7 +1325,7 @@ end $$;
 
 -- ------------------------------------------------------------
 -- NOTICIAS: busca na finnhub de dentro do banco, mesmo padrao das
--- cotacoes — o token fica em segredos, nunca numa env var da Vercel.
+-- cotacoes, o token fica em segredos, nunca numa env var da Vercel.
 -- Trocamos de marketaux pra finnhub porque o plano gratuito da
 -- marketaux capava em 3 manchetes por busca; a finnhub nao tem esse
 -- limite por chamada no plano gratuito (so 60 chamadas/minuto).

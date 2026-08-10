@@ -4,9 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, CheckCircle2, AlertCircle, Minus, Plus } from "lucide-react";
-import { comprar, vender, criarOrdemLimitada } from "@/app/simulador/operacoes";
+import { comprar, vender, criarOrdemLimitada, criarOrdemMercadoAbertura } from "@/app/simulador/operacoes";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl } from "@/lib/formato";
+import { statusMercado } from "@/lib/mercadoStatus";
 
 export type OrdemAberta = {
   ticker: string;
@@ -33,10 +34,11 @@ export function ModalOrdem({
 }) {
   const router = useRouter();
   const [qtd, setQtd] = useState(1);
-  const [modo, setModo] = useState<"mercado" | "limitada">("mercado");
+  const [modo, setModo] = useState<"mercado" | "limitada" | "abertura">("mercado");
   const [precoAlvo, setPrecoAlvo] = useState(0);
   const [estado, setEstado] = useState<Estado>({ fase: "formulario" });
   const [, iniciar] = useTransition();
+  const mercadoFechado = !statusMercado(new Date()).aberto;
 
   /** Fecha e garante que a carteira na tela reflita a ordem recem-feita. */
   function fechar() {
@@ -66,15 +68,17 @@ export function ModalOrdem({
   const info = acaoPorTicker(ordem.ticker);
   const comprando = ordem.tipo === "comprar";
   const limitada = modo === "limitada";
+  const abertura = modo === "abertura";
   const custo = qtd * (limitada ? precoAlvo : ordem.preco);
 
   const maximo = comprando
     ? Math.max(0, Math.floor(ordem.limite / ordem.preco))
     : ordem.limite;
 
-  // Numa ordem limitada de compra o preco ainda vai cair ate o alvo, entao
-  // nao faz sentido travar pela sobra de caixa de agora.
-  const passaDoLimite = comprando && limitada ? false : qtd > maximo;
+  // Numa ordem que so vai executar depois (limitada ou na abertura), o
+  // preco pode mudar ate la, entao nao faz sentido travar pela sobra de
+  // caixa de agora quando for compra.
+  const passaDoLimite = comprando && (limitada || abertura) ? false : qtd > maximo;
 
   function enviar() {
     setEstado({ fase: "enviando" });
@@ -87,9 +91,11 @@ export function ModalOrdem({
               qtd,
               precoAlvo,
             )
-          : comprando
-            ? await comprar(ordem!.ticker, qtd)
-            : await vender(ordem!.ticker, qtd);
+          : modo === "abertura"
+            ? await criarOrdemMercadoAbertura(comprando ? "comprar" : "vender", ordem!.ticker, qtd)
+            : comprando
+              ? await comprar(ordem!.ticker, qtd)
+              : await vender(ordem!.ticker, qtd);
       setEstado(
         r.ok
           ? { fase: "feito", mensagem: r.mensagem }
@@ -158,7 +164,7 @@ export function ModalOrdem({
                 </span>
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-1.5">
+              <div className={`mt-5 grid gap-1.5 ${mercadoFechado ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"}`}>
                 <button
                   onClick={() => setModo("mercado")}
                   className={`border px-3 py-2.5 text-sm font-semibold transition-colors ${
@@ -179,7 +185,27 @@ export function ModalOrdem({
                 >
                   Só a um preço-alvo
                 </button>
+                {mercadoFechado && (
+                  <button
+                    onClick={() => setModo("abertura")}
+                    className={`border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                      modo === "abertura"
+                        ? "border-blue bg-blue text-onblue"
+                        : "border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+                    }`}
+                  >
+                    Quando o mercado abrir
+                  </button>
+                )}
               </div>
+
+              {abertura && (
+                <p className="mt-4 text-xs leading-relaxed text-ink-muted">
+                  O mercado está fechado agora. Essa ordem fica pendente e
+                  executa pelo preço de mercado assim que o pregão abrir de
+                  novo (a próxima vez que você abrir o simulador nesse horário).
+                </p>
+              )}
 
               {limitada && (
                 <div className="mt-4">
@@ -257,13 +283,19 @@ export function ModalOrdem({
               <div className="mt-6 space-y-1.5 bg-paper-alt p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-ink-muted">
-                    {limitada ? "Se executar, vai custar" : comprando ? "Vai custar" : "Você recebe"}
+                    {limitada
+                      ? "Se executar, vai custar"
+                      : abertura
+                        ? "Estimativa (preço pode mudar até abrir)"
+                        : comprando
+                          ? "Vai custar"
+                          : "Você recebe"}
                   </span>
                   <span className="font-mono font-semibold tabular text-ink">
                     {brl(custo)}
                   </span>
                 </div>
-                {comprando && !limitada && (
+                {comprando && !limitada && !abertura && (
                   <div className="flex justify-between text-sm">
                     <span className="text-ink-muted">Sobra em caixa</span>
                     <span
@@ -311,7 +343,7 @@ export function ModalOrdem({
                     <Loader2 size={16} className="animate-spin" />
                     Confirmando
                   </>
-                ) : limitada ? (
+                ) : limitada || abertura ? (
                   `Criar ordem de ${comprando ? "compra" : "venda"}`
                 ) : (
                   `Confirmar ${comprando ? "compra" : "venda"} de ${brl(custo)}`

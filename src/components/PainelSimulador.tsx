@@ -63,7 +63,8 @@ export type OrdemPendente = {
   ticker: string;
   tipo: "comprar" | "vender";
   quantidade: number;
-  precoAlvo: number;
+  precoAlvo: number | null;
+  executarNaAbertura: boolean;
   criadoEm: string;
 };
 
@@ -702,9 +703,18 @@ function OrdemPendenteLinha({ ordem, delay }: { ordem: OrdemPendente; delay: num
             {ordem.tipo === "comprar" ? "Comprar" : "Vender"} {ordem.ticker}
           </p>
           <p className="text-xs text-ink-muted">
-            {ordem.quantidade} {ordem.quantidade === 1 ? "cota" : "cotas"} quando
-            {ordem.tipo === "comprar" ? " cair pra " : " subir pra "}
-            {brl(ordem.precoAlvo)}
+            {ordem.executarNaAbertura ? (
+              <>
+                {ordem.quantidade} {ordem.quantidade === 1 ? "cota" : "cotas"} assim que o
+                mercado abrir
+              </>
+            ) : (
+              <>
+                {ordem.quantidade} {ordem.quantidade === 1 ? "cota" : "cotas"} quando
+                {ordem.tipo === "comprar" ? " cair pra " : " subir pra "}
+                {brl(ordem.precoAlvo ?? 0)}
+              </>
+            )}
           </p>
         </div>
       </div>

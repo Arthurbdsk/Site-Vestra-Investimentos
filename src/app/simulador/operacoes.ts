@@ -112,6 +112,43 @@ export async function criarOrdemLimitada(
   };
 }
 
+/** Ordem que executa pelo preco de mercado assim que o pregao abrir. */
+export async function criarOrdemMercadoAbertura(
+  tipo: "comprar" | "vender",
+  ticker: string,
+  quantidade: number,
+): Promise<Resultado> {
+  const supabase = await criarClienteServidor();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, mensagem: "Sua sessão expirou. Entre de novo pra continuar." };
+  }
+
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    return { ok: false, mensagem: "Escolha uma quantidade de pelo menos 1 cota." };
+  }
+
+  const { error } = await supabase.rpc("criar_ordem_mercado_abertura", {
+    p_ticker: ticker,
+    p_tipo: tipo,
+    p_qtd: quantidade,
+  });
+
+  if (error) {
+    return { ok: false, mensagem: "Não foi possível criar a ordem." };
+  }
+
+  revalidatePath("/simulador");
+
+  return {
+    ok: true,
+    mensagem: `Ordem criada: ${tipo === "comprar" ? "comprar" : "vender"} ${quantidade} ${quantidade === 1 ? "cota" : "cotas"} de ${ticker} assim que o mercado abrir.`,
+  };
+}
+
 export async function cancelarOrdemLimitada(id: string): Promise<Resultado> {
   const supabase = await criarClienteServidor();
 

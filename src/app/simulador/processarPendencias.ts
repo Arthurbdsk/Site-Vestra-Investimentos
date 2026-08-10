@@ -1,13 +1,15 @@
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { precoAtualQualquerTicker } from "@/lib/cotacoes";
 import { buscarDividendos } from "@/lib/dividendos";
+import { statusMercado } from "@/lib/mercadoStatus";
 
 type OrdemPendente = {
   id: string;
   ticker: string;
   tipo: "comprar" | "vender";
   quantidade: number;
-  preco_alvo: number;
+  preco_alvo: number | null;
+  executar_na_abertura: boolean;
 };
 
 type AlertaPreco = {
@@ -65,20 +67,28 @@ async function processarOrdens(
 ) {
   const { data: ordens } = await supabase
     .from("ordens_pendentes")
-    .select("id, ticker, tipo, quantidade, preco_alvo")
+    .select("id, ticker, tipo, quantidade, preco_alvo, executar_na_abertura")
     .eq("usuario_id", usuarioId)
     .eq("status", "pendente");
 
   if (!ordens || ordens.length === 0) return;
 
-  for (const ordem of ordens as OrdemPendente[]) {
-    const preco = await precoAtualQualquerTicker(ordem.ticker);
-    if (preco === null) continue;
+  const mercadoAberto = statusMercado(new Date()).aberto;
 
-    const precoAlvo = Number(ordem.preco_alvo);
-    const atingiu =
-      ordem.tipo === "comprar" ? preco <= precoAlvo : preco >= precoAlvo;
-    if (!atingiu) continue;
+  for (const ordem of ordens as OrdemPendente[]) {
+    if (ordem.executar_na_abertura) {
+      // So executa quando o pregao estiver aberto, pelo preco de mercado
+      // do momento (nao ha preco-alvo pra comparar aqui).
+      if (!mercadoAberto) continue;
+    } else {
+      const preco = await precoAtualQualquerTicker(ordem.ticker);
+      if (preco === null) continue;
+
+      const precoAlvo = Number(ordem.preco_alvo);
+      const atingiu =
+        ordem.tipo === "comprar" ? preco <= precoAlvo : preco >= precoAlvo;
+      if (!atingiu) continue;
+    }
 
     // O preco de execucao e confirmado de novo dentro do banco
     // (garantir_cotacao), nao pelo que foi lido aqui so pra checar o alvo.
