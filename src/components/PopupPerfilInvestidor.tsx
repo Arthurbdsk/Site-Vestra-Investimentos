@@ -89,7 +89,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
               </p>
               {erroSalvar && (
                 <p className="mt-4 border-l-[3px] border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-                  Não consegui salvar seu perfil agora — esse quiz pode
+                  Não consegui salvar seu perfil agora, esse quiz pode
                   aparecer de novo na próxima vez. Tente de novo:{" "}
                   <button
                     onClick={() => salvar(resultado)}

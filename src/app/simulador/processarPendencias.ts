@@ -106,7 +106,7 @@ async function processarDividendos(
 
   if (!posicoes || posicoes.length === 0) return;
 
-  // So credita dividendos pagos depois da primeira compra de cada ativo —
+  // So credita dividendos pagos depois da primeira compra de cada ativo,
   // senao, ao comprar uma acao que ja pagou dividendo varias vezes na
   // vida real, a pessoa recebe anos de pagamentos "atrasados" de uma vez.
   const { data: primeirasCompras } = await supabase

@@ -115,7 +115,7 @@ export function RankingPainel({
         )
       ) : rankingMensal.length === 0 ? (
         <p className="mt-8 text-ink-muted">
-          Ninguém com dados suficientes ainda este mês — volte depois de investir algo.
+          Ninguém com dados suficientes ainda este mês, volte depois de investir algo.
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto border border-[var(--rule)]">
@@ -169,7 +169,7 @@ export function RankingPainel({
       )}
 
       <p className="mt-6 font-mono text-[11px] text-ink-muted">
-        Ações contam pelo preço médio de compra, não pela cotação atual —
+        Ações contam pelo preço médio de compra, não pela cotação atual:
         uma aproximação, não o patrimônio exato de cada pessoa.
       </p>
     </div>

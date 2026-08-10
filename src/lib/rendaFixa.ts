@@ -13,7 +13,7 @@ export type ResultadoTaxa = { ok: true; taxaAnual: number; referencia: string };
  * Nao e ao vivo, mas fica perto o suficiente da taxa real pra fins
  * educativos.
  */
-const CDI_APROXIMADO = 0.15; // 15% ao ano — atualize aqui quando a Selic mudar
+const CDI_APROXIMADO = 0.15; // 15% ao ano, atualize aqui quando a Selic mudar
 const CDI_ATUALIZADO_EM = "2026-01";
 
 export async function buscarTaxaCDI(): Promise<ResultadoTaxa> {
@@ -34,7 +34,7 @@ export type ResultadoTesouro = { ok: true; titulos: TituloTesouro[] };
 /**
  * Titulos do Tesouro Direto. O endpoint ao vivo da brapi
  * (/api/v2/treasury/list) tambem exige plano pago, entao usamos uma lista
- * curada com taxas aproximadas — mesma logica do CDI aproximado acima.
+ * curada com taxas aproximadas, mesma logica do CDI aproximado acima.
  * Nao muda dia a dia, mas reflete bem a cara de cada tipo de titulo.
  */
 const TESOURO_ATUALIZADO_EM = "2026-01";

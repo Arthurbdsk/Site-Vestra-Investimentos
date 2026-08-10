@@ -1,5 +1,5 @@
 /**
- * Artigos educativos curtos, conteudo original escrito pro Vestra — no
+ * Artigos educativos curtos, conteudo original escrito pro Vestra, no
  * mesmo espirito das materias do Investopedia, so que em portugues
  * informal e em escala bem menor (poucos artigos, nao 36 mil).
  */
@@ -25,10 +25,10 @@ export const ARTIGOS: Artigo[] = [
     resumo:
       "Antes de escolher uma ação, tem duas ou três decisões que importam bem mais.",
     corpo: [
-      "A pergunta mais comum de quem começa é \"em que ação eu compro?\". Mas antes disso tem perguntas mais importantes: você tem uma reserva de emergência? Sabe pra quando é esse dinheiro — daqui a um ano ou daqui a vinte?",
+      "A pergunta mais comum de quem começa é \"em que ação eu compro?\". Mas antes disso tem perguntas mais importantes: você tem uma reserva de emergência? Sabe pra quando é esse dinheiro: daqui a um ano ou daqui a vinte?",
       "Se a resposta for \"não tenho reserva\", o primeiro investimento nem devia ser em ações. Faz mais sentido guardar uns meses de gasto num lugar de liquidez alta e renda fixa, tipo Tesouro Selic, antes de qualquer outra coisa.",
       "Depois disso resolvido, o tamanho do prazo muda tudo. Dinheiro que você pode precisar em seis meses não deveria estar em renda variável, porque o preço pode estar baixo bem na hora que você precisar sacar. Dinheiro que só vai fazer falta daqui a dez anos aguenta balançar no caminho.",
-      "Só depois de organizar isso é que faz sentido pensar em ações específicas — e mesmo aí, começar pequeno, com uma empresa que você entende o que faz, costuma valer mais que tentar acertar a próxima ação da moda.",
+      "Só depois de organizar isso é que faz sentido pensar em ações específicas, e mesmo aí, começar pequeno, com uma empresa que você entende o que faz, costuma valer mais que tentar acertar a próxima ação da moda.",
     ],
     quiz: [
       {
@@ -55,11 +55,11 @@ export const ARTIGOS: Artigo[] = [
     slug: "renda-fixa-vs-variavel",
     titulo: "Renda fixa e renda variável: a diferença de verdade",
     resumo:
-      "Não é sobre uma ser \"melhor\" que a outra — é sobre o que cada uma promete.",
+      "Não é sobre uma ser \"melhor\" que a outra: é sobre o que cada uma promete.",
     corpo: [
       "Renda fixa quer dizer que a regra do rendimento já está combinada desde o início. Um CDB que paga 110% do CDI, por exemplo: você sabe exatamente a fórmula que vai definir o quanto recebe.",
       "Renda variável não promete nada. Uma ação pode valorizar 30% num ano ou cair 20%; ninguém assina embaixo de um número antes.",
-      "Isso não faz da renda fixa \"segura\" e da variável \"arriscada\" de forma automática — depende do emissor, do prazo, de várias coisas. Mas ajuda a entender por que elas servem pra objetivos diferentes: a fixa costuma segurar o dinheiro que você não pode se dar ao luxo de perder; a variável entra quando você tem tempo de esperar as oscilações passarem.",
+      "Isso não faz da renda fixa \"segura\" e da variável \"arriscada\" de forma automática: depende do emissor, do prazo, de várias coisas. Mas ajuda a entender por que elas servem pra objetivos diferentes: a fixa costuma segurar o dinheiro que você não pode se dar ao luxo de perder; a variável entra quando você tem tempo de esperar as oscilações passarem.",
       "A maioria das carteiras saudáveis tem as duas. A pergunta não é \"qual escolher\", é \"quanto de cada, pro meu momento de vida\".",
     ],
     quiz: [
@@ -91,7 +91,7 @@ export const ARTIGOS: Artigo[] = [
     corpo: [
       "Um erro comum é achar que diversificar significa ter várias posições diferentes. Mas se você tem ações de cinco bancos, na prática está apostando numa coisa só: como vai o setor bancário.",
       "Diversificar de verdade é buscar ativos que não sobem e descem pelo mesmo motivo. Uma ação de banco e uma de exportadora de commodities reagem de jeitos diferentes a uma alta do dólar, por exemplo.",
-      "Isso não elimina o risco — nada elimina. Mas evita que um único evento (uma crise no setor bancário, digamos) derrube a carteira inteira de uma vez.",
+      "Isso não elimina o risco, nada elimina. Mas evita que um único evento (uma crise no setor bancário, digamos) derrube a carteira inteira de uma vez.",
       "Vale lembrar também que diversificação tem limite de utilidade: depois de um certo número de ativos bem escolhidos, adicionar mais um não reduz muito mais o risco, só deixa a carteira mais difícil de acompanhar.",
     ],
     quiz: [
@@ -121,10 +121,10 @@ export const ARTIGOS: Artigo[] = [
     resumo:
       "A taxa básica de juros mexe com muito mais coisa do que só a poupança.",
     corpo: [
-      "Quando a Selic sobe, investir em renda fixa fica mais atraente — os títulos passam a pagar mais. Isso puxa dinheiro pra longe da bolsa, porque comparado a um retorno maior e mais previsível, o risco da renda variável passa a exigir uma recompensa ainda maior pra valer a pena.",
-      "Também fica mais caro pras empresas pegarem empréstimo, o que pode frear planos de expansão e pesar no lucro futuro — outro motivo pra ações caírem quando os juros sobem.",
+      "Quando a Selic sobe, investir em renda fixa fica mais atraente: os títulos passam a pagar mais. Isso puxa dinheiro pra longe da bolsa, porque comparado a um retorno maior e mais previsível, o risco da renda variável passa a exigir uma recompensa ainda maior pra valer a pena.",
+      "Também fica mais caro pras empresas pegarem empréstimo, o que pode frear planos de expansão e pesar no lucro futuro, outro motivo pra ações caírem quando os juros sobem.",
       "Quando a Selic cai, o caminho tende a ser o oposto: renda fixa rende menos, e a bolsa volta a parecer mais interessante em comparação.",
-      "Não é uma regra matemática exata — outros fatores entram na conta —, mas entender essa relação ajuda a explicar por que notícia sobre juros sempre mexe com o mercado inteiro.",
+      "Não é uma regra matemática exata (outros fatores entram na conta), mas entender essa relação ajuda a explicar por que notícia sobre juros sempre mexe com o mercado inteiro.",
     ],
     quiz: [
       {
@@ -153,10 +153,10 @@ export const ARTIGOS: Artigo[] = [
     resumo:
       "Quase todo mundo passa por pelo menos um desses.",
     corpo: [
-      "Comprar por notícia. Quando uma ação já está estampada em manchete de tanto que subiu, boa parte do movimento já aconteceu — comprar ali é entrar tarde na festa.",
+      "Comprar por notícia. Quando uma ação já está estampada em manchete de tanto que subiu, boa parte do movimento já aconteceu, comprar ali é entrar tarde na festa.",
       "Vender no pânico. Uma queda de 10% dói, mas vender justamente no fundo do poço transforma uma perda de papel numa perda de verdade.",
       "Não entender o que comprou. Se você não consegue explicar em duas frases o que a empresa faz e como ela ganha dinheiro, é sinal de que talvez seja cedo pra ter aquela ação na carteira.",
-      "Confundir sorte com estratégia. Acertar uma ação que triplicou de valor sente bem, mas nem sempre quer dizer que a decisão foi boa — às vezes foi só sorte, e repetir o comportamento sem entender o porquê custa caro no médio prazo.",
+      "Confundir sorte com estratégia. Acertar uma ação que triplicou de valor sente bem, mas nem sempre quer dizer que a decisão foi boa: às vezes foi só sorte, e repetir o comportamento sem entender o porquê custa caro no médio prazo.",
     ],
     quiz: [
       {
@@ -185,9 +185,9 @@ export const ARTIGOS: Artigo[] = [
     resumo:
       "Você não precisa ser analista técnico pra tirar informação útil de uma linha.",
     corpo: [
-      "O básico: o eixo de baixo é tempo, o de lado é preço. Uma linha subindo da esquerda pra direita significa que o preço estava mais baixo no passado e mais alto agora — parece óbvio, mas é o primeiro instinto que trava em quem nunca olhou um gráfico antes.",
+      "O básico: o eixo de baixo é tempo, o de lado é preço. Uma linha subindo da esquerda pra direita significa que o preço estava mais baixo no passado e mais alto agora, parece óbvio, mas é o primeiro instinto que trava em quem nunca olhou um gráfico antes.",
       "Preste atenção na escala do preço, não só no formato da linha. Uma variação de 2% pode parecer um Everest ou uma reta quase plana dependendo de como o gráfico foi desenhado.",
-      "Períodos maiores contam histórias diferentes de períodos menores. Uma ação pode estar em queda no último mês e em alta forte no último ano — nenhuma das duas visões é \"a errada\", são só janelas de tempo diferentes.",
+      "Períodos maiores contam histórias diferentes de períodos menores. Uma ação pode estar em queda no último mês e em alta forte no último ano, nenhuma das duas visões é \"a errada\", são só janelas de tempo diferentes.",
       "E o mais importante: um gráfico mostra o que já aconteceu, não o que vai acontecer. Ele é útil pra dar contexto, não uma bola de cristal.",
     ],
     quiz: [

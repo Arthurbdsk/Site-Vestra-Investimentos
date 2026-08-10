@@ -8,7 +8,7 @@ const SLIDES = [
   {
     icone: Wallet,
     titulo: "Bem-vindo ao simulador",
-    texto: "Você começa com R$ 100.000 fictícios. Nada aqui é dinheiro de verdade — é o seu campo de treino.",
+    texto: "Você começa com R$ 100.000 fictícios. Nada aqui é dinheiro de verdade, é o seu campo de treino.",
   },
   {
     icone: Search,

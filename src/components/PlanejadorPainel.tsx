@@ -40,7 +40,7 @@ export function PlanejadorPainel({
     <div>
       <h2 className="font-display text-2xl text-ink">Planejador de investimento</h2>
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Diga quanto quer investir, por quanto tempo e o que você prioriza —
+        Diga quanto quer investir, por quanto tempo e o que você prioriza:
         a gente monta uma sugestão de alocação entre renda fixa e ações.
       </p>
 

@@ -107,7 +107,7 @@ export const GLOSSARIO: TermoGlossario[] = [
   {
     termo: "Alavancagem",
     definicao:
-      "Investir com mais dinheiro do que você tem, geralmente emprestado, pra tentar multiplicar o ganho — e também a perda.",
+      "Investir com mais dinheiro do que você tem, geralmente emprestado, pra tentar multiplicar o ganho, e também a perda.",
   },
   {
     termo: "P/L",

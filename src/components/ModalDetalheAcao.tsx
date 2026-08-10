@@ -25,7 +25,7 @@ type EstadoGrafico =
   | { fase: "feito"; serie: PontoSerie[] };
 
 /**
- * Sinal automatico (nao e opinião de analista humano — brapi nao tem
+ * Sinal automatico (nao e opinião de analista humano, brapi nao tem
  * esse dado pra acoes da B3): compara o preco atual com a media do
  * periodo carregado no grafico.
  */
@@ -115,19 +115,21 @@ export function ModalDetalheAcao({
             exit={{ y: 20, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg bg-paper p-7 shadow-2xl"
+            className="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto bg-paper p-7 shadow-2xl"
           >
             <button
               onClick={aoFechar}
               aria-label="Fechar"
-              className="absolute right-5 top-5 text-ink-muted transition-colors hover:text-ink"
+              className="absolute right-5 top-5 z-[1] text-ink-muted transition-colors hover:text-ink"
             >
               <X size={20} />
             </button>
 
-            <div className="flex items-center gap-3">
-              <LogoAcao logo={cabecalho?.logo ?? null} ticker={ticker} size={40} />
+            <div className="grid gap-8 sm:grid-cols-[1fr_1.2fr]">
               <div>
+                <div className="flex items-center gap-3">
+                  <LogoAcao logo={cabecalho?.logo ?? null} ticker={ticker} size={40} />
+                  <div>
             <p
               className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
               style={{
@@ -140,11 +142,11 @@ export function ModalDetalheAcao({
               {ticker}
               {ticker && <BotaoFavorito ticker={ticker} favorito={Boolean(favorito)} tamanho={18} />}
             </h2>
-              </div>
-            </div>
-            <p className="mt-1 text-sm text-ink-muted">{info?.nome}</p>
+                  </div>
+                </div>
+                <p className="mt-1 text-sm text-ink-muted">{info?.nome}</p>
 
-            <div className="mt-4 flex items-baseline gap-3">
+                <div className="mt-4 flex items-baseline gap-3">
               {cabecalho ? (
                 cabecalho.preco != null ? (
                   <>
@@ -168,62 +170,66 @@ export function ModalDetalheAcao({
               ) : (
                 <Loader2 size={16} className="animate-spin text-ink-muted" />
               )}
-            </div>
-
-            {info && (
-              <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
-                {info.explica}
-              </p>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-1.5">
-              {PERIODOS.map((p) => (
-                <button
-                  key={p.valor}
-                  onClick={() => setPeriodo(p.valor)}
-                  className={`border px-3 py-1.5 font-mono text-xs transition-colors ${
-                    periodo === p.valor
-                      ? "border-blue bg-blue text-onblue"
-                      : "border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-5 min-h-[180px]">
-              {grafico.fase === "carregando" && (
-                <div className="flex h-[180px] items-center justify-center">
-                  <Loader2 size={20} className="animate-spin text-ink-muted" />
                 </div>
-              )}
-              {grafico.fase === "erro" && (
-                <p className="flex items-start gap-2 text-sm text-ink-muted">
-                  <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                  {grafico.mensagem}
-                </p>
-              )}
-              {grafico.fase === "feito" && <GraficoPreco serie={grafico.serie} />}
+
+                {info && (
+                  <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
+                    {info.explica}
+                  </p>
+                )}
+
+                {grafico.fase === "feito" && (
+                  <SinalTecnico
+                    serie={grafico.serie}
+                    precoAtual={cabecalho?.preco ?? null}
+                    periodoLabel={PERIODOS.find((p) => p.valor === periodo)?.label ?? periodo}
+                  />
+                )}
+
+                <NoticiasDaAcao nome={info?.nome ?? ticker} />
+
+                <button
+                  onClick={() => cabecalho?.preco != null && aoComprar(ticker, cabecalho.preco, info?.nome)}
+                  disabled={!cabecalho?.preco}
+                  className="mt-6 w-full bg-blue px-6 py-3.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
+                >
+                  Comprar {ticker}
+                </button>
+              </div>
+
+              <div>
+                <div className="flex flex-wrap gap-1.5">
+                  {PERIODOS.map((p) => (
+                    <button
+                      key={p.valor}
+                      onClick={() => setPeriodo(p.valor)}
+                      className={`border px-3 py-1.5 font-mono text-xs transition-colors ${
+                        periodo === p.valor
+                          ? "border-blue bg-blue text-onblue"
+                          : "border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-5 min-h-[180px]">
+                  {grafico.fase === "carregando" && (
+                    <div className="flex h-[180px] items-center justify-center">
+                      <Loader2 size={20} className="animate-spin text-ink-muted" />
+                    </div>
+                  )}
+                  {grafico.fase === "erro" && (
+                    <p className="flex items-start gap-2 text-sm text-ink-muted">
+                      <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                      {grafico.mensagem}
+                    </p>
+                  )}
+                  {grafico.fase === "feito" && <GraficoPreco serie={grafico.serie} />}
+                </div>
+              </div>
             </div>
-
-            {grafico.fase === "feito" && (
-              <SinalTecnico
-                serie={grafico.serie}
-                precoAtual={cabecalho?.preco ?? null}
-                periodoLabel={PERIODOS.find((p) => p.valor === periodo)?.label ?? periodo}
-              />
-            )}
-
-            <NoticiasDaAcao nome={info?.nome ?? ticker} />
-
-            <button
-              onClick={() => cabecalho?.preco != null && aoComprar(ticker, cabecalho.preco, info?.nome)}
-              disabled={!cabecalho?.preco}
-              className="mt-6 w-full bg-blue px-6 py-3.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
-            >
-              Comprar {ticker}
-            </button>
           </motion.div>
         </motion.div>
       )}
@@ -265,7 +271,7 @@ function SinalTecnico({
       </p>
       <p className="mt-1 text-xs text-ink-muted">
         Média do período: {brl(media)}. Sinal automático calculado a partir do
-        preço histórico — não é opinião de analista humano nem recomendação de compra ou venda.
+        preço histórico, não é opinião de analista humano nem recomendação de compra ou venda.
       </p>
     </div>
   );

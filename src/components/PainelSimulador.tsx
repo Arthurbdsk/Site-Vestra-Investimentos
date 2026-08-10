@@ -254,7 +254,7 @@ export function PainelSimulador({
         </div>
       </section>
 
-      {/* Abas — barra horizontal so no celular, sidebar a partir do md */}
+      {/* Abas: barra horizontal so no celular, sidebar a partir do md */}
       <div className="sticky top-[57px] z-30 border-b border-[var(--rule)] bg-paper/95 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6">
           {abas.map(({ id, label, icone: Icone }) => (
@@ -588,7 +588,7 @@ function Carteira({
 
 /**
  * Alertas, composicao, dividendos e cartao compartilhavel sao uteis mas
- * secundarios — ficam atras de uma unica revelacao, em vez de 4 caixas
+ * secundarios, ficam atras de uma unica revelacao, em vez de 4 caixas
  * sempre abertas competindo com a carteira em si pela atencao.
  */
 function FerramentasCarteira({

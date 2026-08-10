@@ -101,7 +101,7 @@ export function SeTivesseInvestido() {
           >
             {ACOES.map((a) => (
               <option key={a.ticker} value={a.ticker}>
-                {a.ticker} — {a.nome}
+                {a.ticker} · {a.nome}
               </option>
             ))}
           </select>
@@ -181,7 +181,7 @@ export function SeTivesseInvestido() {
           <div className="flex items-center gap-3">
             <TrendingUp size={20} className="text-blue" />
             <p className="font-display text-xl text-ink">
-              {estado.ticker} — {estado.nome}
+              {estado.ticker} · {estado.nome}
             </p>
           </div>
 

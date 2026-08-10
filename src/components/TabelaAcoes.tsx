@@ -20,7 +20,7 @@ const COLUNAS: { id: Coluna; label: string; alinhar?: "right" }[] = [
 ];
 
 function compacto(v: number | null): string {
-  if (v == null) return "—";
+  if (v == null) return "-";
   if (v >= 1_000_000_000) return `${numero(v / 1_000_000_000, 1)}B`;
   if (v >= 1_000_000) return `${numero(v / 1_000_000, 1)}M`;
   if (v >= 1_000) return `${numero(v / 1_000, 1)}K`;
@@ -108,7 +108,7 @@ export function TabelaAcoes({
                 </div>
               </td>
               <td className="px-4 py-3 text-right font-mono tabular text-ink">
-                {a.preco != null ? brl(a.preco) : "—"}
+                {a.preco != null ? brl(a.preco) : "-"}
               </td>
               <td
                 className={`px-4 py-3 text-right font-mono tabular ${
@@ -121,19 +121,19 @@ export function TabelaAcoes({
               >
                 {a.variacao != null
                   ? `${a.variacao >= 0 ? "▲" : "▼"} ${numero(Math.abs(a.variacao))}%`
-                  : "—"}
+                  : "-"}
               </td>
               <td className="px-4 py-3 text-right font-mono tabular text-ink-muted">
                 {compacto(a.volume)}
               </td>
               <td className="px-4 py-3 text-right font-mono tabular text-ink-muted">
-                {a.valorMercado != null ? `R$ ${compacto(a.valorMercado)}` : "—"}
+                {a.valorMercado != null ? `R$ ${compacto(a.valorMercado)}` : "-"}
               </td>
               <td
                 className="px-4 py-3 text-xs font-medium"
                 style={{ color: a.setor ? corDoSetor(a.setor) : "var(--color-ink-muted)" }}
               >
-                {a.setor ?? "—"}
+                {a.setor ?? "-"}
               </td>
               <td className="px-4 py-3 text-right">
                 <button

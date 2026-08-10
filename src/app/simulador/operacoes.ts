@@ -28,7 +28,7 @@ async function executar(
 
   // O preco e descoberto inteiramente dentro do banco (garantir_cotacao),
   // a partir de uma cache atualizada direto na B3. O navegador nunca
-  // decide o valor, nem manda ele pra RPC — fecha a brecha de preco
+  // decide o valor, nem manda ele pra RPC, fecha a brecha de preco
   // forjado por chamada direta a funcao.
   const { data, error } = await supabase.rpc(operacao, {
     p_ticker: ticker,

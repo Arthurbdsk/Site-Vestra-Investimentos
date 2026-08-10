@@ -36,7 +36,7 @@ export const PERGUNTAS: Pergunta[] = [
       { texto: "Prefiro ganhar pouco, mas ter certeza que não vou perder", pontos: 1 },
       { texto: "Aceito perder um pouco se puder ganhar mais no médio prazo", pontos: 2 },
       { texto: "Topo boas variações se isso significar retorno maior no longo prazo", pontos: 3 },
-      { texto: "Quanto mais risco, mais interessante — busco crescimento agressivo", pontos: 4 },
+      { texto: "Quanto mais risco, mais interessante, busco crescimento agressivo", pontos: 4 },
     ],
   },
   {
@@ -75,7 +75,7 @@ export const PERFIS: Record<PerfilId, Perfil> = {
     id: "conservador",
     nome: "Conservador",
     descricao:
-      "Você prioriza não perder dinheiro acima de tudo. Faz sentido buscar empresas grandes, de setores estáveis e com histórico de pagar dividendos — não ativos que balançam muito de um dia pro outro.",
+      "Você prioriza não perder dinheiro acima de tudo. Faz sentido buscar empresas grandes, de setores estáveis e com histórico de pagar dividendos, não ativos que balançam muito de um dia pro outro.",
     tickers: ["ITUB4", "EQTL3", "RADL3", "ABEV3"],
   },
   moderado: {

@@ -10,7 +10,7 @@ import { salvarPerfilInvestidor } from "@/app/simulador/operacoesPerfil";
 
 /**
  * Quando usado solto (pagina Aprender), so mostra o resultado.
- * Com `persistir`, tambem guarda o perfil na conta — e assim que a area
+ * Com `persistir`, tambem guarda o perfil na conta, e assim que a area
  * de conta usa, pra a pessoa poder refazer o teste e manter o resultado.
  */
 export function QuizPerfil({

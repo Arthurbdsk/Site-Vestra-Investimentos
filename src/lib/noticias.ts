@@ -16,7 +16,7 @@ export type ResultadoNoticias =
 /**
  * Manchetes de mercado via marketaux (agrega Yahoo Finance, Reuters, WSJ
  * e outras fontes). A busca em si roda dentro do Postgres (funcao
- * buscar_noticias, mesmo padrao das cotacoes) — o token nunca precisa
+ * buscar_noticias, mesmo padrao das cotacoes): o token nunca precisa
  * estar numa env var da Vercel, so no banco.
  */
 export async function buscarNoticias(busca?: string): Promise<ResultadoNoticias> {

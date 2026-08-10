@@ -25,7 +25,7 @@ export async function salvarPerfilInvestidor(perfil: PerfilId) {
  *
  * Sem isso o quiz voltava a cada visita: pular nao gravava nada, entao
  * a pagina achava que nunca tinha perguntado. Quem pula uma vez nao deve
- * ser importunado de novo — da pra responder depois na area de conta.
+ * ser importunado de novo, da pra responder depois na area de conta.
  */
 export async function marcarQuizVisto() {
   const supabase = await criarClienteServidor();

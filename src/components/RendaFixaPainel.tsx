@@ -131,7 +131,7 @@ export function RendaFixaPainel({ posicoes }: { posicoes: PosicaoRendaFixa[] }) 
             </p>
             <p className="mt-1 text-xs text-ink-muted">
               Taxas aproximadas dos tipos reais de título (Selic, Prefixado,
-              IPCA+), atualizadas manualmente — não ao vivo.
+              IPCA+), atualizadas manualmente, não ao vivo.
             </p>
             <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
               {estado.tesouro.slice(0, 8).map((t, i) => (
@@ -236,7 +236,7 @@ function CdbCartao({
 
 function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number }) {
   const router = useRouter();
-  // Tesouro IPCA+ divulga a taxa REAL, acima da inflação — pra render
+  // Tesouro IPCA+ divulga a taxa REAL, acima da inflação, pra render
   // igual na simulação (sem modelar IPCA à parte), somamos uma inflação
   // assumida só pra virar uma taxa nominal equivalente.
   const inflacaoAssumida = 4.5;
@@ -256,7 +256,7 @@ function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number
         <div>
           <p className="font-semibold text-ink">{titulo.nome}</p>
           <p className="text-sm text-ink-muted">
-            {titulo.indexador} · vencimento {titulo.vencimento ? fmtData(titulo.vencimento) : "—"}
+            {titulo.indexador} · vencimento {titulo.vencimento ? fmtData(titulo.vencimento) : "-"}
           </p>
         </div>
       </div>

@@ -50,7 +50,7 @@ const BASE_RENDA_FIXA: Record<Objetivo, number> = {
  * Monta um plano de alocacao simples e transparente: define quanto vai
  * pra renda fixa (com base no objetivo e ajustado pelo prazo) e reparte o
  * resto entre acoes da lista curada que combinam com o objetivo. Nao e
- * uma recomendacao de investimento real — e uma simulacao educativa.
+ * uma recomendacao de investimento real, e uma simulacao educativa.
  */
 export function gerarPlano(
   valorTotal: number,
@@ -94,7 +94,7 @@ function planoRendaFixa(valor: number, prazoAnos: number): ItemPlano[] {
   }
 
   // Prazo mais longo: metade num CDB de prazo parecido, metade no
-  // Tesouro (Prefixado se ate ~5 anos, IPCA+ se mais longo — protege
+  // Tesouro (Prefixado se ate ~5 anos, IPCA+ se mais longo, protege
   // da inflacao em horizontes bem distantes).
   const cdb =
     prazoAnos <= 2
