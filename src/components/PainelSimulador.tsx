@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -22,6 +22,7 @@ import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
 import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./AlertasPreco";
 import { DuelosPainel, type Duelo } from "./DuelosPainel";
+import { AgentePainel, type Agente, type DecisaoAgente } from "./AgentePainel";
 import { TourBoasVindas } from "./TourBoasVindas";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
 import { CalendarioDividendos } from "./CalendarioDividendos";
@@ -64,7 +65,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -84,6 +85,8 @@ export function PainelSimulador({
   alertas,
   favoritos,
   duelos,
+  agente,
+  decisoesAgente,
 }: {
   apelido: string;
   saldo: number;
@@ -102,6 +105,8 @@ export function PainelSimulador({
   alertas: AlertaPreco[];
   favoritos: string[];
   duelos: Duelo[];
+  agente: Agente;
+  decisoesAgente: DecisaoAgente[];
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -153,6 +158,7 @@ export function PainelSimulador({
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
     { id: "duelo", label: "Duelo", icone: Swords },
+    { id: "agente", label: "Agente IA", icone: Bot },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
 
@@ -399,6 +405,8 @@ export function PainelSimulador({
               )}
 
               {aba === "duelo" && <DuelosPainel duelos={duelos} />}
+
+              {aba === "agente" && <AgentePainel agente={agente} decisoes={decisoesAgente} />}
 
               {aba === "historico" && <Historico transacoes={transacoes} />}
             </motion.div>

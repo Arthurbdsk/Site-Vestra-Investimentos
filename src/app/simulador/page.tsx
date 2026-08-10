@@ -13,6 +13,7 @@ import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
 import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
+import type { Agente, DecisaoAgente } from "@/components/AgentePainel";
 import type { Cotacao } from "@/lib/cotacoes";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
@@ -102,6 +103,13 @@ export default async function SimuladorPage() {
       .order("criado_em", { ascending: false }),
     supabase.rpc("registrar_acesso"),
   ]);
+
+  const [agenteRes, decisoesAgenteRes] = await Promise.all([
+    supabase.rpc("obter_agente"),
+    supabase.rpc("listar_decisoes_agente", { p_limite: 20 }),
+  ]);
+  const agente: Agente = agenteRes.data ?? { existe: false };
+  const decisoesAgente: DecisaoAgente[] = decisoesAgenteRes.data ?? [];
 
   // Ordens limitadas, dividendos e alertas dependem de consultar preco na
   // brapi num laco, o que segurava a pagina por segundos. Agora roda DEPOIS
@@ -250,6 +258,8 @@ export default async function SimuladorPage() {
         alertas={alertas}
         favoritos={favoritos}
         duelos={duelos}
+        agente={agente}
+        decisoesAgente={decisoesAgente}
       />
       <Footer />
     </>

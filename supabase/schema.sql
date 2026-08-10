@@ -1190,3 +1190,182 @@ end $$;
 
 revoke all on function public.buscar_noticias(text) from public;
 grant execute on function public.buscar_noticias(text) to authenticated;
+
+
+-- ------------------------------------------------------------
+-- AGENTE DE INVESTIMENTO: um por usuario, com perfil de risco. A
+-- decisao (comprar/vender/manter) e tomada por um modelo de IA de
+-- verdade, chamado do lado do servidor Next.js (nao daqui, pra poder
+-- usar tool use com o SDK/fetch da Anthropic direito). A execucao da
+-- ordem reaproveita comprar()/vender() normais, entao roda com o
+-- usuario logado de verdade, sem precisar de um caminho privilegiado
+-- novo. Limite de 3 execucoes por dia, controlado aqui no banco.
+-- ------------------------------------------------------------
+create table if not exists public.agentes (
+  id                  uuid primary key default gen_random_uuid(),
+  usuario_id          uuid not null unique references auth.users(id) on delete cascade,
+  perfil_risco        text not null check (perfil_risco in ('conservador', 'moderado', 'agressivo')),
+  ativo               boolean not null default true,
+  execucoes_hoje      integer not null default 0,
+  ultimo_dia_execucao date,
+  criado_em           timestamptz not null default now()
+);
+
+alter table public.agentes enable row level security;
+
+drop policy if exists "agente proprio" on public.agentes;
+create policy "agente proprio" on public.agentes
+  for select using (auth.uid() = usuario_id);
+
+create table if not exists public.agente_decisoes (
+  id            uuid primary key default gen_random_uuid(),
+  agente_id     uuid not null references public.agentes(id) on delete cascade,
+  ticker        text,
+  acao          text not null check (acao in ('comprar', 'vender', 'manter')),
+  quantidade    integer,
+  justificativa text not null,
+  executado     boolean not null default false,
+  erro          text,
+  criado_em     timestamptz not null default now()
+);
+
+create index if not exists agente_decisoes_agente_idx
+  on public.agente_decisoes(agente_id, criado_em desc);
+
+alter table public.agente_decisoes enable row level security;
+
+drop policy if exists "decisoes do proprio agente" on public.agente_decisoes;
+create policy "decisoes do proprio agente" on public.agente_decisoes
+  for select using (
+    agente_id in (select id from public.agentes where usuario_id = auth.uid())
+  );
+
+create or replace function public.criar_ou_atualizar_agente(p_perfil_risco text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_perfil_risco not in ('conservador', 'moderado', 'agressivo') then
+    raise exception 'Perfil de risco invalido.';
+  end if;
+
+  insert into public.agentes (usuario_id, perfil_risco)
+  values (v_usuario, p_perfil_risco)
+  on conflict (usuario_id) do update
+    set perfil_risco = excluded.perfil_risco, ativo = true;
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.reservar_execucao_agente()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_agente  public.agentes%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_agente from public.agentes where usuario_id = v_usuario for update;
+  if not found then
+    raise exception 'Voce ainda nao criou um agente.';
+  end if;
+
+  if v_agente.ultimo_dia_execucao is distinct from current_date then
+    update public.agentes
+      set execucoes_hoje = 1, ultimo_dia_execucao = current_date
+      where id = v_agente.id;
+    return json_build_object('ok', true, 'restantes', 2);
+  end if;
+
+  if v_agente.execucoes_hoje >= 3 then
+    raise exception 'Limite diario de 3 execucoes atingido. Volte amanha.';
+  end if;
+
+  update public.agentes set execucoes_hoje = execucoes_hoje + 1 where id = v_agente.id;
+  return json_build_object('ok', true, 'restantes', 3 - (v_agente.execucoes_hoje + 1));
+end $$;
+
+create or replace function public.registrar_decisao_agente(
+  p_ticker text, p_acao text, p_quantidade integer, p_justificativa text,
+  p_executado boolean, p_erro text default null
+)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_agente_id uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select id into v_agente_id from public.agentes where usuario_id = v_usuario;
+  if v_agente_id is null then
+    raise exception 'Agente nao encontrado.';
+  end if;
+
+  insert into public.agente_decisoes (agente_id, ticker, acao, quantidade, justificativa, executado, erro)
+  values (v_agente_id, p_ticker, p_acao, p_quantidade, p_justificativa, p_executado, p_erro);
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.listar_decisoes_agente(p_limite integer default 20)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  return coalesce((
+    select json_agg(json_build_object(
+      'id', d.id,
+      'ticker', d.ticker,
+      'acao', d.acao,
+      'quantidade', d.quantidade,
+      'justificativa', d.justificativa,
+      'executado', d.executado,
+      'erro', d.erro,
+      'criadoEm', d.criado_em
+    ) order by d.criado_em desc)
+    from public.agente_decisoes d
+    join public.agentes a on a.id = d.agente_id
+    where a.usuario_id = v_usuario
+    limit p_limite
+  ), '[]'::json);
+end $$;
+
+create or replace function public.obter_agente()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_agente public.agentes%rowtype;
+  v_restantes integer;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_agente from public.agentes where usuario_id = v_usuario;
+  if not found then
+    return json_build_object('existe', false);
+  end if;
+
+  if v_agente.ultimo_dia_execucao is distinct from current_date then
+    v_restantes := 3;
+  else
+    v_restantes := greatest(0, 3 - v_agente.execucoes_hoje);
+  end if;
+
+  return json_build_object(
+    'existe', true,
+    'perfilRisco', v_agente.perfil_risco,
+    'restantesHoje', v_restantes
+  );
+end $$;
