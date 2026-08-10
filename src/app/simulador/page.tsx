@@ -69,7 +69,7 @@ export default async function SimuladorPage() {
   ] = await Promise.all([
     supabase
       .from("perfis")
-      .select("apelido, saldo, perfil_investidor")
+      .select("apelido, saldo, perfil_investidor, quiz_perfil_visto_em")
       .eq("id", user.id)
       .single(),
     supabase.from("posicoes").select("ticker, quantidade, preco_medio").order("ticker"),
@@ -114,6 +114,7 @@ export default async function SimuladorPage() {
     }
   });
 
+
   const diasSeguidos = Number(acessoRes.data?.diasSeguidos ?? 0);
   const novoDia = Boolean(acessoRes.data?.novoDia);
 
@@ -137,7 +138,29 @@ export default async function SimuladorPage() {
     : (perfilRes.data?.apelido ?? user.email?.split("@")[0] ?? "investidor");
 
   const saldo = Number(perfilRes.data?.saldo ?? 0);
-  const perfilInvestidorDefinido = Boolean(perfilRes.data?.perfil_investidor);
+  // O quiz so aparece pra quem nunca foi perguntado. Quem respondeu OU
+  // quem pulou nao ve de novo: antes o "pular" nao gravava nada e o quiz
+  // voltava em toda visita.
+  const perfilInvestidorDefinido =
+    Boolean(perfilRes.data?.perfil_investidor) ||
+    Boolean(perfilRes.data?.quiz_perfil_visto_em);
+
+  // Se o quiz vai aparecer agora, ja registra aqui que perguntamos.
+  //
+  // O popup tambem avisa ao ser fechado, mas isso depende de a pessoa
+  // esperar a resposta do servidor: quem clica em "pular" e fecha a aba
+  // na hora perde a gravacao, e o quiz voltaria na visita seguinte.
+  // Marcando no servidor, ninguem e perguntado duas vezes. Quem quiser
+  // responder depois acha o teste em /conta.
+  if (!perfilInvestidorDefinido) {
+    after(async () => {
+      try {
+        await supabase.rpc("marcar_quiz_perfil_visto");
+      } catch {
+        // Nao pode atrapalhar quem ja recebeu a pagina.
+      }
+    });
+  }
 
   const posicoes: Posicao[] = (posicoesRes.data ?? []).map((p) => ({
     ticker: p.ticker,

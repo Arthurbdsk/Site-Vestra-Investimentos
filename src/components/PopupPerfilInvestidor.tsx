@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight } from "lucide-react";
 import { PERGUNTAS, calcularPerfil, type Perfil } from "@/lib/perfilInvestidor";
-import { salvarPerfilInvestidor } from "@/app/simulador/operacoesPerfil";
+import {
+  salvarPerfilInvestidor,
+  marcarQuizVisto,
+} from "@/app/simulador/operacoesPerfil";
 
 export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
   const router = useRouter();
@@ -17,8 +20,16 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
 
   if (!aberto) return null;
 
-  function fechar() {
+  /**
+   * Fecha e registra que ja perguntamos.
+   *
+   * Antes so fechava a janela. Como pular nao gravava nada, o quiz
+   * reaparecia em TODA visita. Agora quem pula fica em paz, e pode
+   * responder quando quiser pela area de conta.
+   */
+  async function fechar() {
     setAberto(false);
+    await marcarQuizVisto();
     router.refresh();
   }
 

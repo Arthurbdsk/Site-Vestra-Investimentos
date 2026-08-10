@@ -6,8 +6,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { PERGUNTAS, calcularPerfil, type Perfil } from "@/lib/perfilInvestidor";
 import { acaoPorTicker } from "@/lib/acoes";
+import { salvarPerfilInvestidor } from "@/app/simulador/operacoesPerfil";
 
-export function QuizPerfil() {
+/**
+ * Quando usado solto (pagina Aprender), so mostra o resultado.
+ * Com `persistir`, tambem guarda o perfil na conta — e assim que a area
+ * de conta usa, pra a pessoa poder refazer o teste e manter o resultado.
+ */
+export function QuizPerfil({
+  persistir = false,
+}: {
+  persistir?: boolean;
+} = {}) {
   const [passo, setPasso] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [resultado, setResultado] = useState<Perfil | null>(null);
@@ -20,7 +30,9 @@ export function QuizPerfil() {
     if (passo + 1 < PERGUNTAS.length) {
       setPasso(passo + 1);
     } else {
-      setResultado(calcularPerfil(novasRespostas));
+      const perfil = calcularPerfil(novasRespostas);
+      setResultado(perfil);
+      if (persistir) void salvarPerfilInvestidor(perfil.id);
     }
   }
 
