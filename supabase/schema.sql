@@ -1121,6 +1121,34 @@ end $$;
 --   insert into public.segredos (chave, valor) values ('finnhub_token', 'SEU_TOKEN_AQUI')
 --   on conflict (chave) do update set valor = excluded.valor;
 -- ------------------------------------------------------------
+-- Traduz pro portugues via Google Translate (endpoint publico, sem
+-- chave). Se falhar por qualquer motivo, devolve o texto original em
+-- ingles em vez de quebrar a lista inteira.
+create or replace function public.traduzir_pt(p_texto text)
+returns text language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_resposta jsonb;
+  v_traduzido text;
+begin
+  if p_texto is null or length(trim(p_texto)) = 0 then
+    return p_texto;
+  end if;
+
+  begin
+    select content::jsonb into v_resposta
+    from extensions.http_get(
+      'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=pt&dt=t&q=' || extensions.urlencode(p_texto)
+    );
+    v_traduzido := v_resposta -> 0 -> 0 ->> 0;
+    return coalesce(v_traduzido, p_texto);
+  exception when others then
+    return p_texto;
+  end;
+end $$;
+
+revoke all on function public.traduzir_pt(text) from public;
+grant execute on function public.traduzir_pt(text) to authenticated;
+
 create or replace function public.buscar_noticias(p_busca text default null)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
@@ -1139,8 +1167,8 @@ begin
 
   return (
     select coalesce(json_agg(json_build_object(
-      'titulo', item ->> 'headline',
-      'resumo', coalesce(item ->> 'summary', ''),
+      'titulo', public.traduzir_pt(item ->> 'headline'),
+      'resumo', public.traduzir_pt(coalesce(item ->> 'summary', '')),
       'url', item ->> 'url',
       'fonte', coalesce(item ->> 'source', 'Fonte externa'),
       'publicadoEm', to_char(to_timestamp((item ->> 'datetime')::bigint), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
