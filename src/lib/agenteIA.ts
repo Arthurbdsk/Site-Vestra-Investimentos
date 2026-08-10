@@ -18,16 +18,18 @@ const LIMITE_POR_PERFIL: Record<ContextoAgente["perfilRisco"], number> = {
   agressivo: 0.4,
 };
 
+const MODELO = "gemini-2.5-flash";
+
 /**
  * Pede pro modelo decidir UMA operacao (comprar, vender ou manter),
- * usando tool use pra garantir resposta estruturada. Modelo barato
- * (Haiku) e suficiente: e uma decisao simples sobre dados tabulares,
- * nao um raciocinio complexo.
+ * usando function calling do Gemini pra garantir resposta estruturada.
+ * Modelo Flash (tier gratuito do Google AI Studio) e suficiente: e uma
+ * decisao simples sobre dados tabulares, nao um raciocinio complexo.
  */
 export async function decidirOperacao(ctx: ContextoAgente): Promise<DecisaoAgente> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("O agente ainda não foi configurado (falta a chave da Anthropic).");
+    throw new Error("O agente ainda não foi configurado (falta a chave do Gemini).");
   }
 
   const limitePct = LIMITE_POR_PERFIL[ctx.perfilRisco];
@@ -56,38 +58,45 @@ ${dadosPosicoes}
 Ações disponíveis pra negociar:
 ${dadosCotacoes}
 
-Decida UMA única operação: comprar uma ação disponível, vender uma ação que já está na carteira, ou manter (não fazer nada). Respeite o limite de valor por operação. Se decidir manter, quantidade deve ser 0 e ticker pode ser null. Justifique em português, em 1-2 frases curtas, mencionando o dado real que motivou a decisão.`;
+Decida UMA única operação: comprar uma ação disponível, vender uma ação que já está na carteira, ou manter (não fazer nada). Respeite o limite de valor por operação. Se decidir manter, quantidade deve ser 0 e ticker pode ficar vazio. Justifique em português, em 1-2 frases curtas, mencionando o dado real que motivou a decisão. Chame sempre a função decidir_operacao com sua decisão.`;
 
-  const resposta = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 400,
-      messages: [{ role: "user", content: prompt }],
-      tools: [
-        {
-          name: "decidir_operacao",
-          description: "Registra a decisão de investimento do agente.",
-          input_schema: {
-            type: "object",
-            properties: {
-              ticker: { type: ["string", "null"], description: "Ticker da ação, ou null se manter" },
-              acao: { type: "string", enum: ["comprar", "vender", "manter"] },
-              quantidade: { type: "integer", description: "Quantidade de cotas, 0 se manter" },
-              justificativa: { type: "string" },
-            },
-            required: ["acao", "quantidade", "justificativa"],
+  const resposta = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: "decidir_operacao",
+                description: "Registra a decisão de investimento do agente.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    ticker: {
+                      type: "STRING",
+                      nullable: true,
+                      description: "Ticker da ação, vazio se manter",
+                    },
+                    acao: { type: "STRING", enum: ["comprar", "vender", "manter"] },
+                    quantidade: { type: "INTEGER", description: "Quantidade de cotas, 0 se manter" },
+                    justificativa: { type: "STRING" },
+                  },
+                  required: ["acao", "quantidade", "justificativa"],
+                },
+              },
+            ],
           },
+        ],
+        toolConfig: {
+          functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["decidir_operacao"] },
         },
-      ],
-      tool_choice: { type: "tool", name: "decidir_operacao" },
-    }),
-  });
+      }),
+    },
+  );
 
   if (!resposta.ok) {
     const corpo = await resposta.text().catch(() => "");
@@ -95,12 +104,13 @@ Decida UMA única operação: comprar uma ação disponível, vender uma ação 
   }
 
   const json = await resposta.json();
-  const usoDeFerramenta = json.content?.find((b: { type: string }) => b.type === "tool_use");
-  if (!usoDeFerramenta) {
+  const partes = json.candidates?.[0]?.content?.parts as { functionCall?: { name: string; args: Record<string, unknown> } }[] | undefined;
+  const chamada = partes?.find((p) => p.functionCall)?.functionCall;
+  if (!chamada) {
     throw new Error("O agente não retornou uma decisão válida.");
   }
 
-  const entrada = usoDeFerramenta.input as {
+  const args = chamada.args as {
     ticker?: string | null;
     acao: "comprar" | "vender" | "manter";
     quantidade: number;
@@ -108,9 +118,9 @@ Decida UMA única operação: comprar uma ação disponível, vender uma ação 
   };
 
   return {
-    ticker: entrada.ticker ?? null,
-    acao: entrada.acao,
-    quantidade: Number(entrada.quantidade) || 0,
-    justificativa: entrada.justificativa,
+    ticker: args.ticker && args.ticker.trim() ? args.ticker.trim().toUpperCase() : null,
+    acao: args.acao,
+    quantidade: Number(args.quantidade) || 0,
+    justificativa: args.justificativa,
   };
 }
