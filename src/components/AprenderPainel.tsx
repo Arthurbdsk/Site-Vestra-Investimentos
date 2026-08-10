@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -15,12 +15,16 @@ import {
   AlertTriangle,
   LineChart,
   Clock,
+  Check,
+  X as XIcon,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { GLOSSARIO } from "@/lib/glossario";
 import { ARTIGOS, type Artigo } from "@/lib/artigos";
 import { caminhoSuave } from "@/lib/svgPath";
 import { brl } from "@/lib/formato";
+import { artigosConcluidos, marcarArtigoConcluido } from "@/lib/progressoAprender";
 import { QuizPerfil } from "./QuizPerfil";
 
 type Aba = "dicionario" | "artigos" | "calculadora" | "perfil";
@@ -162,7 +166,17 @@ function tempoLeitura(artigo: Artigo): number {
 
 function Artigos() {
   const [aberto, setAberto] = useState<string | null>(null);
+  const [concluidos, setConcluidos] = useState<string[]>([]);
   const artigo = ARTIGOS.find((a) => a.slug === aberto);
+
+  useEffect(() => {
+    setConcluidos(artigosConcluidos());
+  }, []);
+
+  function aoConcluirQuiz(slug: string) {
+    marcarArtigoConcluido(slug);
+    setConcluidos(artigosConcluidos());
+  }
 
   if (artigo) {
     return (
@@ -203,21 +217,45 @@ function Artigos() {
             ),
           )}
         </div>
+
+        <QuizArtigo
+          artigo={artigo}
+          concluido={concluidos.includes(artigo.slug)}
+          aoConcluir={() => aoConcluirQuiz(artigo.slug)}
+        />
       </div>
     );
   }
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-ink">Artigos</h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Textos curtos pra entender o essencial, sem enrolação.
-      </p>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl text-ink">Artigos</h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            Textos curtos pra entender o essencial, sem enrolação. Cada um
+            termina com um quiz rápido.
+          </p>
+        </div>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+          {concluidos.length}/{ARTIGOS.length} concluídos
+        </p>
+      </div>
+
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--rule)]">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${(concluidos.length / ARTIGOS.length) * 100}%` }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="h-full rounded-full bg-gradient-to-r from-gold to-amber-400"
+        />
+      </div>
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {ARTIGOS.map((a, i) => {
           const estilo = ESTILO_ARTIGO[i % ESTILO_ARTIGO.length];
           const Icone = estilo.icone;
+          const concluido = concluidos.includes(a.slug);
           return (
             <motion.button
               key={a.slug}
@@ -225,8 +263,13 @@ function Artigos() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.05, 0.4) }}
-              className="group flex flex-col overflow-hidden border border-[var(--rule)] bg-paper text-left transition-colors hover:border-blue"
+              className="group relative flex flex-col overflow-hidden border border-[var(--rule)] bg-paper text-left transition-colors hover:border-blue"
             >
+              {concluido && (
+                <span className="absolute right-3 top-3 z-[1] flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
+                  <Check size={13} />
+                </span>
+              )}
               <div className={`relative flex h-28 items-center justify-center ${estilo.fundo}`}>
                 <span
                   className={`absolute left-3 top-3 font-mono text-[10px] font-bold uppercase tracking-widest ${
@@ -251,6 +294,112 @@ function Artigos() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function QuizArtigo({
+  artigo,
+  concluido,
+  aoConcluir,
+}: {
+  artigo: Artigo;
+  concluido: boolean;
+  aoConcluir: () => void;
+}) {
+  const [respostas, setRespostas] = useState<(number | null)[]>(
+    artigo.quiz.map(() => null),
+  );
+  const [conferido, setConferido] = useState(false);
+
+  const acertos = respostas.filter((r, i) => r === artigo.quiz[i].correta).length;
+  const todasRespondidas = respostas.every((r) => r !== null);
+
+  function confirmar() {
+    setConferido(true);
+    if (acertos === artigo.quiz.length) aoConcluir();
+  }
+
+  function tentarDeNovo() {
+    setRespostas(artigo.quiz.map(() => null));
+    setConferido(false);
+  }
+
+  return (
+    <div className="mt-10 border-t border-[var(--rule)] pt-8">
+      <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+        {concluido && <Trophy size={13} className="text-gold" />}
+        {concluido ? "Quiz concluído" : "Testou o que leu?"}
+      </p>
+      <h3 className="mt-2 font-display text-xl text-ink">Quiz rápido</h3>
+
+      <div className="mt-5 space-y-6">
+        {artigo.quiz.map((q, qi) => (
+          <div key={qi}>
+            <p className="font-semibold text-ink">{q.pergunta}</p>
+            <div className="mt-3 space-y-2">
+              {q.opcoes.map((op, oi) => {
+                const selecionada = respostas[qi] === oi;
+                const mostrarResultado = conferido;
+                const estaCorreta = oi === q.correta;
+                return (
+                  <button
+                    key={oi}
+                    disabled={conferido}
+                    onClick={() =>
+                      setRespostas((r) => r.map((v, i) => (i === qi ? oi : v)))
+                    }
+                    className={`flex w-full items-center justify-between gap-3 border px-4 py-2.5 text-left text-sm transition-colors ${
+                      mostrarResultado && estaCorreta
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                        : mostrarResultado && selecionada
+                          ? "border-rose-500 bg-rose-50 text-rose-800"
+                          : selecionada
+                            ? "border-blue text-blue"
+                            : "border-[var(--rule)] text-ink hover:border-blue"
+                    } disabled:cursor-default`}
+                  >
+                    {op}
+                    {mostrarResultado && estaCorreta && <Check size={15} className="shrink-0" />}
+                    {mostrarResultado && selecionada && !estaCorreta && (
+                      <XIcon size={15} className="shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!conferido ? (
+        <button
+          onClick={confirmar}
+          disabled={!todasRespondidas}
+          className="mt-6 bg-blue px-6 py-3 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
+        >
+          Confirmar respostas
+        </button>
+      ) : acertos === artigo.quiz.length ? (
+        <p className="mt-6 flex items-center gap-2 border-l-[3px] border-emerald-500 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <Trophy size={15} />
+          Acertou tudo! Artigo concluído.
+        </p>
+      ) : (
+        <div className="mt-6">
+          <p className="text-sm text-ink-muted">
+            Acertou {acertos} de {artigo.quiz.length}. Dá uma olhada de novo e tenta outra vez.
+          </p>
+          <button
+            onClick={tentarDeNovo}
+            className="mt-3 border border-[var(--rule)] px-5 py-2 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

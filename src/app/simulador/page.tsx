@@ -204,9 +204,7 @@ export default async function SimuladorPage() {
   }));
 
   const avisoCotacoes =
-    cotacoes.length === 0
-      ? "Estamos buscando os preços da B3. Atualize em instantes."
-      : "Os preços vêm da B3 com alguns minutos de atraso, o que é normal em dados gratuitos.";
+    cotacoes.length === 0 ? "Estamos buscando os preços da B3. Atualize em instantes." : null;
 
   return (
     <>
