@@ -32,6 +32,7 @@ import { CountUp } from "./CountUp";
 import { calcularNivel } from "@/lib/nivelInvestidor";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
+import { ACOES_USA } from "@/lib/acoesUsa";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
 import { exportarTransacoesCsv } from "@/lib/exportarCsv";
@@ -728,12 +729,23 @@ function Explorar({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
+  const [mercado, setMercado] = useState<"br" | "us">("br");
   const [busca, setBusca] = useState("");
   const [buscaAtrasada, setBuscaAtrasada] = useState("");
   const [b3, setB3] = useState<AcaoB3[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erroB3, setErroB3] = useState<string | null>(null);
   const [visao, setVisao] = useState<"cards" | "tabela">("cards");
+
+  const [acoesUsa, setAcoesUsa] = useState<AcaoB3[] | null>(null);
+
+  useEffect(() => {
+    if (mercado !== "us" || acoesUsa) return;
+    fetch("/api/acoes-usa")
+      .then((r) => r.json())
+      .then((json) => setAcoesUsa(json.acoes ?? []))
+      .catch(() => setAcoesUsa([]));
+  }, [mercado, acoesUsa]);
 
   useEffect(() => {
     const id = setTimeout(() => setBuscaAtrasada(busca.trim()), 350);
@@ -779,7 +791,68 @@ function Explorar({
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-ink">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setMercado("br")}
+          aria-label="Ações do Brasil"
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
+            mercado === "br" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
+          }`}
+        >
+          🇧🇷
+        </button>
+        <button
+          onClick={() => setMercado("us")}
+          aria-label="Ações dos Estados Unidos"
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
+            mercado === "us" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
+          }`}
+        >
+          🇺🇸
+        </button>
+      </div>
+
+      {mercado === "us" ? (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha uma ação dos EUA
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            Empresas conhecidas da NYSE/NASDAQ, com preço já convertido pra
+            reais (câmbio atualizado periodicamente).
+          </p>
+
+          {acoesUsa === null ? (
+            <div className="mt-10 flex items-center gap-2 text-ink-muted">
+              <Loader2 size={16} className="animate-spin" />
+              Carregando ações americanas…
+            </div>
+          ) : (
+            <ul className="mt-6 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+              {ACOES_USA.map((a, i) => {
+                const dado = acoesUsa.find((x) => x.ticker === a.ticker);
+                return (
+                  <CartaoAcaoPopular
+                    key={a.ticker}
+                    acao={a}
+                    delay={Math.min(i * 0.04, 0.4)}
+                    favorito={favoritos.has(a.ticker)}
+                    dadosPre={{
+                      preco: dado?.preco ?? null,
+                      variacao: dado?.variacao ?? null,
+                      logo: null,
+                    }}
+                    aoComprar={aoComprar}
+                    aoVerDetalhe={aoVerDetalhe}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </>
+      ) : (
+        <>
+      <h2 className="mt-4 font-display text-2xl text-ink">
         Escolha uma ação da B3
       </h2>
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
@@ -885,6 +958,8 @@ function Explorar({
           Nenhuma ação encontrada com esse termo.
         </p>
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -893,18 +968,22 @@ function CartaoAcaoPopular({
   acao,
   delay,
   favorito,
+  dadosPre,
   aoComprar,
   aoVerDetalhe,
 }: {
   acao: (typeof ACOES)[number];
   delay: number;
   favorito?: boolean;
+  /** Quando informado, pula a busca propria (usado pras acoes americanas, ja buscadas de uma vez pelo componente pai). */
+  dadosPre?: { preco: number | null; variacao: number | null; logo: string | null };
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
   const [dados, setDados] = useState<{ preco: number; variacao: number; logo: string | null } | null>(null);
 
   useEffect(() => {
+    if (dadosPre) return;
     let cancelado = false;
     fetch(`/api/acoes?q=${encodeURIComponent(acao.ticker)}`)
       .then((r) => r.json())
@@ -921,7 +1000,14 @@ function CartaoAcaoPopular({
     return () => {
       cancelado = true;
     };
-  }, [acao.ticker]);
+  }, [acao.ticker, dadosPre]);
+
+  const dadosFinais = dadosPre
+    ? dadosPre.preco != null
+      ? { preco: dadosPre.preco, variacao: dadosPre.variacao ?? 0, logo: dadosPre.logo }
+      : null
+    : dados;
+  const semDadosDisponiveis = Boolean(dadosPre) && dadosPre!.preco == null;
 
   return (
     <motion.li
@@ -932,7 +1018,7 @@ function CartaoAcaoPopular({
     >
       <div className="flex items-start justify-between gap-4">
         <button onClick={() => aoVerDetalhe(acao.ticker)} className="flex items-start gap-3 text-left">
-          <LogoAcao logo={dados?.logo ?? null} ticker={acao.ticker} />
+          <LogoAcao logo={dadosFinais?.logo ?? null} ticker={acao.ticker} />
           <div>
             <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
               {acao.ticker}
@@ -949,17 +1035,19 @@ function CartaoAcaoPopular({
 
         <div className="flex items-start gap-3">
           <div className="text-right">
-            {dados ? (
+            {dadosFinais ? (
               <>
-                <p className="font-mono text-lg tabular text-ink">{brl(dados.preco)}</p>
+                <p className="font-mono text-lg tabular text-ink">{brl(dadosFinais.preco)}</p>
                 <p
                   className={`font-mono text-xs tabular ${
-                    dados.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
+                    dadosFinais.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
                   }`}
                 >
-                  {dados.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dados.variacao))}%
+                  {dadosFinais.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dadosFinais.variacao))}%
                 </p>
               </>
+            ) : semDadosDisponiveis ? (
+              <p className="font-mono text-xs text-ink-muted">indisponível</p>
             ) : (
               <p className="font-mono text-xs text-ink-muted">carregando…</p>
             )}
@@ -968,14 +1056,16 @@ function CartaoAcaoPopular({
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
-        <MiniGraficoAcao ticker={acao.ticker} />
-      </div>
+      {!dadosPre && (
+        <div className="mt-3 flex justify-end">
+          <MiniGraficoAcao ticker={acao.ticker} />
+        </div>
+      )}
 
       <p className="mt-3 text-sm leading-relaxed text-ink-muted">{acao.explica}</p>
 
       <button
-        onClick={() => dados && aoComprar(acao.ticker, dados.preco, acao.nome)}
+        onClick={() => dadosFinais && aoComprar(acao.ticker, dadosFinais.preco, acao.nome)}
         disabled={!dados}
         className="mt-4 w-full bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
       >

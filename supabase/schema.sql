@@ -194,14 +194,22 @@ end $$;
 create extension if not exists http with schema extensions;
 
 create table if not exists public.ativos_permitidos (
-  ticker text primary key
+  ticker  text primary key,
+  mercado text not null default 'br' check (mercado in ('br', 'us'))
 );
 
-insert into public.ativos_permitidos (ticker) values
-  ('PETR4'), ('VALE3'), ('ITUB4'), ('BBDC4'), ('BBAS3'), ('ABEV3'),
-  ('WEGE3'), ('MGLU3'), ('B3SA3'), ('RENT3'), ('SUZB3'), ('RAIL3'),
-  ('PRIO3'), ('EQTL3'), ('RADL3'), ('LREN3')
-on conflict (ticker) do nothing;
+alter table public.ativos_permitidos add column if not exists mercado text not null default 'br';
+alter table public.ativos_permitidos drop constraint if exists ativos_permitidos_mercado_check;
+alter table public.ativos_permitidos add constraint ativos_permitidos_mercado_check check (mercado in ('br', 'us'));
+
+insert into public.ativos_permitidos (ticker, mercado) values
+  ('PETR4', 'br'), ('VALE3', 'br'), ('ITUB4', 'br'), ('BBDC4', 'br'), ('BBAS3', 'br'), ('ABEV3', 'br'),
+  ('WEGE3', 'br'), ('MGLU3', 'br'), ('B3SA3', 'br'), ('RENT3', 'br'), ('SUZB3', 'br'), ('RAIL3', 'br'),
+  ('PRIO3', 'br'), ('EQTL3', 'br'), ('RADL3', 'br'), ('LREN3', 'br'),
+  ('AAPL', 'us'), ('MSFT', 'us'), ('GOOGL', 'us'), ('AMZN', 'us'),
+  ('NVDA', 'us'), ('TSLA', 'us'), ('META', 'us'), ('JPM', 'us'),
+  ('KO', 'us'), ('DIS', 'us'), ('NFLX', 'us'), ('V', 'us')
+on conflict (ticker) do update set mercado = excluded.mercado;
 
 alter table public.ativos_permitidos enable row level security;
 drop policy if exists "ativos: leitura publica" on public.ativos_permitidos;
@@ -231,27 +239,85 @@ create table if not exists public.segredos (
 
 alter table public.segredos enable row level security;
 
+-- Cache da cotacao do dolar (frankfurter.app, gratuito, sem chave),
+-- usada pra converter acoes americanas pra reais.
+create table if not exists public.cotacao_fx (
+  par           text primary key,
+  taxa          numeric(10,4) not null,
+  atualizado_em timestamptz not null default now()
+);
+
+alter table public.cotacao_fx enable row level security;
+drop policy if exists "fx: leitura publica" on public.cotacao_fx;
+create policy "fx: leitura publica" on public.cotacao_fx for select using (true);
+
+create or replace function public.garantir_fx_usd_brl()
+returns numeric language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_taxa     numeric;
+  v_idade    interval;
+  v_resposta jsonb;
+begin
+  select taxa, now() - atualizado_em into v_taxa, v_idade
+  from public.cotacao_fx where par = 'USD-BRL';
+
+  if v_taxa is not null and v_idade < interval '30 minutes' then
+    return v_taxa;
+  end if;
+
+  begin
+    select content::jsonb into v_resposta
+    from extensions.http_get('https://api.frankfurter.app/latest?from=USD&to=BRL');
+
+    v_taxa := (v_resposta -> 'rates' ->> 'BRL')::numeric;
+
+    if v_taxa is not null and v_taxa > 0 then
+      insert into public.cotacao_fx (par, taxa, atualizado_em)
+      values ('USD-BRL', v_taxa, now())
+      on conflict (par) do update set taxa = excluded.taxa, atualizado_em = excluded.atualizado_em;
+      return v_taxa;
+    end if;
+  exception when others then
+    return v_taxa;
+  end;
+
+  return v_taxa;
+end $$;
+
+revoke all on function public.garantir_fx_usd_brl() from public;
+grant execute on function public.garantir_fx_usd_brl() to authenticated;
+
 create or replace function public.garantir_cotacao(p_ticker text)
 returns numeric language plpgsql security definer set search_path = public, extensions as $$
 declare
+  v_mercado  text;
   v_token    text;
   v_preco    numeric;
   v_idade    interval;
   v_resposta jsonb;
   v_variacao numeric;
+  v_fx       numeric;
 begin
-  -- Formato de ticker da B3: 4 letras + 1 ou 2 digitos (ex: PETR4, TAEE11).
-  -- Barra a entrada de lixo antes de gastar uma chamada na fonte.
-  if p_ticker !~ '^[A-Z]{4}[0-9]{1,2}$' then
-    return null;
-  end if;
-
   select preco, now() - atualizado_em into v_preco, v_idade
   from public.cotacoes where ticker = p_ticker;
 
   -- Preco fresco o suficiente, reaproveita.
   if v_preco is not null and v_idade < interval '5 minutes' then
     return v_preco;
+  end if;
+
+  select mercado into v_mercado from public.ativos_permitidos where ticker = p_ticker;
+
+  if v_mercado = 'us' then
+    -- Ticker americano (NYSE/NASDAQ): formato mais solto (so letras).
+    if p_ticker !~ '^[A-Z]{1,5}$' then
+      return null;
+    end if;
+  else
+    -- Formato de ticker da B3: 4 letras + 1 ou 2 digitos (ex: PETR4, TAEE11).
+    if p_ticker !~ '^[A-Z]{4}[0-9]{1,2}$' then
+      return null;
+    end if;
   end if;
 
   select valor into v_token from public.segredos where chave = 'brapi_token';
@@ -268,6 +334,13 @@ begin
     v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
     v_variacao := coalesce(
       (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+
+    if v_mercado = 'us' and v_preco is not null then
+      v_fx := public.garantir_fx_usd_brl();
+      if v_fx is not null then
+        v_preco := v_preco * v_fx;
+      end if;
+    end if;
 
     if v_preco is not null and v_preco > 0 then
       insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
@@ -293,9 +366,11 @@ returns integer language plpgsql security definer set search_path = public, exte
 declare
   v_token     text;
   v_ticker    text;
+  v_mercado   text;
   v_resposta  jsonb;
   v_preco     numeric;
   v_variacao  numeric;
+  v_fx        numeric;
   v_mais_novo timestamptz;
   v_contador  integer := 0;
 begin
@@ -309,7 +384,9 @@ begin
     raise exception 'Token da brapi nao configurado.';
   end if;
 
-  for v_ticker in select ticker from public.ativos_permitidos loop
+  v_fx := public.garantir_fx_usd_brl();
+
+  for v_ticker, v_mercado in select ticker, mercado from public.ativos_permitidos loop
     begin
       select content::jsonb into v_resposta
       from extensions.http_get(
@@ -319,6 +396,10 @@ begin
       v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
       v_variacao := coalesce(
         (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+
+      if v_mercado = 'us' and v_preco is not null and v_fx is not null then
+        v_preco := v_preco * v_fx;
+      end if;
 
       if v_preco is not null and v_preco > 0 then
         insert into public.cotacoes (ticker, preco, variacao, atualizado_em)

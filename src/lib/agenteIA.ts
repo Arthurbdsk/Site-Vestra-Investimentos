@@ -28,7 +28,7 @@ const LIMITE_POR_PERFIL: Record<ContextoAgente["perfilRisco"], number> = {
   agressivo: 0.4,
 };
 
-const MODELO = "gemini-2.5-flash";
+const MODELO = "gemini-3.5-flash-lite";
 
 /**
  * Pede pro modelo decidir UMA operacao (comprar, vender ou manter),
