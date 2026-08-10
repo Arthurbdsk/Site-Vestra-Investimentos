@@ -1,3 +1,5 @@
+import { criarClienteServidor } from "@/lib/supabase/server";
+
 export type Noticia = {
   titulo: string;
   resumo: string;
@@ -13,56 +15,26 @@ export type ResultadoNoticias =
 
 /**
  * Manchetes de mercado via marketaux (agrega Yahoo Finance, Reuters, WSJ
- * e outras fontes). Mostramos so titulo + resumo + link pra fonte
- * original — nunca o artigo inteiro, por causa de direitos autorais.
+ * e outras fontes). A busca em si roda dentro do Postgres (funcao
+ * buscar_noticias, mesmo padrao das cotacoes) — o token nunca precisa
+ * estar numa env var da Vercel, so no banco.
  */
 export async function buscarNoticias(busca?: string): Promise<ResultadoNoticias> {
-  const token = process.env.MARKETAUX_API_TOKEN;
-  if (!token) {
-    return {
-      ok: false,
-      motivo: "config",
-      mensagem: "O token da marketaux ainda não foi preenchido no arquivo .env.local.",
-    };
-  }
-
-  const params = new URLSearchParams({
-    api_token: token,
-    language: "en",
-    filter_entities: "true",
-    limit: "3",
-  });
-  if (busca) params.set("search", busca);
-
   try {
-    const resposta = await fetch(
-      `https://api.marketaux.com/v1/news/all?${params.toString()}`,
-      { cache: "no-store" },
-    );
-    if (!resposta.ok) {
-      const corpo = await resposta.text().catch(() => "");
+    const supabase = await criarClienteServidor();
+    const { data, error } = await supabase.rpc("buscar_noticias", {
+      p_busca: busca ?? null,
+    });
+
+    if (error) {
       return {
         ok: false,
         motivo: "erro",
-        mensagem: `Não foi possível buscar as notícias agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`,
+        mensagem: `Não foi possível buscar as notícias agora (${error.message}).`,
       };
     }
 
-    const json = await resposta.json();
-    const lista = Array.isArray(json.data) ? json.data : [];
-
-    const noticias: Noticia[] = lista
-      .map((n: Record<string, unknown>) => ({
-        titulo: String(n.title ?? ""),
-        resumo: String(n.snippet ?? n.description ?? ""),
-        url: String(n.url ?? ""),
-        fonte: String(n.source ?? "Fonte externa"),
-        publicadoEm: String(n.published_at ?? ""),
-        imagem: n.image_url ? String(n.image_url) : null,
-      }))
-      .filter((n: Noticia) => n.titulo && n.url);
-
-    return { ok: true, noticias };
+    return { ok: true, noticias: (data ?? []) as Noticia[] };
   } catch (e) {
     return {
       ok: false,

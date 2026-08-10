@@ -1109,3 +1109,55 @@ begin
     where d.criador_id = v_usuario or d.oponente_id = v_usuario
   ), '[]'::json);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- NOTICIAS: busca na marketaux de dentro do banco, mesmo padrao das
+-- cotacoes — o token fica em segredos, nunca numa env var da Vercel.
+-- Depois de rodar este arquivo, insira o seu token uma vez:
+--   insert into public.segredos (chave, valor) values ('marketaux_token', 'SEU_TOKEN_AQUI')
+--   on conflict (chave) do update set valor = excluded.valor;
+-- ------------------------------------------------------------
+create or replace function public.buscar_noticias(p_busca text default null)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_token    text;
+  v_url      text;
+  v_resposta jsonb;
+  v_itens    jsonb;
+begin
+  select valor into v_token from public.segredos where chave = 'marketaux_token';
+  if v_token is null then
+    raise exception 'Token da marketaux nao configurado.';
+  end if;
+
+  v_url := 'https://api.marketaux.com/v1/news/all?api_token=' || v_token
+    || '&language=en&filter_entities=true&limit=3';
+  if p_busca is not null and length(trim(p_busca)) > 0 then
+    v_url := v_url || '&search=' || replace(trim(p_busca), ' ', '+');
+  end if;
+
+  select content::jsonb into v_resposta from extensions.http_get(v_url);
+
+  if v_resposta -> 'error' is not null then
+    raise exception '%', (v_resposta -> 'error' ->> 'message');
+  end if;
+
+  v_itens := coalesce(v_resposta -> 'data', '[]'::jsonb);
+
+  return (
+    select coalesce(json_agg(json_build_object(
+      'titulo', item ->> 'title',
+      'resumo', coalesce(item ->> 'snippet', item ->> 'description', ''),
+      'url', item ->> 'url',
+      'fonte', coalesce(item ->> 'source', 'Fonte externa'),
+      'publicadoEm', item ->> 'published_at',
+      'imagem', item ->> 'image_url'
+    )), '[]'::json)
+    from jsonb_array_elements(v_itens) as item
+    where item ->> 'title' is not null and item ->> 'url' is not null
+  );
+end $$;
+
+revoke all on function public.buscar_noticias(text) from public;
+grant execute on function public.buscar_noticias(text) to authenticated;
