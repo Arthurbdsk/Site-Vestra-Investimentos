@@ -14,6 +14,7 @@ import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPaine
 import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
 import type { Agente, DecisaoAgente } from "@/components/AgentePainel";
+import type { EstadoEmprestimo } from "./operacoesEmprestimo";
 import type { Cotacao } from "@/lib/cotacoes";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
@@ -67,6 +68,7 @@ export default async function SimuladorPage() {
     duelosRes,
     alertasRes,
     acessoRes,
+    emprestimoRes,
   ] = await Promise.all([
     supabase
       .from("perfis")
@@ -102,6 +104,7 @@ export default async function SimuladorPage() {
       .in("status", ["ativo", "disparado"])
       .order("criado_em", { ascending: false }),
     supabase.rpc("registrar_acesso"),
+    supabase.rpc("obter_emprestimo"),
   ]);
 
   const [agenteRes, decisoesAgenteRes] = await Promise.all([
@@ -110,6 +113,17 @@ export default async function SimuladorPage() {
   ]);
   const agente: Agente = agenteRes.data ?? { existe: false };
   const decisoesAgente: DecisaoAgente[] = decisoesAgenteRes.data ?? [];
+
+  const emprestimoDados = emprestimoRes.data as Record<string, number> | null;
+  const emprestimo: EstadoEmprestimo | null = emprestimoDados
+    ? {
+        divida: Number(emprestimoDados.divida ?? 0),
+        taxaAnualPct: Number(emprestimoDados.taxaAnualPct ?? 0),
+        limite: Number(emprestimoDados.limite ?? 0),
+        disponivel: Number(emprestimoDados.disponivel ?? 0),
+        patrimonioLiquido: Number(emprestimoDados.patrimonioLiquido ?? 0),
+      }
+    : null;
 
   // Ordens limitadas, dividendos e alertas dependem de consultar preco na
   // brapi num laco, o que segurava a pagina por segundos. Agora roda DEPOIS
@@ -261,6 +275,7 @@ export default async function SimuladorPage() {
         duelos={duelos}
         agente={agente}
         decisoesAgente={decisoesAgente}
+        emprestimo={emprestimo}
       />
       <Footer />
     </>

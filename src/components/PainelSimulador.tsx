@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -23,6 +23,8 @@ import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
 import { BannerAlertasDisparados, PainelAlertas, type AlertaPreco } from "./AlertasPreco";
 import { DuelosPainel, type Duelo } from "./DuelosPainel";
 import { AgentePainel, type Agente, type DecisaoAgente } from "./AgentePainel";
+import { EmprestimoPainel } from "./EmprestimoPainel";
+import type { EstadoEmprestimo } from "@/app/simulador/operacoesEmprestimo";
 import { TourBoasVindas } from "./TourBoasVindas";
 import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
@@ -68,7 +70,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
+type Aba = "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -90,6 +92,7 @@ export function PainelSimulador({
   duelos,
   agente,
   decisoesAgente,
+  emprestimo,
 }: {
   apelido: string;
   saldo: number;
@@ -110,6 +113,7 @@ export function PainelSimulador({
   duelos: Duelo[];
   agente: Agente;
   decisoesAgente: DecisaoAgente[];
+  emprestimo: EstadoEmprestimo | null;
 }) {
   const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
@@ -137,7 +141,8 @@ export function PainelSimulador({
     );
     return s + p.valorInvestido * Math.pow(1 + p.taxaAnual, dias / 365);
   }, 0);
-  const patrimonio = saldo + valorAtual + valorRendaFixa;
+  const divida = emprestimo?.divida ?? 0;
+  const patrimonio = saldo + valorAtual + valorRendaFixa - divida;
   const lucro = valorAtual - investido;
   const lucroPct = investido > 0 ? (lucro / investido) * 100 : 0;
 
@@ -156,6 +161,7 @@ export function PainelSimulador({
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
+    { id: "emprestimo", label: "Empréstimo", icone: HandCoins },
     { id: "planejador", label: "Planejador", icone: Target },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
@@ -390,6 +396,8 @@ export function PainelSimulador({
               )}
 
               {aba === "renda-fixa" && <RendaFixaPainel posicoes={posicoesRendaFixa} />}
+
+              {aba === "emprestimo" && <EmprestimoPainel emprestimo={emprestimo} />}
 
               {aba === "planejador" && (
                 <PlanejadorPainel

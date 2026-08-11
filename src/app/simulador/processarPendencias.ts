@@ -34,6 +34,60 @@ export async function processarPendencias(usuarioId: string): Promise<void> {
     processarDividendos(supabase, usuarioId),
     processarAlertas(supabase, usuarioId),
   ]);
+
+  // A chamada de margem depende do resultado das ordens/dividendos acima
+  // (mudam o patrimonio), entao roda depois, nao junto no Promise.all.
+  await processarChamadaMargem(supabase, usuarioId);
+}
+
+/**
+ * Se a divida do emprestimo ja ultrapassou o patrimonio (patrimonio
+ * liquido negativo), vende posicoes automaticamente, da maior pra
+ * menor, ate cobrir a diferenca, igual uma chamada de margem de
+ * verdade. O dinheiro da venda vai direto pra quitar a divida.
+ */
+async function processarChamadaMargem(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  usuarioId: string,
+) {
+  const { data: patrimonioInicial } = await supabase.rpc("patrimonio_de", { p_usuario: usuarioId });
+  if (patrimonioInicial === null || Number(patrimonioInicial) >= 0) return;
+
+  const { data: posicoes } = await supabase
+    .from("posicoes")
+    .select("ticker, quantidade, preco_medio")
+    .eq("usuario_id", usuarioId);
+
+  if (!posicoes || posicoes.length === 0) return;
+
+  const { data: cotacoesData } = await supabase
+    .from("cotacoes")
+    .select("ticker, preco")
+    .in("ticker", posicoes.map((p) => p.ticker));
+  const precoDe = new Map((cotacoesData ?? []).map((c) => [c.ticker, Number(c.preco)]));
+
+  const ordenadas = [...posicoes].sort((a, b) => {
+    const valorA = Number(a.quantidade) * (precoDe.get(a.ticker) ?? Number(a.preco_medio));
+    const valorB = Number(b.quantidade) * (precoDe.get(b.ticker) ?? Number(b.preco_medio));
+    return valorB - valorA;
+  });
+
+  for (const pos of ordenadas) {
+    const { data: patrimonioAtual } = await supabase.rpc("patrimonio_de", { p_usuario: usuarioId });
+    if (patrimonioAtual !== null && Number(patrimonioAtual) >= 0) break;
+
+    const { error: erroVenda } = await supabase.rpc("vender", {
+      p_ticker: pos.ticker,
+      p_qtd: Number(pos.quantidade),
+    });
+    if (erroVenda) continue;
+
+    const { data: perfilAtual } = await supabase.from("perfis").select("saldo").eq("id", usuarioId).single();
+    const saldoCaixa = Number(perfilAtual?.saldo ?? 0);
+    if (saldoCaixa > 0) {
+      await supabase.rpc("pagar_emprestimo", { p_valor: saldoCaixa });
+    }
+  }
 }
 
 async function processarAlertas(

@@ -960,10 +960,103 @@ end $$;
 
 
 -- ------------------------------------------------------------
+-- TAXA SELIC: cache da meta Selic (Banco Central, serie 432), usada
+-- como "juros legal" do emprestimo. So atualiza a cada 24h, ja que o
+-- Copom muda a meta poucas vezes por ano.
+-- ------------------------------------------------------------
+create table if not exists public.taxa_selic_cache (
+  id            smallint primary key default 1 check (id = 1),
+  taxa_anual    numeric(6,4) not null,
+  atualizado_em timestamptz not null default now()
+);
+
+alter table public.taxa_selic_cache enable row level security;
+drop policy if exists "selic: leitura publica" on public.taxa_selic_cache;
+create policy "selic: leitura publica" on public.taxa_selic_cache for select using (true);
+
+create or replace function public.garantir_taxa_selic()
+returns numeric language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_taxa     numeric;
+  v_idade    interval;
+  v_resposta jsonb;
+begin
+  select taxa_anual, now() - atualizado_em into v_taxa, v_idade
+  from public.taxa_selic_cache where id = 1;
+
+  if v_taxa is not null and v_idade < interval '24 hours' then
+    return v_taxa;
+  end if;
+
+  begin
+    select content::jsonb into v_resposta
+    from extensions.http_get('https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json');
+
+    v_taxa := (v_resposta -> 0 ->> 'valor')::numeric / 100;
+
+    if v_taxa is not null and v_taxa > 0 then
+      insert into public.taxa_selic_cache (id, taxa_anual, atualizado_em)
+      values (1, v_taxa, now())
+      on conflict (id) do update set taxa_anual = excluded.taxa_anual, atualizado_em = excluded.atualizado_em;
+      return v_taxa;
+    end if;
+  exception when others then
+    return v_taxa;
+  end;
+
+  return v_taxa;
+end $$;
+
+revoke all on function public.garantir_taxa_selic() from public;
+grant execute on function public.garantir_taxa_selic() to authenticated;
+
+select public.garantir_taxa_selic();
+
+-- ------------------------------------------------------------
+-- EMPRESTIMOS: uma "linha de credito" por usuario, nao emprestimos
+-- avulsos. saldo_devedor cresce sozinho com juros compostos diarios
+-- (juros legal = Selic), calculados de forma projetada (sem escrita)
+-- em saldo_devedor_atual(), e so "assentados" de verdade quando a
+-- pessoa pede mais ou paga uma parte.
+-- ------------------------------------------------------------
+create table if not exists public.emprestimos (
+  usuario_id        uuid primary key references auth.users(id) on delete cascade,
+  saldo_devedor     numeric(14,2) not null default 0 check (saldo_devedor >= 0),
+  criado_em         timestamptz not null default now(),
+  ultimo_calculo_em timestamptz not null default now()
+);
+
+alter table public.emprestimos enable row level security;
+drop policy if exists "emprestimo proprio" on public.emprestimos;
+create policy "emprestimo proprio" on public.emprestimos
+  for select using (auth.uid() = usuario_id);
+
+-- Divida projetada ATE AGORA, sem gravar nada (seguro de chamar em
+-- massa, tipo dentro do ranking). Juros compostos diarios a partir da
+-- taxa anual da Selic: taxa_diaria = (1+taxa_anual)^(1/365) - 1.
+create or replace function public.saldo_devedor_atual(p_usuario uuid)
+returns numeric language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (
+      select e.saldo_devedor * power(
+        power(1 + t.taxa_anual, 1.0/365),
+        greatest(extract(epoch from (now() - e.ultimo_calculo_em)) / 86400, 0)
+      )
+      from public.emprestimos e, public.taxa_selic_cache t
+      where e.usuario_id = p_usuario and t.id = 1
+    ),
+    0
+  )
+$$;
+
+revoke all on function public.saldo_devedor_atual(uuid) from public;
+grant execute on function public.saldo_devedor_atual(uuid) to authenticated;
+
+-- ------------------------------------------------------------
 -- PATRIMONIO DE: saldo + acoes pela cotacao ao vivo (cache atualizada
 -- por cron; cai pro preco medio se por algum motivo a acao nao tiver
--- cotacao em cache) + renda fixa pelo valor investido. Usada pelo
--- ranking geral e pelo snapshot mensal.
+-- cotacao em cache) + renda fixa pelo valor investido, menos a divida
+-- do emprestimo. Usada pelo ranking geral e pelo snapshot mensal.
 -- ------------------------------------------------------------
 create or replace function public.patrimonio_de(p_usuario uuid)
 returns numeric language sql stable security definer set search_path = public as $$
@@ -976,7 +1069,127 @@ returns numeric language sql stable security definer set search_path = public as
           where p.usuario_id = p_usuario
         ), 0)
       + coalesce((select sum(valor_investido) from public.investimentos_rf where usuario_id = p_usuario and resgatado = false), 0)
+      - public.saldo_devedor_atual(p_usuario)
 $$;
+
+-- ------------------------------------------------------------
+-- EMPRESTIMO: estado pra UI, pedido e pagamento. Limite e 50% do
+-- patrimonio BRUTO (antes de descontar a propria divida), senao o
+-- limite encolheria sozinho so pelos juros acumulando.
+-- ------------------------------------------------------------
+create or replace function public.obter_emprestimo()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario            uuid := auth.uid();
+  v_taxa                numeric;
+  v_divida              numeric;
+  v_patrimonio_liquido  numeric;
+  v_patrimonio_bruto    numeric;
+  v_limite              numeric;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select taxa_anual into v_taxa from public.taxa_selic_cache where id = 1;
+  if v_taxa is null then
+    v_taxa := public.garantir_taxa_selic();
+  end if;
+
+  v_divida := public.saldo_devedor_atual(v_usuario);
+  v_patrimonio_liquido := public.patrimonio_de(v_usuario);
+  v_patrimonio_bruto := v_patrimonio_liquido + v_divida;
+  v_limite := greatest(v_patrimonio_bruto, 0) * 0.5;
+
+  return json_build_object(
+    'divida', round(v_divida, 2),
+    'taxaAnualPct', round(coalesce(v_taxa, 0) * 100, 2),
+    'limite', round(v_limite, 2),
+    'disponivel', round(greatest(v_limite - v_divida, 0), 2),
+    'patrimonioLiquido', round(v_patrimonio_liquido, 2)
+  );
+end $$;
+
+revoke all on function public.obter_emprestimo() from public;
+grant execute on function public.obter_emprestimo() to authenticated;
+
+create or replace function public.pedir_emprestimo(p_valor numeric)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario          uuid := auth.uid();
+  v_divida_atual     numeric;
+  v_patrimonio_bruto numeric;
+  v_limite           numeric;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_valor is null or p_valor <= 0 then
+    raise exception 'Escolha um valor de emprestimo valido.';
+  end if;
+
+  perform public.garantir_taxa_selic();
+
+  v_divida_atual := public.saldo_devedor_atual(v_usuario);
+  v_patrimonio_bruto := public.patrimonio_de(v_usuario) + v_divida_atual;
+  v_limite := greatest(v_patrimonio_bruto, 0) * 0.5;
+
+  if v_divida_atual + p_valor > v_limite then
+    raise exception 'Limite de emprestimo excedido. Voce pode pegar ate R$ %.',
+      to_char(greatest(v_limite - v_divida_atual, 0), 'FM999999999.00');
+  end if;
+
+  insert into public.emprestimos (usuario_id, saldo_devedor, criado_em, ultimo_calculo_em)
+  values (v_usuario, v_divida_atual + p_valor, now(), now())
+  on conflict (usuario_id) do update
+    set saldo_devedor = v_divida_atual + p_valor, ultimo_calculo_em = now();
+
+  update public.perfis set saldo = saldo + p_valor where id = v_usuario;
+
+  return json_build_object('ok', true, 'valor', p_valor, 'saldoDevedor', round(v_divida_atual + p_valor, 2));
+end $$;
+
+revoke all on function public.pedir_emprestimo(numeric) from public;
+grant execute on function public.pedir_emprestimo(numeric) to authenticated;
+
+create or replace function public.pagar_emprestimo(p_valor numeric)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario      uuid := auth.uid();
+  v_divida_atual numeric;
+  v_saldo_caixa  numeric;
+  v_pagamento    numeric;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_valor is null or p_valor <= 0 then
+    raise exception 'Escolha um valor valido.';
+  end if;
+
+  v_divida_atual := public.saldo_devedor_atual(v_usuario);
+  if v_divida_atual <= 0 then
+    raise exception 'Voce nao tem divida pra pagar.';
+  end if;
+
+  select saldo into v_saldo_caixa from public.perfis where id = v_usuario;
+  v_pagamento := least(p_valor, v_divida_atual, coalesce(v_saldo_caixa, 0));
+
+  if v_pagamento <= 0 then
+    raise exception 'Saldo insuficiente em caixa.';
+  end if;
+
+  update public.emprestimos
+    set saldo_devedor = v_divida_atual - v_pagamento, ultimo_calculo_em = now()
+    where usuario_id = v_usuario;
+
+  update public.perfis set saldo = saldo - v_pagamento where id = v_usuario;
+
+  return json_build_object('ok', true, 'pago', round(v_pagamento, 2), 'saldoDevedorRestante', round(v_divida_atual - v_pagamento, 2));
+end $$;
+
+revoke all on function public.pagar_emprestimo(numeric) from public;
+grant execute on function public.pagar_emprestimo(numeric) to authenticated;
 
 
 -- ------------------------------------------------------------
