@@ -1037,7 +1037,8 @@ end $$;
 -- medio + renda fixa pelo valor investido). Usa preco medio em vez do
 -- preco de mercado agora pra nao precisar buscar cotacao de todo mundo
 -- so pra montar o ranking, e uma aproximacao, nao o patrimonio exato
--- de cada um.
+-- de cada um. So entram contas de verdade: visitante anonimo (is_anonymous)
+-- ganha um perfil igual a todo mundo, mas nao deveria aparecer no ranking.
 -- ------------------------------------------------------------
 create or replace function public.ranking(p_limite integer default 50)
 returns table(apelido text, patrimonio numeric, posicao bigint)
@@ -1047,6 +1048,8 @@ language sql security definer set search_path = public as $$
     public.patrimonio_de(p.id) as patrimonio,
     row_number() over (order by public.patrimonio_de(p.id) desc) as posicao
   from public.perfis p
+  join auth.users u on u.id = p.id
+  where u.is_anonymous is not true
   order by patrimonio desc
   limit p_limite
 $$;
@@ -1072,8 +1075,10 @@ language sql security definer set search_path = public as $$
     end as ganho_pct,
     row_number() over (order by public.patrimonio_de(p.id) - p.patrimonio_inicio_mes desc) as posicao
   from public.perfis p
+  join auth.users u on u.id = p.id
   where p.mes_referencia = to_char(current_date, 'YYYY-MM')
     and p.patrimonio_inicio_mes is not null
+    and u.is_anonymous is not true
   order by ganho desc
   limit p_limite
 $$;
