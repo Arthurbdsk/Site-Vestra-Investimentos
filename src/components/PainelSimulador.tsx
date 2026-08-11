@@ -906,7 +906,7 @@ function Explorar({
                         dadosPre={{
                           preco: dado?.preco ?? null,
                           variacao: dado?.variacao ?? null,
-                          logo: null,
+                          logo: dado?.logo ?? null,
                         }}
                         aoComprar={aoComprar}
                         aoVerDetalhe={aoVerDetalhe}

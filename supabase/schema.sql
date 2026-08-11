@@ -228,8 +228,11 @@ create table if not exists public.cotacoes (
   ticker        text primary key,
   preco         numeric(14,2) not null,
   variacao      numeric(6,2) not null default 0,
+  logo          text,
   atualizado_em timestamptz not null default now()
 );
+
+alter table public.cotacoes add column if not exists logo text;
 
 alter table public.cotacoes enable row level security;
 drop policy if exists "cotacoes: leitura publica" on public.cotacoes;
@@ -311,6 +314,7 @@ declare
   v_resposta jsonb;
   v_variacao numeric;
   v_fx       numeric;
+  v_logo     text;
 begin
   select preco, now() - atualizado_em into v_preco, v_idade
   from public.cotacoes where ticker = p_ticker;
@@ -341,6 +345,7 @@ begin
       v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
       v_variacao := coalesce(
         (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+      v_logo := v_resposta -> 'results' -> 0 -> 'data' ->> 'logourl';
     exception when others then
       return v_preco;
     end;
@@ -364,16 +369,24 @@ begin
           v_preco := v_preco * v_fx;
         end if;
       end if;
+
+      begin
+        select content::jsonb ->> 'logo' into v_logo
+        from extensions.http_get('https://finnhub.io/api/v1/stock/profile2?symbol=' || p_ticker || '&token=' || v_token);
+      exception when others then
+        v_logo := null;
+      end;
     exception when others then
       return v_preco;
     end;
   end if;
 
   if v_preco is not null and v_preco > 0 then
-    insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
-    values (p_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+    insert into public.cotacoes (ticker, preco, variacao, logo, atualizado_em)
+    values (p_ticker, round(v_preco, 2), round(v_variacao, 2), v_logo, now())
     on conflict (ticker) do update
       set preco = excluded.preco, variacao = excluded.variacao,
+          logo = coalesce(excluded.logo, public.cotacoes.logo),
           atualizado_em = excluded.atualizado_em;
     return round(v_preco, 2);
   end if;
@@ -387,16 +400,18 @@ end $$;
 create or replace function public.atualizar_cotacoes(p_forcar boolean default false)
 returns integer language plpgsql security definer set search_path = public, extensions as $$
 declare
-  v_token_brapi   text;
-  v_token_finnhub text;
-  v_ticker        text;
-  v_mercado       text;
-  v_resposta      jsonb;
-  v_preco         numeric;
-  v_variacao      numeric;
-  v_fx            numeric;
-  v_mais_novo     timestamptz;
-  v_contador      integer := 0;
+  v_token_brapi    text;
+  v_token_finnhub  text;
+  v_ticker         text;
+  v_mercado        text;
+  v_resposta       jsonb;
+  v_preco          numeric;
+  v_variacao       numeric;
+  v_fx             numeric;
+  v_logo           text;
+  v_logo_existente text;
+  v_mais_novo      timestamptz;
+  v_contador       integer := 0;
 begin
   select max(atualizado_em) into v_mais_novo from public.cotacoes;
   if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '60 seconds' then
@@ -409,6 +424,7 @@ begin
 
   for v_ticker, v_mercado in select ticker, mercado from public.ativos_permitidos loop
     begin
+      v_logo := null;
       if v_mercado = 'us' then
         if v_token_finnhub is null then continue; end if;
         select content::jsonb into v_resposta
@@ -418,20 +434,36 @@ begin
         if v_preco is not null and v_fx is not null then
           v_preco := v_preco * v_fx;
         end if;
+
+        -- O logo de uma empresa nao muda de 5 em 5 minutos: so busca de
+        -- novo se ainda nao tiver um salvo, pra nao gastar chamada a toa.
+        select logo into v_logo_existente from public.cotacoes where ticker = v_ticker;
+        if v_logo_existente is null then
+          begin
+            select content::jsonb ->> 'logo' into v_logo
+            from extensions.http_get('https://finnhub.io/api/v1/stock/profile2?symbol=' || v_ticker || '&token=' || v_token_finnhub);
+          exception when others then
+            v_logo := null;
+          end;
+        else
+          v_logo := v_logo_existente;
+        end if;
       else
         if v_token_brapi is null then continue; end if;
         select content::jsonb into v_resposta
         from extensions.http_get('https://brapi.dev/api/v2/stocks/quote?symbols=' || v_ticker || '&token=' || v_token_brapi);
         v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
         v_variacao := coalesce((v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+        v_logo := v_resposta -> 'results' -> 0 -> 'data' ->> 'logourl';
       end if;
 
       if v_preco is not null and v_preco > 0 then
-        insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
-        values (v_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+        insert into public.cotacoes (ticker, preco, variacao, logo, atualizado_em)
+        values (v_ticker, round(v_preco, 2), round(v_variacao, 2), v_logo, now())
         on conflict (ticker) do update
           set preco = excluded.preco,
               variacao = excluded.variacao,
+              logo = coalesce(excluded.logo, public.cotacoes.logo),
               atualizado_em = excluded.atualizado_em;
         v_contador := v_contador + 1;
       end if;
@@ -457,6 +489,7 @@ declare
   v_ticker   text;
   v_quote    jsonb;
   v_preco    numeric;
+  v_logo     text;
   v_resultado json[] := array[]::json[];
   v_contador integer := 0;
 begin
@@ -497,11 +530,24 @@ begin
     end;
 
     if v_preco is not null and v_preco > 0 then
+      -- Reaproveita o logo ja salvo em cotacoes quando existir, so busca
+      -- na finnhub se ainda nao tiver (evita chamada extra por resultado).
+      select logo into v_logo from public.cotacoes where ticker = upper(v_ticker);
+      if v_logo is null then
+        begin
+          select content::jsonb ->> 'logo' into v_logo
+          from extensions.http_get('https://finnhub.io/api/v1/stock/profile2?symbol=' || upper(v_ticker) || '&token=' || v_token);
+        exception when others then
+          v_logo := null;
+        end;
+      end if;
+
       v_resultado := v_resultado || json_build_object(
         'ticker', upper(v_ticker),
         'nome', v_item ->> 'description',
         'preco', round(v_preco * coalesce(v_fx, 1), 2),
-        'variacao', round(coalesce((v_quote ->> 'dp')::numeric, 0), 2)
+        'variacao', round(coalesce((v_quote ->> 'dp')::numeric, 0), 2),
+        'logo', v_logo
       );
       v_contador := v_contador + 1;
     end if;

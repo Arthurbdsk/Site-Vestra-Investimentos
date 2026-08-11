@@ -76,7 +76,11 @@ export function ModalDetalheAcao({
     if (!ticker) return;
     setCabecalho(null);
     setPeriodo("3mo");
-    fetch(`/api/acoes?q=${encodeURIComponent(ticker)}`)
+    // Ticker da B3 tem 4 letras + 1 ou 2 numeros (ex: PETR4); qualquer
+    // outro formato de 1 a 5 letras e uma acao americana (ex: AAPL).
+    const ehUS = /^[A-Z]{1,5}$/.test(ticker);
+    const rota = ehUS ? `/api/acoes-usa?q=${encodeURIComponent(ticker)}` : `/api/acoes?q=${encodeURIComponent(ticker)}`;
+    fetch(rota)
       .then((r) => r.json())
       .then((json) => {
         const a = json.acoes?.find((x: { ticker: string }) => x.ticker === ticker);

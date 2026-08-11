@@ -20,20 +20,20 @@ export async function GET(req: NextRequest) {
       );
     }
     const acoes = (data ?? []).map(
-      (a: { ticker: string; nome: string; preco: number; variacao: number }) => ({
+      (a: { ticker: string; nome: string; preco: number; variacao: number; logo: string | null }) => ({
         ticker: a.ticker,
         nome: a.nome,
         setor: null,
         preco: a.preco,
         variacao: a.variacao,
-        logo: null,
+        logo: a.logo ?? null,
       }),
     );
     return NextResponse.json({ acoes });
   }
 
   const tickers = ACOES_USA.map((a) => a.ticker);
-  const { data } = await supabase.from("cotacoes").select("ticker, preco, variacao").in("ticker", tickers);
+  const { data } = await supabase.from("cotacoes").select("ticker, preco, variacao, logo").in("ticker", tickers);
   const mapa = new Map((data ?? []).map((c) => [c.ticker, c]));
 
   const acoes = ACOES_USA.map((a) => {
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       explica: a.explica,
       preco: c ? Number(c.preco) : null,
       variacao: c ? Number(c.variacao) : null,
-      logo: null,
+      logo: c?.logo ?? null,
     };
   });
 
