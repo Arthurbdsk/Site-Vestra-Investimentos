@@ -124,6 +124,14 @@ export default async function PrivacidadePage() {
             <p>
               Dúvidas sobre privacidade ou pedidos relacionados aos seus
               dados: <span className="text-ink">contato@vestra-simulator.com.br</span>.
+              Veja também nossos{" "}
+              <a
+                href="/termos"
+                className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue"
+              >
+                Termos de Uso
+              </a>
+              .
             </p>
           </Secao>
         </div>
