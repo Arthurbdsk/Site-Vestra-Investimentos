@@ -44,6 +44,11 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5 text-sm text-onblue-muted">
                 <li className="opacity-55">Nossa proposta</li>
                 <li className="opacity-55">Perguntas frequentes</li>
+                <li>
+                  <Link href="/privacidade" className="transition-colors hover:text-gold">
+                    Política de Privacidade
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
