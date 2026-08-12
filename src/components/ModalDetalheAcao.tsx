@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { GraficoPreco } from "./GraficoPreco";
+import { GraficoAvancado } from "./GraficoAvancado";
 import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
 import { acaoPorTicker } from "@/lib/acoes";
@@ -269,7 +269,7 @@ export function ModalDetalheAcao({
                       {grafico.mensagem}
                     </p>
                   )}
-                  {grafico.fase === "feito" && <GraficoPreco serie={grafico.serie} />}
+                  {grafico.fase === "feito" && <GraficoAvancado serie={grafico.serie} />}
                 </div>
               </div>
             </div>

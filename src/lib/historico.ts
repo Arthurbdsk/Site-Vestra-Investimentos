@@ -14,7 +14,14 @@ export const PERIODOS: { valor: Periodo; label: string }[] = [
   { valor: "5y", label: "5 anos" },
 ];
 
-export type PontoSerie = { data: string; preco: number };
+export type PontoSerie = {
+  data: string;
+  preco: number;
+  abertura: number;
+  maxima: number;
+  minima: number;
+  volume: number;
+};
 
 export type ResultadoHistorico =
   | {
@@ -44,7 +51,7 @@ const CONFIG_PERIODO: Record<Periodo, { rangeConsulta: string; interval: string;
   "5y": { rangeConsulta: "5y", interval: "1d", ultimosDias: null },
 };
 
-type PontoBruto = { data: string; preco: number };
+type PontoBruto = PontoSerie;
 
 let cacheFx: { taxa: number; expiraEm: number } | null = null;
 
@@ -100,10 +107,17 @@ async function buscarNaBrapi(
   }
 
   const serie: PontoBruto[] = serieBruta
-    .map((p: Record<string, unknown>) => ({
-      data: new Date(Number(p.date) * 1000).toISOString(),
-      preco: Number(p.close),
-    }))
+    .map((p: Record<string, unknown>) => {
+      const preco = Number(p.close);
+      return {
+        data: new Date(Number(p.date) * 1000).toISOString(),
+        preco,
+        abertura: Number(p.open) || preco,
+        maxima: Number(p.high) || preco,
+        minima: Number(p.low) || preco,
+        volume: Number(p.volume) || 0,
+      };
+    })
     .filter((p: PontoBruto) => Number.isFinite(p.preco));
 
   return { ok: true, nome: String(r.longName ?? r.shortName ?? ticker), serie };
@@ -127,9 +141,24 @@ async function buscarNoYahoo(
   if (json.chart?.error || !resultado) return { ok: false, mensagem: "vazio" };
 
   const timestamps: number[] = resultado.timestamp ?? [];
-  const fechamentos: (number | null)[] = resultado.indicators?.quote?.[0]?.close ?? [];
+  const quote = resultado.indicators?.quote?.[0] ?? {};
+  const fechamentos: (number | null)[] = quote.close ?? [];
+  const aberturas: (number | null)[] = quote.open ?? [];
+  const maximas: (number | null)[] = quote.high ?? [];
+  const minimas: (number | null)[] = quote.low ?? [];
+  const volumes: (number | null)[] = quote.volume ?? [];
   const serie: PontoBruto[] = timestamps
-    .map((t, i) => ({ data: new Date(t * 1000).toISOString(), preco: Number(fechamentos[i]) }))
+    .map((t, i) => {
+      const preco = Number(fechamentos[i]);
+      return {
+        data: new Date(t * 1000).toISOString(),
+        preco,
+        abertura: Number(aberturas[i]) || preco,
+        maxima: Number(maximas[i]) || preco,
+        minima: Number(minimas[i]) || preco,
+        volume: Number(volumes[i]) || 0,
+      };
+    })
     .filter((p) => Number.isFinite(p.preco));
 
   if (serie.length === 0) return { ok: false, mensagem: "vazio" };
@@ -163,7 +192,13 @@ export async function buscarHistorico(
     if (resultado.ok && mercado === "us") {
       const fx = await buscarTaxaUsdBrl();
       if (fx) {
-        resultado.serie = resultado.serie.map((p) => ({ data: p.data, preco: p.preco * fx }));
+        resultado.serie = resultado.serie.map((p) => ({
+          ...p,
+          preco: p.preco * fx,
+          abertura: p.abertura * fx,
+          maxima: p.maxima * fx,
+          minima: p.minima * fx,
+        }));
       }
     }
 
