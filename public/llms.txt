@@ -11,6 +11,7 @@ O Vestra ensina conceitos de investimento na prática: compra e venda de ações
 - [Página inicial](https://vestra-simulator.com.br/): apresentação do projeto
 - [Simulador](https://vestra-simulator.com.br/simulador): carteira, explorar ações, ranking, empréstimo, agente de IA, histórico
 - [Aprender](https://vestra-simulator.com.br/aprender): artigos educativos sobre investimentos com quiz de acompanhamento
+- [Blog](https://vestra-simulator.com.br/blog): artigos sobre como começar a investir, ações, Tesouro Direto, CDB, diversificação de carteira e dividendos
 - [Criar conta](https://vestra-simulator.com.br/cadastro)
 - [Termos de Uso](https://vestra-simulator.com.br/termos)
 - [Política de Privacidade](https://vestra-simulator.com.br/privacidade)

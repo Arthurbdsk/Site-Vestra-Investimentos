@@ -35,6 +35,11 @@ export function Footer() {
                     Aprender
                   </Link>
                 </li>
+                <li>
+                  <Link href="/blog" className="transition-colors hover:text-gold">
+                    Blog
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

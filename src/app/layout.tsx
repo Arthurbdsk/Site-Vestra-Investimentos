@@ -23,10 +23,39 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+const TITULO = "Vestra: educação financeira sem enrolação";
+const DESCRICAO =
+  "Simulador de investimentos com dinheiro fictício e preços reais da B3 e da bolsa americana. Aprenda a investir na prática, sem economês e sem arriscar dinheiro de verdade.";
+
 export const metadata: Metadata = {
-  title: "Vestra: educação financeira sem enrolação",
-  description:
-    "Aprenda a investir na prática, com dinheiro fictício, em um simulador feito para o investidor brasileiro iniciante.",
+  metadataBase: new URL("https://vestra-simulator.com.br"),
+  title: TITULO,
+  description: DESCRICAO,
+  keywords: [
+    "simulador de investimentos",
+    "educação financeira",
+    "como investir",
+    "investir para iniciantes",
+    "investir na bolsa",
+    "ações B3",
+    "simulador de ações",
+  ],
+  authors: [{ name: "Vestra" }],
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: TITULO,
+    description: DESCRICAO,
+    url: "https://vestra-simulator.com.br",
+    siteName: "Vestra",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: TITULO,
+    description: DESCRICAO,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
