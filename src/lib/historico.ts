@@ -46,6 +46,30 @@ const CONFIG_PERIODO: Record<Periodo, { rangeConsulta: string; interval: string;
 
 type PontoBruto = { data: string; preco: number };
 
+let cacheFx: { taxa: number; expiraEm: number } | null = null;
+
+/** Mesma fonte (gratuita, sem chave) usada no banco pra converter acoes
+ * americanas pra reais; aqui em cache local por 30 minutos. */
+async function buscarTaxaUsdBrl(): Promise<number | null> {
+  if (cacheFx && cacheFx.expiraEm > Date.now()) return cacheFx.taxa;
+
+  try {
+    const resposta = await fetch("https://api.frankfurter.app/latest?from=USD&to=BRL", {
+      cache: "no-store",
+    });
+    if (!resposta.ok) return cacheFx?.taxa ?? null;
+
+    const json = await resposta.json();
+    const taxa = Number(json.rates?.BRL);
+    if (!Number.isFinite(taxa) || taxa <= 0) return cacheFx?.taxa ?? null;
+
+    cacheFx = { taxa, expiraEm: Date.now() + 30 * 60_000 };
+    return taxa;
+  } catch {
+    return cacheFx?.taxa ?? null;
+  }
+}
+
 function filtrarUltimosDias(serie: PontoBruto[], dias: number): PontoBruto[] {
   const diasUnicos = [...new Set(serie.map((p) => p.data.slice(0, 10)))];
   const diasAlvo = new Set(diasUnicos.slice(-dias));
@@ -133,6 +157,15 @@ export async function buscarHistorico(
       mercado === "br"
         ? await buscarNaBrapi(t, config.rangeConsulta, config.interval)
         : await buscarNoYahoo(t, config.rangeConsulta, config.interval);
+
+    // Yahoo devolve preco em dolar; o resto do site mostra tudo em real,
+    // entao converte aqui pra nao aparecer um numero incompativel no grafico.
+    if (resultado.ok && mercado === "us") {
+      const fx = await buscarTaxaUsdBrl();
+      if (fx) {
+        resultado.serie = resultado.serie.map((p) => ({ data: p.data, preco: p.preco * fx }));
+      }
+    }
 
     if (!resultado.ok) {
       if (resultado.mensagem === "config") {
