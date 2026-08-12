@@ -33,6 +33,14 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
     router.refresh();
   }
 
+  /** Depois de ver o resultado, o X leva pra pagina inicial, nao so
+   * fecha o popup em cima do simulador. */
+  async function fecharDepoisDoResultado() {
+    setAberto(false);
+    await marcarQuizVisto();
+    router.push("/");
+  }
+
   async function salvar(perfil: Perfil) {
     setErroSalvar(false);
     const r = await salvarPerfilInvestidor(perfil.id);
@@ -71,7 +79,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
           className="relative w-full max-w-md bg-paper p-7 shadow-2xl"
         >
           <button
-            onClick={fechar}
+            onClick={resultado ? fecharDepoisDoResultado : fechar}
             aria-label="Fechar"
             className="absolute right-5 top-5 text-ink-muted transition-colors hover:text-ink"
           >

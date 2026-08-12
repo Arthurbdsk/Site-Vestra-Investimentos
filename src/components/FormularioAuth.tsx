@@ -38,6 +38,7 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmarEmail, setConfirmarEmail] = useState(false);
@@ -56,6 +57,11 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
 
     if (senha.length < 6) {
       setErro("A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (modo === "cadastro" && senha !== confirmarSenha) {
+      setErro("As senhas não são iguais. Confira e tente de novo.");
       return;
     }
 
@@ -210,6 +216,28 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
             className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
           />
         </div>
+
+        {modo === "cadastro" && (
+          <div>
+            <label
+              htmlFor="confirmar-senha"
+              className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+            >
+              Confirme sua senha
+            </label>
+            <input
+              id="confirmar-senha"
+              type="password"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              value={confirmarSenha}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+              placeholder="digite a senha de novo"
+              className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+            />
+          </div>
+        )}
 
         <AnimatePresence>
           {erro && (
