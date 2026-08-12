@@ -22,7 +22,8 @@ export function EmprestimoPainel({ emprestimo }: { emprestimo: EstadoEmprestimo 
     );
   }
 
-  const temDivida = emprestimo.divida > 0;
+  const divida = emprestimo.divida;
+  const temDivida = divida > 0;
   const emChamadaDeMargem = emprestimo.patrimonioLiquido < 0;
 
   async function pedir() {
@@ -40,7 +41,7 @@ export function EmprestimoPainel({ emprestimo }: { emprestimo: EstadoEmprestimo 
   async function pagar() {
     setErro(null);
     setEnviando("pagar");
-    const r = await pagarEmprestimo(Math.min(valorPagar, emprestimo.divida));
+    const r = await pagarEmprestimo(Math.min(valorPagar, divida));
     setEnviando(null);
     if (!r.ok) {
       setErro(r.mensagem);
