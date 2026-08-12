@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
     const supabase = await criarClienteServidor();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Login com Google pula o formulario de cadastro (onde fica o
+      // checkbox), entao o aceite dos termos e registrado aqui.
+      await supabase.rpc("aceitar_termos");
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

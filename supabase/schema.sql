@@ -21,6 +21,7 @@ create table if not exists public.perfis (
   perfil_investidor    text,
   mes_referencia        text,
   patrimonio_inicio_mes numeric(14,2),
+  termos_aceitos_em     timestamptz,
   criado_em            timestamptz not null default now()
 );
 
@@ -29,6 +30,7 @@ alter table public.perfis add column if not exists ultimo_acesso date;
 alter table public.perfis add column if not exists perfil_investidor text;
 alter table public.perfis add column if not exists mes_referencia text;
 alter table public.perfis add column if not exists patrimonio_inicio_mes numeric(14,2);
+alter table public.perfis add column if not exists termos_aceitos_em timestamptz;
 
 alter table public.perfis enable row level security;
 
@@ -192,6 +194,30 @@ begin
 
   return json_build_object('ok', true);
 end $$;
+
+-- ------------------------------------------------------------
+-- ACEITAR TERMOS: registrado no cadastro por email/senha, no login
+-- com Google (que pula o formulario com o checkbox) e na confirmacao
+-- por email. Idempotente: so grava na primeira vez.
+-- ------------------------------------------------------------
+create or replace function public.aceitar_termos()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.perfis
+    set termos_aceitos_em = now()
+    where id = v_usuario and termos_aceitos_em is null;
+
+  return json_build_object('ok', true);
+end $$;
+
+revoke all on function public.aceitar_termos() from public;
+grant execute on function public.aceitar_termos() to authenticated;
 
 
 -- ------------------------------------------------------------

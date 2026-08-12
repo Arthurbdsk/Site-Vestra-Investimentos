@@ -41,10 +41,18 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmarEmail, setConfirmarEmail] = useState(false);
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+
+  const precisaAceitarTermos = modo === "cadastro" && !aceitouTermos;
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+
+    if (precisaAceitarTermos) {
+      setErro("Você precisa aceitar os Termos de Uso pra criar sua conta.");
+      return;
+    }
 
     if (senha.length < 6) {
       setErro("A senha precisa ter pelo menos 6 caracteres.");
@@ -65,6 +73,8 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
           setCarregando(false);
           return;
         }
+
+        await supabase.rpc("aceitar_termos");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -127,8 +137,30 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
         <ErroDaUrl />
       </Suspense>
 
-      <div className="mt-8">
-        <BotaoGoogle />
+      {modo === "cadastro" && (
+        <label className="mt-8 flex items-start gap-2.5 text-sm text-ink-muted">
+          <input
+            type="checkbox"
+            checked={aceitouTermos}
+            onChange={(e) => setAceitouTermos(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-blue"
+          />
+          <span>
+            Li e aceito os{" "}
+            <Link href="/termos" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
+              Termos de Uso
+            </Link>{" "}
+            e a{" "}
+            <Link href="/privacidade" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
+              Política de Privacidade
+            </Link>
+            .
+          </span>
+        </label>
+      )}
+
+      <div className={modo === "cadastro" ? "mt-6" : "mt-8"}>
+        <BotaoGoogle desabilitado={precisaAceitarTermos} />
       </div>
 
       <div className="my-6 flex items-center gap-4">
@@ -194,7 +226,7 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
 
         <button
           type="submit"
-          disabled={carregando}
+          disabled={carregando || precisaAceitarTermos}
           className="group flex w-full items-center justify-center gap-2.5 bg-blue px-7 py-3.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-60"
         >
           {carregando ? (

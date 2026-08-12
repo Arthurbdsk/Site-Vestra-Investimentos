@@ -19,6 +19,10 @@ export async function GET(request: NextRequest) {
     const supabase = await criarClienteServidor();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) {
+      // So aqui a sessao fica ativa de verdade (link de email confirmado
+      // num navegador que pode nao ser o mesmo do cadastro), entao e aqui
+      // que registramos o aceite dos termos pra quem passou por esse fluxo.
+      await supabase.rpc("aceitar_termos");
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

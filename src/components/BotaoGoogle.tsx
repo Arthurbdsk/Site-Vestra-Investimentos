@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 
-export function BotaoGoogle() {
+export function BotaoGoogle({ desabilitado = false }: { desabilitado?: boolean }) {
   const [carregando, setCarregando] = useState(false);
 
   async function entrar() {
@@ -22,7 +22,7 @@ export function BotaoGoogle() {
   return (
     <button
       onClick={entrar}
-      disabled={carregando}
+      disabled={carregando || desabilitado}
       className="flex w-full items-center justify-center gap-2.5 border border-[var(--rule)] px-7 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-blue disabled:opacity-60"
     >
       {carregando ? (
