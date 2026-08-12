@@ -1,0 +1,20 @@
+# Vestra
+
+> Simulador de investimentos educacional para iniciantes brasileiros. Todo o dinheiro é fictício (saldo inicial de R$ 100.000); os preços das ações da B3, NYSE e NASDAQ são reais. Nada na plataforma é dinheiro real, recomendação de investimento ou consultoria financeira.
+
+## O que é o Vestra
+
+O Vestra ensina conceitos de investimento na prática: compra e venda de ações reais da B3 (Brasil) e da NYSE/NASDAQ (EUA) usando dinheiro fictício, renda fixa simulada (CDB, Tesouro Direto), empréstimo com juros baseados na Selic, um agente de IA que pode operar sozinho seguindo regras definidas pelo usuário, e um assistente de chat que responde perguntas e executa operações a pedido.
+
+## Páginas principais
+
+- [Página inicial](https://vestra-simulator.com.br/): apresentação do projeto
+- [Simulador](https://vestra-simulator.com.br/simulador): carteira, explorar ações, ranking, empréstimo, agente de IA, histórico
+- [Aprender](https://vestra-simulator.com.br/aprender): artigos educativos sobre investimentos com quiz de acompanhamento
+- [Criar conta](https://vestra-simulator.com.br/cadastro)
+- [Termos de Uso](https://vestra-simulator.com.br/termos)
+- [Política de Privacidade](https://vestra-simulator.com.br/privacidade)
+
+## Aviso importante
+
+Nenhum valor, operação ou rendimento do Vestra é dinheiro real ou pode ser convertido em dinheiro. O conteúdo do site, incluindo o assistente de IA e o agente automático, tem finalidade exclusivamente educacional e não constitui recomendação de investimento.
