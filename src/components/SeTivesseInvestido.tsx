@@ -5,6 +5,10 @@ import { motion } from "framer-motion";
 import { TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import { ACOES } from "@/lib/acoes";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
+
+// Periodos curtos (intraday, 3 dias, semana) fazem sentido no grafico da
+// acao, mas nao aqui: "e se eu tivesse investido" e sobre prazos longos.
+const PERIODOS_LONGOS = PERIODOS.filter((p) => !["1d", "3d", "1wk"].includes(p.valor));
 import { GraficoPreco } from "./GraficoPreco";
 import { brl, numero, pct, data as fmtData } from "@/lib/formato";
 
@@ -128,7 +132,7 @@ export function SeTivesseInvestido() {
             onChange={(e) => setPeriodo(e.target.value as Periodo)}
             className="mt-2 w-full border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors focus:border-blue"
           >
-            {PERIODOS.map((p) => (
+            {PERIODOS_LONGOS.map((p) => (
               <option key={p.valor} value={p.valor}>
                 {p.label}
               </option>

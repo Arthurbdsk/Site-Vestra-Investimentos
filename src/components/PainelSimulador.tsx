@@ -207,7 +207,10 @@ export function PainelSimulador({
                 {nivel.nome}
               </span>
             </div>
-            <StatusMercado />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <StatusMercado mercado="br" />
+              <StatusMercado mercado="us" />
+            </div>
           </div>
 
           <div className="mt-5 grid gap-6 sm:grid-cols-3">

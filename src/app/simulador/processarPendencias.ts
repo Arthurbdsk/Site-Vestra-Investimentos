@@ -1,7 +1,7 @@
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { precoAtualQualquerTicker } from "@/lib/cotacoes";
 import { buscarDividendos } from "@/lib/dividendos";
-import { statusMercado } from "@/lib/mercadoStatus";
+import { statusMercado, mercadoDoTicker } from "@/lib/mercadoStatus";
 
 type OrdemPendente = {
   id: string;
@@ -127,13 +127,14 @@ async function processarOrdens(
 
   if (!ordens || ordens.length === 0) return;
 
-  const mercadoAberto = statusMercado(new Date()).aberto;
+  const agora = new Date();
 
   for (const ordem of ordens as OrdemPendente[]) {
     if (ordem.executar_na_abertura) {
-      // So executa quando o pregao estiver aberto, pelo preco de mercado
-      // do momento (nao ha preco-alvo pra comparar aqui).
-      if (!mercadoAberto) continue;
+      // So executa quando o pregao DAQUELE ticker estiver aberto (B3 e
+      // NYSE/NASDAQ tem horarios diferentes), pelo preco de mercado do
+      // momento (nao ha preco-alvo pra comparar aqui).
+      if (!statusMercado(agora, mercadoDoTicker(ordem.ticker)).aberto) continue;
     } else {
       const preco = await precoAtualQualquerTicker(ordem.ticker);
       if (preco === null) continue;

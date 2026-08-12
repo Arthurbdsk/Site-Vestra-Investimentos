@@ -7,7 +7,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, Minus, Plus } from "lucide-react
 import { comprar, vender, criarOrdemLimitada, criarOrdemMercadoAbertura } from "@/app/simulador/operacoes";
 import { acaoPorTicker } from "@/lib/acoes";
 import { brl } from "@/lib/formato";
-import { statusMercado } from "@/lib/mercadoStatus";
+import { statusMercado, mercadoDoTicker } from "@/lib/mercadoStatus";
 
 export type OrdemAberta = {
   ticker: string;
@@ -38,7 +38,7 @@ export function ModalOrdem({
   const [precoAlvo, setPrecoAlvo] = useState(0);
   const [estado, setEstado] = useState<Estado>({ fase: "formulario" });
   const [, iniciar] = useTransition();
-  const mercadoFechado = !statusMercado(new Date()).aberto;
+  const mercadoFechado = !statusMercado(new Date(), ordem ? mercadoDoTicker(ordem.ticker) : "br").aberto;
 
   /** Fecha e garante que a carteira na tela reflita a ordem recem-feita. */
   function fechar() {
