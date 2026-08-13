@@ -74,9 +74,9 @@ export function AssistenteChat() {
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {mensagens.length === 0 && (
                 <p className="text-sm text-ink-muted">
-                  Pergunte sobre sua carteira, termos financeiros, notícias atuais, ou como o
-                  simulador funciona. Também posso comprar, vender ou criar uma ordem pra abertura
-                  do mercado se você pedir.
+                  Pergunte sobre sua carteira, termos financeiros, ou como o simulador funciona.
+                  Também posso comprar, vender ou criar uma ordem pra abertura do mercado se você
+                  pedir.
                 </p>
               )}
               {mensagens.map((m, i) => (

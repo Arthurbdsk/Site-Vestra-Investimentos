@@ -28,18 +28,20 @@ const LIMITE_POR_PERFIL: Record<ContextoAgente["perfilRisco"], number> = {
   agressivo: 0.4,
 };
 
-const MODELO = "gemini-3.5-flash-lite";
+// Groq: chave gratuita, cota bem mais alta que a do Gemini. API
+// compativel com o formato da OpenAI (messages/tools/tool_calls).
+const MODELO = "llama-3.3-70b-versatile";
 
 /**
  * Pede pro modelo decidir UMA operacao (comprar, vender ou manter),
- * usando function calling do Gemini pra garantir resposta estruturada.
- * Modelo Flash (tier gratuito do Google AI Studio) e suficiente: e uma
- * decisao simples sobre dados tabulares, nao um raciocinio complexo.
+ * usando tool calling (formato OpenAI, servido pela Groq) pra garantir
+ * resposta estruturada. E uma decisao simples sobre dados tabulares,
+ * nao um raciocinio complexo, entao um modelo rapido e suficiente.
  */
 export async function decidirOperacao(ctx: ContextoAgente): Promise<DecisaoAgente> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error("O agente ainda não foi configurado (falta a chave do Gemini).");
+    throw new Error("O agente ainda não foi configurado (falta a chave da Groq).");
   }
 
   const limitePct = LIMITE_POR_PERFIL[ctx.perfilRisco];
@@ -79,62 +81,67 @@ ${dadosCotacoes}
 
 Decida UMA única operação: comprar uma ação disponível, vender uma ação que já está na carteira, ou manter (não fazer nada). Respeite o limite de valor por operação. Se decidir manter, quantidade deve ser 0 e ticker pode ficar vazio. Justifique em português, em 1-2 frases curtas, mencionando o dado real que motivou a decisão. Chame sempre a função decidir_operacao com sua decisão.`;
 
-  const resposta = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [
-          {
-            functionDeclarations: [
-              {
-                name: "decidir_operacao",
-                description: "Registra a decisão de investimento do agente.",
-                parameters: {
-                  type: "OBJECT",
-                  properties: {
-                    ticker: {
-                      type: "STRING",
-                      nullable: true,
-                      description: "Ticker da ação, vazio se manter",
-                    },
-                    acao: { type: "STRING", enum: ["comprar", "vender", "manter"] },
-                    quantidade: { type: "INTEGER", description: "Quantidade de cotas, 0 se manter" },
-                    justificativa: { type: "STRING" },
-                  },
-                  required: ["acao", "quantidade", "justificativa"],
+  const resposta = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: MODELO,
+      messages: [{ role: "user", content: prompt }],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "decidir_operacao",
+            description: "Registra a decisão de investimento do agente.",
+            parameters: {
+              type: "object",
+              properties: {
+                ticker: {
+                  type: "string",
+                  description: "Ticker da ação, vazio se manter",
                 },
+                acao: { type: "string", enum: ["comprar", "vender", "manter"] },
+                quantidade: { type: "integer", description: "Quantidade de cotas, 0 se manter" },
+                justificativa: { type: "string" },
               },
-            ],
+              required: ["acao", "quantidade", "justificativa"],
+            },
           },
-        ],
-        toolConfig: {
-          functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["decidir_operacao"] },
         },
-      }),
-    },
-  );
+      ],
+      tool_choice: { type: "function", function: { name: "decidir_operacao" } },
+      max_tokens: 300,
+    }),
+  });
 
   if (!resposta.ok) {
+    if (resposta.status === 429) {
+      throw new Error("O agente atingiu o limite de uso da IA por agora. Tente de novo em alguns minutos.");
+    }
     const corpo = await resposta.text().catch(() => "");
     throw new Error(`Não foi possível consultar o agente agora (HTTP ${resposta.status}: ${corpo.slice(0, 200)}).`);
   }
 
   const json = await resposta.json();
-  const partes = json.candidates?.[0]?.content?.parts as { functionCall?: { name: string; args: Record<string, unknown> } }[] | undefined;
-  const chamada = partes?.find((p) => p.functionCall)?.functionCall;
+  const toolCalls = json.choices?.[0]?.message?.tool_calls as
+    | { function: { name: string; arguments: string } }[]
+    | undefined;
+  const chamada = toolCalls?.find((tc) => tc.function.name === "decidir_operacao");
   if (!chamada) {
     throw new Error("O agente não retornou uma decisão válida.");
   }
 
-  const args = chamada.args as {
+  let args: {
     ticker?: string | null;
     acao: "comprar" | "vender" | "manter";
     quantidade: number;
     justificativa: string;
   };
+  try {
+    args = JSON.parse(chamada.function.arguments);
+  } catch {
+    throw new Error("O agente não retornou uma decisão válida.");
+  }
 
   return {
     ticker: args.ticker && args.ticker.trim() ? args.ticker.trim().toUpperCase() : null,

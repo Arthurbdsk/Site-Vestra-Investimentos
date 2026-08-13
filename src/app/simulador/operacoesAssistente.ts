@@ -82,14 +82,8 @@ export async function perguntarAssistente(
     }
 
     const textoFinal = await finalizarComResultado(
-      primeiraResposta._contents ?? [],
-      primeiraResposta.acoesPedidas.map((a) => ({
-        name: a.ferramenta,
-        args:
-          a.ferramenta === "criar_ordem_abertura"
-            ? { ticker: a.ticker, quantidade: a.quantidade, tipo: a.tipoOrdem }
-            : { ticker: a.ticker, quantidade: a.quantidade },
-      })),
+      primeiraResposta._mensagens ?? [],
+      primeiraResposta._toolCalls ?? [],
       resultados,
     );
 
