@@ -94,9 +94,17 @@ export const PERFIS: Record<PerfilId, Perfil> = {
   },
 };
 
+/**
+ * Limites calibrados pela distribuicao real das somas possiveis (5
+ * perguntas, 1 a 4 pontos cada, soma de 5 a 20): com os limites antigos
+ * (<=9 conservador, <=15 moderado), moderado capturava ~76% de todas as
+ * combinacoes possiveis, porque a maioria das respostas fica no meio da
+ * escala. Esses limites dividem a distribuicao em tres faixas de
+ * tamanho parecido (~35%/30%/35%).
+ */
 export function calcularPerfil(respostas: Record<string, number>): Perfil {
   const pontos = Object.values(respostas).reduce((s, p) => s + p, 0);
-  if (pontos <= 9) return PERFIS.conservador;
-  if (pontos <= 15) return PERFIS.moderado;
+  if (pontos <= 11) return PERFIS.conservador;
+  if (pontos <= 13) return PERFIS.moderado;
   return PERFIS.arrojado;
 }
