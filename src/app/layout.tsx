@@ -63,6 +63,7 @@ export const metadata: Metadata = {
     title: "Vestra",
   },
   icons: {
+    icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
   },
 };
