@@ -1790,6 +1790,7 @@ returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
   v_agente  public.agentes%rowtype;
+  v_limite  constant integer := 10;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1804,15 +1805,15 @@ begin
     update public.agentes
       set execucoes_hoje = 1, ultimo_dia_execucao = current_date
       where id = v_agente.id;
-    return json_build_object('ok', true, 'restantes', 2);
+    return json_build_object('ok', true, 'restantes', v_limite - 1);
   end if;
 
-  if v_agente.execucoes_hoje >= 3 then
-    raise exception 'Limite diario de 3 execucoes atingido. Volte amanha.';
+  if v_agente.execucoes_hoje >= v_limite then
+    raise exception 'Limite diario de % execucoes atingido. Volte amanha.', v_limite;
   end if;
 
   update public.agentes set execucoes_hoje = execucoes_hoje + 1 where id = v_agente.id;
-  return json_build_object('ok', true, 'restantes', 3 - (v_agente.execucoes_hoje + 1));
+  return json_build_object('ok', true, 'restantes', v_limite - (v_agente.execucoes_hoje + 1));
 end $$;
 
 create or replace function public.registrar_decisao_agente(
@@ -1872,6 +1873,7 @@ declare
   v_usuario uuid := auth.uid();
   v_agente public.agentes%rowtype;
   v_restantes integer;
+  v_limite constant integer := 10;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1883,9 +1885,9 @@ begin
   end if;
 
   if v_agente.ultimo_dia_execucao is distinct from current_date then
-    v_restantes := 3;
+    v_restantes := v_limite;
   else
-    v_restantes := greatest(0, 3 - v_agente.execucoes_hoje);
+    v_restantes := greatest(0, v_limite - v_agente.execucoes_hoje);
   end if;
 
   return json_build_object(
@@ -1921,7 +1923,7 @@ returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
   v_uso     public.assistente_uso%rowtype;
-  v_limite  constant integer := 20;
+  v_limite  constant integer := 100;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1953,6 +1955,7 @@ returns integer language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
   v_uso     public.assistente_uso%rowtype;
+  v_limite  constant integer := 100;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1960,8 +1963,8 @@ begin
 
   select * into v_uso from public.assistente_uso where usuario_id = v_usuario;
   if not found or v_uso.ultimo_dia is distinct from current_date then
-    return 20;
+    return v_limite;
   end if;
 
-  return greatest(0, 20 - v_uso.mensagens_hoje);
+  return greatest(0, v_limite - v_uso.mensagens_hoje);
 end $$;

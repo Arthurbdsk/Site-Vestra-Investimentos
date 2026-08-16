@@ -70,7 +70,7 @@ export function AssistenteChat() {
                   Assistente Vestra
                 </p>
                 {restantes != null && (
-                  <p className="font-mono text-[10px] text-onblue-muted">{restantes}/20 hoje</p>
+                  <p className="font-mono text-[10px] text-onblue-muted">{restantes}/100 hoje</p>
                 )}
               </div>
               <div className="mt-2 flex gap-1.5">

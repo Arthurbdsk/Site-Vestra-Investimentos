@@ -157,7 +157,7 @@ export async function rodarAgente(): Promise<Resultado> {
 }
 
 function limparErro(msg: string): string {
-  if (msg.includes("Limite diario")) return "Limite diário de 3 execuções atingido. Volte amanhã.";
+  if (msg.includes("Limite diario")) return "Limite diário de 10 execuções atingido. Volte amanhã.";
   if (msg.includes("nao criou um agente")) return "Configure um perfil de risco antes de rodar o agente.";
   return "Não foi possível rodar o agente agora.";
 }

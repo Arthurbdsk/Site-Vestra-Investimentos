@@ -25,7 +25,7 @@ export async function perguntarAssistente(
   const { data: reserva, error: erroReserva } = await supabase.rpc("reservar_mensagem_assistente");
   if (erroReserva) {
     const msg = erroReserva.message.includes("Limite diario")
-      ? "Limite diário de 20 mensagens atingido. Volte amanhã."
+      ? "Limite diário de 100 mensagens atingido. Volte amanhã."
       : "Não foi possível conversar com o assistente agora.";
     return { ok: false, mensagem: msg };
   }

@@ -62,7 +62,7 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
       <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
         Um modelo de IA analisa sua carteira, cotações reais da B3 e fundamentos
         (beta, P/L, dividend yield), e decide sozinho comprar, vender ou manter.
-        Limite de 3 execuções por dia.
+        Limite de 10 execuções por dia.
       </p>
 
       {editando ? (
@@ -91,7 +91,7 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
             </div>
             <div className="flex items-center gap-3">
               <p className="text-sm text-ink-muted">
-                {agente.restantesHoje ?? 0} de 3 execuções restantes hoje
+                {agente.restantesHoje ?? 0} de 10 execuções restantes hoje
               </p>
               <button
                 onClick={() => setEditando(true)}
