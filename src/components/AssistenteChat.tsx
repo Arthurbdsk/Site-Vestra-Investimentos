@@ -50,7 +50,8 @@ export function AssistenteChat() {
       <button
         onClick={() => setAberto((v) => !v)}
         aria-label="Abrir assistente"
-        className="fixed bottom-6 right-6 z-[75] flex h-14 w-14 items-center justify-center rounded-full bg-blue text-onblue shadow-2xl transition-colors hover:bg-blue-deep"
+        className="fixed bottom-24 right-6 z-[75] flex h-14 w-14 items-center justify-center rounded-full bg-blue text-onblue shadow-2xl transition-colors hover:bg-blue-deep md:bottom-6"
+        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
       >
         {aberto ? <X size={22} /> : <MessageCircle size={22} />}
       </button>
@@ -62,7 +63,7 @@ export function AssistenteChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="fixed bottom-24 right-6 z-[75] flex h-[min(70vh,520px)] w-[min(90vw,380px)] flex-col border border-[var(--rule)] bg-paper shadow-2xl"
+            className="fixed bottom-40 right-6 z-[75] flex h-[min(65vh,520px)] w-[min(90vw,380px)] flex-col border border-[var(--rule)] bg-paper shadow-2xl md:bottom-24 md:h-[min(70vh,520px)]"
           >
             <div className="border-b border-[var(--rule)] bg-blue px-4 py-3">
               <div className="flex items-center justify-between">
