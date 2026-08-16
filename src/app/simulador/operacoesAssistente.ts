@@ -6,6 +6,7 @@ import {
   responderAssistente,
   finalizarComResultado,
   type MensagemChat,
+  type ModoAssistente,
   type ResultadoAcao,
 } from "@/lib/assistenteIA";
 import { comprar, vender, criarOrdemMercadoAbertura } from "./operacoes";
@@ -17,6 +18,7 @@ export type ResultadoChat =
 export async function perguntarAssistente(
   pergunta: string,
   historico: MensagemChat[],
+  modo: ModoAssistente = "padrao",
 ): Promise<ResultadoChat> {
   const supabase = await criarClienteServidor();
 
@@ -48,12 +50,17 @@ export async function perguntarAssistente(
   const patrimonio = Number(patrimonioData ?? saldo);
 
   try {
-    const primeiraResposta = await responderAssistente(pergunta, historico, {
-      apelido: perfilRes.data?.apelido ?? "investidor",
-      saldo,
-      patrimonio,
-      posicoes,
-    });
+    const primeiraResposta = await responderAssistente(
+      pergunta,
+      historico,
+      {
+        apelido: perfilRes.data?.apelido ?? "investidor",
+        saldo,
+        patrimonio,
+        posicoes,
+      },
+      modo,
+    );
 
     if (primeiraResposta.acoesPedidas.length === 0) {
       return { ok: true, resposta: primeiraResposta.texto, restantes: reserva?.restantes ?? 0, executouAcao: false };
