@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import { RegistrarServiceWorker } from "@/components/RegistrarServiceWorker";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -56,6 +57,18 @@ export const metadata: Metadata = {
     description: DESCRICAO,
   },
   robots: { index: true, follow: true },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Vestra",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f2d44",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -72,6 +85,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <SmoothScroll />
         <ScrollProgress />
+        <RegistrarServiceWorker />
         {children}
       </body>
     </html>
