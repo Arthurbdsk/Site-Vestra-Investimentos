@@ -131,7 +131,14 @@ export function ModalOrdem({
 
           {estado.fase === "feito" ? (
             <div className="py-4 text-center">
-              <CheckCircle2 size={44} className="mx-auto text-emerald-600" />
+              <motion.div
+                initial={{ scale: 0.4, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 340, damping: 14 }}
+                className="mx-auto flex h-16 w-16 items-center justify-center"
+              >
+                <CheckCircle2 size={44} className="text-emerald-600" />
+              </motion.div>
               <p className="mt-5 font-display text-2xl text-ink">Tudo certo!</p>
               <p className="mt-2 leading-relaxed text-ink-muted">{estado.mensagem}</p>
               <button
@@ -325,8 +332,9 @@ export function ModalOrdem({
                 </p>
               )}
 
-              <button
+              <motion.button
                 onClick={enviar}
+                whileTap={{ scale: 0.97 }}
                 disabled={
                   estado.fase === "enviando" ||
                   passaDoLimite ||
@@ -348,7 +356,7 @@ export function ModalOrdem({
                 ) : (
                   `Confirmar ${comprando ? "compra" : "venda"} de ${brl(custo)}`
                 )}
-              </button>
+              </motion.button>
 
               <p className="mt-3 text-center font-mono text-[11px] text-ink-muted">
                 Dinheiro fictício. Nada disso mexe na sua conta de verdade.

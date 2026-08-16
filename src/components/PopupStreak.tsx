@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Flame } from "lucide-react";
+import { Confete } from "./Confete";
 
 export function PopupStreak({ dias }: { dias: number }) {
   const [aberto, setAberto] = useState(dias > 1);
@@ -24,8 +25,10 @@ export function PopupStreak({ dias }: { dias: number }) {
           exit={{ y: 20, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-sm bg-paper p-8 text-center shadow-2xl"
+          className="relative w-full max-w-sm overflow-hidden bg-paper p-8 text-center shadow-2xl"
         >
+          {dias >= 3 && <Confete quantidade={dias >= 7 ? 32 : 18} />}
+
           <button
             onClick={() => setAberto(false)}
             aria-label="Fechar"

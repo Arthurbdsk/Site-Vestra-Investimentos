@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -17,6 +17,7 @@ import { LogoAcao } from "./LogoAcao";
 import { RankingPainel, type RankingLinha, type RankingMensalLinha } from "./RankingPainel";
 import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
+import { PopupDesbloqueio } from "./PopupDesbloqueio";
 import { PopupPerfilInvestidor } from "./PopupPerfilInvestidor";
 import { ConquistasFaixa } from "./ConquistasFaixa";
 import { CartaoCompartilhavel } from "./CartaoCompartilhavel";
@@ -33,6 +34,7 @@ import { MaioresVariacoes } from "./MaioresVariacoes";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
 import { calcularNivel } from "@/lib/nivelInvestidor";
+import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import { ACOES_USA } from "@/lib/acoesUsa";
@@ -155,7 +157,8 @@ export function PainelSimulador({
     diasSeguidos,
     patrimonio,
   });
-  const nivel = calcularNivel(conquistas.filter((c) => c.concluida).length);
+  const conquistasConcluidas = conquistas.filter((c) => c.concluida).length;
+  const nivel = calcularNivel(conquistasConcluidas);
 
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "carteira", label: "Minha carteira", icone: Wallet },
@@ -170,6 +173,19 @@ export function PainelSimulador({
     { id: "agente", label: "Agente IA", icone: Bot },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
+
+  // Quem ja usou a funcao antes (ja tem divida, ja configurou o agente, ja
+  // tem duelos) nunca perde o acesso so por causa do nivel exigido.
+  const JA_USADA: Partial<Record<Aba, boolean>> = {
+    duelo: duelos.length > 0,
+    emprestimo: (emprestimo?.divida ?? 0) > 0,
+    agente: agente.existe,
+  };
+  function abaDesbloqueada(id: Aba) {
+    const minimo = nivelMinimoDaAba(id);
+    if (minimo === undefined) return true;
+    return conquistasConcluidas >= minimo || Boolean(JA_USADA[id]);
+  }
 
   return (
     <>
@@ -275,24 +291,30 @@ export function PainelSimulador({
       {/* Abas: barra horizontal so no celular, sidebar a partir do md */}
       <div className="sticky top-[57px] z-30 border-b border-[var(--rule)] bg-paper/95 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6">
-          {abas.map(({ id, label, icone: Icone }) => (
-            <button
-              key={id}
-              onClick={() => setAba(id)}
-              className="relative flex shrink-0 items-center gap-2 px-4 py-4 text-sm font-medium transition-colors"
-              style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
-            >
-              <Icone size={16} />
-              {label}
-              {aba === id && (
-                <motion.span
-                  layoutId="aba-ativa-mobile"
-                  className="absolute inset-x-0 bottom-0 h-[3px] bg-gold"
-                  transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                />
-              )}
-            </button>
-          ))}
+          {abas.map(({ id, label, icone: Icone }) => {
+            const desbloqueada = abaDesbloqueada(id);
+            return (
+              <motion.button
+                key={id}
+                onClick={() => desbloqueada && setAba(id)}
+                disabled={!desbloqueada}
+                title={desbloqueada ? undefined : `Desbloqueia com ${nivelMinimoDaAba(id)} conquistas (você tem ${conquistasConcluidas})`}
+                whileTap={desbloqueada ? { scale: 0.94 } : undefined}
+                className="relative flex shrink-0 items-center gap-2 px-4 py-4 text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+              >
+                {desbloqueada ? <Icone size={16} /> : <Lock size={16} />}
+                {label}
+                {aba === id && (
+                  <motion.span
+                    layoutId="aba-ativa-mobile"
+                    className="absolute inset-x-0 bottom-0 h-[3px] bg-gold"
+                    transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
@@ -300,24 +322,30 @@ export function PainelSimulador({
         <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
           <aside className="hidden w-56 shrink-0 md:block">
             <nav className="sticky top-[76px] space-y-0.5">
-              {abas.map(({ id, label, icone: Icone }) => (
-                <button
-                  key={id}
-                  onClick={() => setAba(id)}
-                  className="relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors"
-                  style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
-                >
-                  {aba === id && (
-                    <motion.span
-                      layoutId="aba-ativa-sidebar"
-                      className="absolute inset-y-0.5 left-0 w-[3px] bg-gold"
-                      transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                    />
-                  )}
-                  <Icone size={16} className="shrink-0" />
-                  <span className="leading-snug">{label}</span>
-                </button>
-              ))}
+              {abas.map(({ id, label, icone: Icone }) => {
+                const desbloqueada = abaDesbloqueada(id);
+                return (
+                  <motion.button
+                    key={id}
+                    onClick={() => desbloqueada && setAba(id)}
+                    disabled={!desbloqueada}
+                    title={desbloqueada ? undefined : `Desbloqueia com ${nivelMinimoDaAba(id)} conquistas (você tem ${conquistasConcluidas})`}
+                    whileTap={desbloqueada ? { scale: 0.97 } : undefined}
+                    className="relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:opacity-40"
+                    style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+                  >
+                    {aba === id && (
+                      <motion.span
+                        layoutId="aba-ativa-sidebar"
+                        className="absolute inset-y-0.5 left-0 w-[3px] bg-gold"
+                        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                      />
+                    )}
+                    {desbloqueada ? <Icone size={16} className="shrink-0" /> : <Lock size={16} className="shrink-0" />}
+                    <span className="leading-snug">{label}</span>
+                  </motion.button>
+                );
+              })}
             </nav>
           </aside>
 
@@ -447,6 +475,8 @@ export function PainelSimulador({
       )}
 
       <TourBoasVindas mostrar={posicoes.length === 0 && transacoes.length === 0} />
+
+      <PopupDesbloqueio conquistasConcluidas={conquistasConcluidas} />
 
       <AssistenteChat />
     </>

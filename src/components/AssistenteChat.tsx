@@ -143,14 +143,15 @@ export function AssistenteChat() {
                 placeholder="Digite sua pergunta"
                 className="flex-1 border border-[var(--rule)] bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-blue"
               />
-              <button
+              <motion.button
                 onClick={enviar}
+                whileTap={{ scale: 0.9 }}
                 disabled={enviando || !entrada.trim()}
                 aria-label="Enviar"
                 className="flex h-9 w-9 shrink-0 items-center justify-center bg-blue text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
               >
                 <Send size={15} />
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         )}
