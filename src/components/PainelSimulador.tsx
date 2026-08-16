@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -33,6 +33,9 @@ import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
+import { BarraApp, type DestinoApp } from "./app/BarraApp";
+import { Inicio, type PontoPatrimonio } from "./app/Inicio";
+import { Onboarding } from "./app/Onboarding";
 import { calcularNivel } from "@/lib/nivelInvestidor";
 import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
@@ -72,7 +75,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
+type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -95,6 +98,9 @@ export function PainelSimulador({
   agente,
   decisoesAgente,
   emprestimo,
+  historico = [],
+  saudacao = "Bem-vindo de volta",
+  mostrarOnboarding = false,
 }: {
   apelido: string;
   saldo: number;
@@ -116,8 +122,15 @@ export function PainelSimulador({
   agente: Agente;
   decisoesAgente: DecisaoAgente[];
   emprestimo: EstadoEmprestimo | null;
+  historico?: PontoPatrimonio[];
+  saudacao?: string;
+  mostrarOnboarding?: boolean;
 }) {
-  const [aba, setAba] = useState<Aba>(posicoes.length ? "carteira" : "explorar");
+  // O aplicativo abre no Inicio, que e o painel de visao geral. Antes abria
+  // direto na carteira (ou no explorar, se vazia), o que jogava a pessoa no
+  // meio da ferramenta sem ela ver onde estava.
+  const [aba, setAba] = useState<Aba>("inicio");
+  const router = useRouter();
   const [ordem, setOrdem] = useState<OrdemAberta | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [mostrarCartao, setMostrarCartao] = useState(false);
@@ -160,7 +173,23 @@ export function PainelSimulador({
   const conquistasConcluidas = conquistas.filter((c) => c.concluida).length;
   const nivel = calcularNivel(conquistasConcluidas);
 
+  // Melhor posicao aberta por retorno percentual. Usamos posicao (e nao
+  // "melhor operacao") porque o lucro real de cada venda nao fica gravado
+  // por transacao; anunciar isso como operacao seria um numero inventado.
+  const melhorPosicao = posicoes.reduce<{ ticker: string; retornoPct: number } | null>(
+    (melhor, p) => {
+      const cotacao = precoDe(p.ticker);
+      if (!cotacao || p.preco_medio <= 0) return melhor;
+      const retornoPct = ((cotacao.preco - p.preco_medio) / p.preco_medio) * 100;
+      return !melhor || retornoPct > melhor.retornoPct
+        ? { ticker: p.ticker, retornoPct }
+        : melhor;
+    },
+    null,
+  );
+
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
+    { id: "inicio", label: "Início", icone: Home },
     { id: "carteira", label: "Minha carteira", icone: Wallet },
     { id: "explorar", label: "Explorar ações", icone: Search },
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
@@ -185,6 +214,20 @@ export function PainelSimulador({
     const minimo = nivelMinimoDaAba(id);
     if (minimo === undefined) return true;
     return conquistasConcluidas >= minimo || Boolean(JA_USADA[id]);
+  }
+
+  const PRIMARIAS: Aba[] = ["inicio", "carteira", "explorar"];
+  const abasSecundarias = abas.filter((a) => !PRIMARIAS.includes(a.id));
+
+  /** A barra inferior leva pros quatro destinos principais. "Perfil" mora
+   * numa pagina propria, entao esse e o unico que troca de rota. */
+  function navegarApp(destino: DestinoApp) {
+    if (destino === "perfil") {
+      router.push("/conta");
+      return;
+    }
+    setAba(destino);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -288,10 +331,13 @@ export function PainelSimulador({
         </div>
       </section>
 
-      {/* Abas: barra horizontal so no celular, sidebar a partir do md */}
+      {/* No celular, os quatro destinos principais vivem na barra inferior;
+          esta tira horizontal fica so com o que e secundario, pra ela nao
+          competir com a barra e nao repetir os mesmos botoes duas vezes.
+          No desktop nada disso aparece: la a navegacao e a coluna lateral. */}
       <div className="sticky top-[57px] z-30 border-b border-[var(--rule)] bg-paper/95 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6">
-          {abas.map(({ id, label, icone: Icone }) => {
+          {abasSecundarias.map(({ id, label, icone: Icone }) => {
             const desbloqueada = abaDesbloqueada(id);
             return (
               <motion.button
@@ -318,7 +364,8 @@ export function PainelSimulador({
         </div>
       </div>
 
-      <main className="grain relative min-h-[50vh] flex-1 bg-paper">
+      {/* pb no celular pra barra inferior nao cobrir o fim do conteudo */}
+      <main className="grain relative min-h-[50vh] flex-1 bg-paper pb-24 md:pb-0">
         <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
           <aside className="hidden w-56 shrink-0 md:block">
             <nav className="sticky top-[76px] space-y-0.5">
@@ -358,6 +405,21 @@ export function PainelSimulador({
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
+              {aba === "inicio" && (
+                <Inicio
+                  apelido={apelido}
+                  saudacao={saudacao}
+                  saldo={saldo}
+                  investido={investido}
+                  lucro={lucro}
+                  lucroPct={lucroPct}
+                  patrimonio={patrimonio}
+                  historico={historico}
+                  melhorPosicao={melhorPosicao}
+                  aoExplorar={() => setAba("explorar")}
+                />
+              )}
+
               {aba === "carteira" && (
                 <>
                 <ConquistasFaixa conquistas={conquistas} />
@@ -468,13 +530,28 @@ export function PainelSimulador({
         }}
       />
 
-      {!perfilInvestidorDefinido ? (
+      <BarraApp
+        ativo={aba}
+        aoNavegar={navegarApp}
+        aoOperar={() => setAba("explorar")}
+      />
+
+      {/* O onboarding vem antes de tudo: quem chega pela primeira vez ve as
+          boas-vindas, e so depois o quiz de perfil. Empilhar as duas coisas
+          na mesma visita seria receber alguem com dois questionarios. */}
+      {mostrarOnboarding ? (
+        <Onboarding />
+      ) : !perfilInvestidorDefinido ? (
         <PopupPerfilInvestidor mostrar />
       ) : (
         novoDia && <PopupStreak dias={diasSeguidos} />
       )}
 
-      <TourBoasVindas mostrar={posicoes.length === 0 && transacoes.length === 0} />
+      {!mostrarOnboarding && (
+        <TourBoasVindas
+          mostrar={posicoes.length === 0 && transacoes.length === 0}
+        />
+      )}
 
       <PopupDesbloqueio conquistasConcluidas={conquistasConcluidas} />
 

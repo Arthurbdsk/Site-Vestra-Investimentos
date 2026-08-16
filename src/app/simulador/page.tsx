@@ -15,6 +15,7 @@ import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
 import type { Agente, DecisaoAgente } from "@/components/AgentePainel";
 import type { EstadoEmprestimo } from "./operacoesEmprestimo";
+import type { PontoPatrimonio } from "@/components/app/Inicio";
 import type { Cotacao } from "@/lib/cotacoes";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
@@ -69,6 +70,8 @@ export default async function SimuladorPage() {
     alertasRes,
     acessoRes,
     emprestimoRes,
+    onboardingRes,
+    historicoRes,
   ] = await Promise.all([
     supabase
       .from("perfis")
@@ -105,6 +108,18 @@ export default async function SimuladorPage() {
       .order("criado_em", { ascending: false }),
     supabase.rpc("registrar_acesso"),
     supabase.rpc("obter_emprestimo"),
+    // As duas consultas abaixo dependem de coluna e tabela novas. Ficam
+    // separadas do select de perfis de proposito: se a migracao ainda nao
+    // rodou, so elas falham, e o resto da pagina continua de pe.
+    supabase
+      .from("perfis")
+      .select("onboarding_visto_em")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("patrimonio_historico")
+      .select("dia, valor")
+      .order("dia", { ascending: true }),
   ]);
 
   const [agenteRes, decisoesAgenteRes] = await Promise.all([
@@ -133,6 +148,16 @@ export default async function SimuladorPage() {
       await processarPendencias(user.id);
     } catch {
       // Falhar aqui nao pode atrapalhar quem ja recebeu a pagina.
+    }
+
+    // Marca o patrimonio do dia, que e o que alimenta o grafico de
+    // evolucao. Fica no after junto com o resto: e escrita, ninguem
+    // espera por ela, e enquanto a migracao nao rodou isso so falha
+    // em silencio e o grafico segue mostrando o estado vazio.
+    try {
+      await supabase.rpc("registrar_patrimonio_hoje");
+    } catch {
+      // idem
     }
   });
 
@@ -252,6 +277,31 @@ export default async function SimuladorPage() {
   const avisoCotacoes =
     cotacoes.length === 0 ? "Estamos buscando os preços da B3. Atualize em instantes." : null;
 
+  // Falha fechada de proposito: enquanto a coluna nao existir, a consulta
+  // devolve erro e ninguem ve o onboarding. Errar pra "nao mostrar" e bem
+  // melhor do que errar pra "mostrar em toda visita", que foi exatamente o
+  // problema que o quiz de perfil teve.
+  const mostrarOnboarding =
+    !onboardingRes.error && onboardingRes.data?.onboarding_visto_em == null;
+
+  const historico: PontoPatrimonio[] = (historicoRes.data ?? []).map((p) => ({
+    data: p.dia,
+    valor: Number(p.valor),
+  }));
+
+  // Decidida aqui, e nao no navegador, pra servidor e cliente nunca
+  // escreverem saudacoes diferentes. O fuso e fixado em Sao Paulo porque
+  // e o horario do publico, independente de onde a maquina esteja.
+  const horaSp = Number(
+    new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      hour12: false,
+    }).format(new Date()),
+  );
+  const saudacao =
+    horaSp < 12 ? "Bom dia" : horaSp < 18 ? "Boa tarde" : "Boa noite";
+
   return (
     <>
       <Header logado />
@@ -276,6 +326,9 @@ export default async function SimuladorPage() {
         agente={agente}
         decisoesAgente={decisoesAgente}
         emprestimo={emprestimo}
+        historico={historico}
+        saudacao={saudacao}
+        mostrarOnboarding={mostrarOnboarding}
       />
       <Footer />
     </>

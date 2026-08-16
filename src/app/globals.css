@@ -194,6 +194,24 @@ html.lenis body {
   text-wrap: balance;
 }
 
+/* Traco do grafico de evolucao, desenhado da esquerda pra direita.
+   Fica no CSS porque animar geometria de SVG por componente do framer ja
+   quebrou grafico neste projeto (atributo virava "undefined"). O bloco
+   global de prefers-reduced-motion la embaixo ja neutraliza isso. */
+@keyframes desenhar-traco {
+  from {
+    stroke-dashoffset: 3000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.traco-evolucao {
+  stroke-dasharray: 3000;
+  animation: desenhar-traco 0.9s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
