@@ -1,10 +1,11 @@
 -- Vestra, etapa 1 do aplicativo.
 --
--- Cria o que a estrutura nova precisa: memoria do onboarding e a marcacao
--- diaria de patrimonio que alimenta o grafico de evolucao da tela Inicio.
+-- JA APLICADO no projeto (migracoes app_onboarding_e_patrimonio_historico
+-- e patrimonio_hoje_inclui_renda_fixa_e_divida). Este arquivo fica como
+-- registro do que foi rodado.
 --
--- Rode no SQL Editor do Supabase. Pode rodar mais de uma vez sem estragar
--- nada (tudo e "if not exists" ou "create or replace").
+-- Cria a memoria do onboarding e a marcacao diaria de patrimonio que
+-- alimenta o grafico de evolucao da tela Inicio.
 
 -- ------------------------------------------------------------------
 -- 1. Onboarding: quem ja viu, e o nivel declarado
@@ -16,7 +17,6 @@ alter table public.perfis
 alter table public.perfis
   add column if not exists nivel_experiencia text;
 
--- Restringe os valores aceitos, mas so cria a regra se ela ainda nao existe.
 do $$
 begin
   if not exists (
@@ -29,9 +29,8 @@ begin
   end if;
 end $$;
 
--- A pessoa precisa LER as colunas novas (a pagina decide se mostra o
--- onboarding a partir delas), mas nao pode ESCREVER: quem grava e a
--- funcao abaixo, que valida o valor antes.
+-- A pessoa LE as colunas novas (a pagina decide o onboarding a partir
+-- delas), mas nao ESCREVE: quem grava e a funcao abaixo, que valida antes.
 grant select (onboarding_visto_em, nivel_experiencia)
   on public.perfis to authenticated, anon;
 
@@ -50,8 +49,7 @@ begin
     raise exception 'Nivel de experiencia invalido.';
   end if;
 
-  -- coalesce pra nao reescrever a data toda vez que a pessoa refizer:
-  -- interessa quando ela viu pela PRIMEIRA vez.
+  -- coalesce pra guardar quando viu pela PRIMEIRA vez, mesmo se refizer.
   update public.perfis
      set nivel_experiencia = p_nivel,
          onboarding_visto_em = coalesce(onboarding_visto_em, now())
@@ -96,73 +94,69 @@ create policy "cada um le o proprio historico"
   for select
   using (auth.uid() = usuario_id);
 
--- So leitura. Ninguem escreve historico pela API: quem grava e a funcao
--- security definer logo abaixo, que calcula o valor dentro do banco.
--- Se o navegador pudesse mandar o numero, daria pra forjar patrimonio e
--- subir no ranking sem operar, que foi a brecha que fechamos no comprar.
+-- So leitura pela API. Se o navegador pudesse escrever o numero, daria pra
+-- forjar patrimonio e subir no ranking sem operar, a mesma brecha que
+-- fechamos no comprar/vender.
 grant select on public.patrimonio_historico to authenticated, anon;
 
--- O nome da coluna de dono em public.posicoes e descoberto aqui em vez de
--- chutado, e a migracao para com mensagem clara se nao achar.
-do $$
+-- O valor gravado tem que ser exatamente o mesmo que a tela mostra em
+-- "Patrimonio virtual". Faltando a renda fixa e a divida, o grafico
+-- plotava uma curva que nao batia com o titulo logo acima dele (num caso
+-- real do banco a diferenca passava de 71 mil).
+create or replace function public.registrar_patrimonio_hoje()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
 declare
-  v_col text;
+  v_id    uuid := auth.uid();
+  v_total numeric(14, 2);
 begin
-  select column_name
-    into v_col
-    from information_schema.columns
-   where table_schema = 'public'
-     and table_name = 'posicoes'
-     and column_name in ('usuario_id', 'user_id', 'perfil_id', 'id_usuario')
-   order by array_position(
-     array['usuario_id', 'user_id', 'perfil_id', 'id_usuario'], column_name)
-   limit 1;
-
-  if v_col is null then
-    raise exception
-      'Nao encontrei a coluna de dono em public.posicoes. Me diga o nome dela.';
+  if v_id is null then
+    return;
   end if;
 
-  execute format($f$
-    create or replace function public.registrar_patrimonio_hoje()
-    returns void
-    language plpgsql
-    security definer
-    set search_path = public
-    as $corpo$
-    declare
-      v_id    uuid := auth.uid();
-      v_total numeric(14, 2);
-    begin
-      if v_id is null then
-        return;
-      end if;
+  select coalesce(p.saldo, 0)
+       -- Acoes a preco de mercado. Sem cotacao em cache, usa o preco
+       -- medio: melhor registrar o custo do que zerar a posicao e
+       -- desenhar uma queda que nao aconteceu.
+       + coalesce((
+           select sum(pos.quantidade * coalesce(c.preco, pos.preco_medio))
+             from public.posicoes pos
+             left join public.cotacoes c on c.ticker = pos.ticker
+            where pos.usuario_id = v_id
+         ), 0)
+       -- Renda fixa rendendo desde a aplicacao, mesma formula do painel.
+       + coalesce((
+           select sum(
+                    rf.valor_investido
+                    * power(1 + rf.taxa_anual,
+                            greatest(0, current_date - rf.data_aplicacao::date) / 365.0)
+                  )
+             from public.investimentos_rf rf
+            where rf.usuario_id = v_id
+              and rf.resgatado = false
+         ), 0)
+       -- Divida entra negativa: patrimonio e o que sobra depois de pagar.
+       - coalesce((
+           select e.saldo_devedor
+             from public.emprestimos e
+            where e.usuario_id = v_id
+         ), 0)
+    into v_total
+    from public.perfis p
+   where p.id = v_id;
 
-      -- Saldo em dinheiro mais o valor de mercado das posicoes. Onde nao
-      -- houver cotacao em cache, usa o preco medio: melhor registrar o
-      -- custo do que zerar a posicao e desenhar uma queda que nao houve.
-      select coalesce(p.saldo, 0)
-           + coalesce((
-               select sum(pos.quantidade * coalesce(c.preco, pos.preco_medio))
-                 from public.posicoes pos
-                 left join public.cotacoes c on c.ticker = pos.ticker
-                where pos.%I = v_id
-             ), 0)
-        into v_total
-        from public.perfis p
-       where p.id = v_id;
+  if v_total is null then
+    return;
+  end if;
 
-      if v_total is null then
-        return;
-      end if;
-
-      -- Um registro por dia, no fuso de Sao Paulo. Reentrar no mesmo dia
-      -- so atualiza o valor, nao cria linha nova.
-      insert into public.patrimonio_historico (usuario_id, dia, valor)
-      values (v_id, (now() at time zone 'America/Sao_Paulo')::date, v_total)
-      on conflict (usuario_id, dia) do update set valor = excluded.valor;
-    end $corpo$;
-  $f$, v_col);
+  -- Um registro por dia, no fuso de Sao Paulo. Reentrar no mesmo dia so
+  -- atualiza o valor, nao cria linha nova.
+  insert into public.patrimonio_historico (usuario_id, dia, valor)
+  values (v_id, (now() at time zone 'America/Sao_Paulo')::date, v_total)
+  on conflict (usuario_id, dia) do update set valor = excluded.valor;
 end $$;
 
 grant execute on function public.registrar_patrimonio_hoje() to authenticated, anon;
