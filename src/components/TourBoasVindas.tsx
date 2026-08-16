@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Wallet, Search, Trophy, ArrowRight } from "lucide-react";
+import { X, Wallet, Globe2, Landmark, HandCoins, Bot, BookOpen, Trophy, ArrowRight, ArrowLeft } from "lucide-react";
 
 const SLIDES = [
   {
@@ -11,9 +11,29 @@ const SLIDES = [
     texto: "Você começa com R$ 100.000 fictícios. Nada aqui é dinheiro de verdade, é o seu campo de treino.",
   },
   {
-    icone: Search,
-    titulo: "Ações reais da B3",
-    texto: "Os preços são reais, ao vivo. Explore empresas conhecidas com explicação em português antes de comprar.",
+    icone: Globe2,
+    titulo: "Ações reais, da B3 e dos EUA",
+    texto: "Os preços são reais, ao vivo. Explore empresas da bolsa brasileira e da NYSE/NASDAQ com explicação em português antes de comprar.",
+  },
+  {
+    icone: Landmark,
+    titulo: "Renda fixa: CDB e Tesouro Direto",
+    texto: "Prefere não arriscar tanto? Aplique num CDB ou Tesouro simulado e veja o rendimento se acumular sozinho.",
+  },
+  {
+    icone: HandCoins,
+    titulo: "Empréstimo com juros da Selic",
+    texto: "Quer investir mais do que tem no caixa? Pegue emprestado (com juros reais da Selic) e pratique alavancagem sem risco de verdade.",
+  },
+  {
+    icone: Bot,
+    titulo: "Assistente e agente de IA",
+    texto: "Converse com o assistente pra tirar dúvidas ou pedir uma compra/venda, ou deixe um agente automático operar sozinho seguindo as regras que você definir.",
+  },
+  {
+    icone: BookOpen,
+    titulo: "Aprenda enquanto pratica",
+    texto: "Artigos curtos, um teste de perfil de investidor e um planejador de metas te ajudam a entender o porquê de cada decisão.",
   },
   {
     icone: Trophy,
@@ -41,6 +61,7 @@ export function TourBoasVindas({ mostrar }: { mostrar: boolean }) {
 
   if (!aberto) return null;
 
+  const primeiro = passo === 0;
   const ultimo = passo === SLIDES.length - 1;
   const Slide = SLIDES[passo];
 
@@ -87,22 +108,44 @@ export function TourBoasVindas({ mostrar }: { mostrar: boolean }) {
 
           <div className="mt-6 flex justify-center gap-1.5">
             {SLIDES.map((_, i) => (
-              <span
+              <button
                 key={i}
+                onClick={() => setPasso(i)}
+                aria-label={`Ir pro passo ${i + 1}`}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === passo ? "w-5 bg-blue" : "w-1.5 bg-[var(--rule)]"
+                  i === passo ? "w-5 bg-blue" : "w-1.5 bg-[var(--rule)] hover:bg-blue/50"
                 }`}
               />
             ))}
           </div>
 
-          <button
-            onClick={() => (ultimo ? fechar() : setPasso((p) => p + 1))}
-            className="mt-6 flex w-full items-center justify-center gap-2 bg-blue px-6 py-3 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep"
-          >
-            {ultimo ? "Começar" : "Próximo"}
-            <ArrowRight size={15} />
-          </button>
+          <div className="mt-6 flex gap-2">
+            {!primeiro && (
+              <button
+                onClick={() => setPasso((p) => p - 1)}
+                aria-label="Voltar"
+                className="flex items-center justify-center border border-[var(--rule)] px-4 py-3 text-ink-muted transition-colors hover:border-blue hover:text-blue"
+              >
+                <ArrowLeft size={15} />
+              </button>
+            )}
+            <button
+              onClick={() => (ultimo ? fechar() : setPasso((p) => p + 1))}
+              className="flex flex-1 items-center justify-center gap-2 bg-blue px-6 py-3 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep"
+            >
+              {ultimo ? "Começar" : "Próximo"}
+              <ArrowRight size={15} />
+            </button>
+          </div>
+
+          {!ultimo && (
+            <button
+              onClick={fechar}
+              className="mt-4 font-mono text-[11px] uppercase tracking-widest text-ink-muted hover:text-ink"
+            >
+              Pular tutorial
+            </button>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
