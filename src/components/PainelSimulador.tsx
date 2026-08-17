@@ -883,6 +883,17 @@ function Explorar({
       .catch(() => setAcoesUsa([]));
   }, [mercado, acoesUsa]);
 
+  // FIIs nao aparecem na busca geral da B3 (a brapi filtra so "stock"),
+  // entao os precos vem direto da cache (cotacoes), igual as acoes dos EUA.
+  const [acoesFii, setAcoesFii] = useState<AcaoB3[] | null>(null);
+  useEffect(() => {
+    if (mercado !== "fii" || acoesFii) return;
+    fetch("/api/fiis")
+      .then((r) => r.json())
+      .then((json) => setAcoesFii(json.acoes ?? []))
+      .catch(() => setAcoesFii([]));
+  }, [mercado, acoesFii]);
+
   useEffect(() => {
     const id = setTimeout(() => setBuscaUsaAtrasada(buscaUsa.trim()), 400);
     return () => clearTimeout(id);
@@ -960,8 +971,8 @@ function Explorar({
   const populareTickers = new Set(populares.map((a) => a.ticker));
   const restoB3 = b3.filter((a) => !populareTickers.has(a.ticker));
 
-  // FIIs sao tickers da B3 (terminam em 11), entao reaproveitam a mesma
-  // busca acima, so filtrada. Sem chamada de API separada.
+  // FIIs nao aparecem na busca geral da B3 (a brapi so lista "stock"),
+  // entao e so a lista curada, filtrada localmente pelo termo buscado.
   const popularesFii = FIIS.filter((f) => {
     if (!t) return true;
     return (
@@ -970,8 +981,6 @@ function Explorar({
       f.tipo.toLowerCase().includes(t)
     );
   }).map((f) => ({ ticker: f.ticker, nome: f.nome, setor: f.tipo, explica: f.explica }));
-  const popularesFiiTickers = new Set(popularesFii.map((f) => f.ticker));
-  const restoFii = b3.filter((a) => a.ticker.endsWith("11") && !popularesFiiTickers.has(a.ticker));
 
   return (
     <div>
@@ -1023,47 +1032,40 @@ function Explorar({
             className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
           />
 
-          {popularesFii.length > 0 && (
+          {acoesFii === null ? (
+            <div className="mt-6 flex items-center gap-2 text-ink-muted">
+              <Loader2 size={16} className="animate-spin" />
+              Carregando FIIs…
+            </div>
+          ) : popularesFii.length > 0 ? (
             <>
               <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
                 Populares
               </p>
               <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                {popularesFii.map((a, i) => (
-                  <CartaoAcaoPopular
-                    key={a.ticker}
-                    acao={a}
-                    delay={Math.min(i * 0.04, 0.4)}
-                    favorito={favoritos.has(a.ticker)}
-                    aoComprar={aoComprar}
-                    aoVerDetalhe={aoVerDetalhe}
-                  />
-                ))}
+                {popularesFii.map((a, i) => {
+                  const dado = acoesFii?.find((x) => x.ticker === a.ticker);
+                  return (
+                    <CartaoAcaoPopular
+                      key={a.ticker}
+                      acao={a}
+                      delay={Math.min(i * 0.04, 0.4)}
+                      favorito={favoritos.has(a.ticker)}
+                      dadosPre={{
+                        preco: dado?.preco ?? null,
+                        variacao: dado?.variacao ?? null,
+                        logo: dado?.logo ?? null,
+                      }}
+                      aoComprar={aoComprar}
+                      aoVerDetalhe={aoVerDetalhe}
+                    />
+                  );
+                })}
               </ul>
             </>
-          )}
+          ) : null}
 
-          {restoFii.length > 0 && (
-            <>
-              <p className="mt-10 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                {t ? "Outros resultados" : "Mais FIIs"}
-              </p>
-              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                {restoFii.map((a, i) => (
-                  <CartaoAcaoB3
-                    key={a.ticker}
-                    acao={a}
-                    delay={Math.min(i * 0.04, 0.4)}
-                    favorito={favoritos.has(a.ticker)}
-                    aoComprar={aoComprar}
-                    aoVerDetalhe={aoVerDetalhe}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
-
-          {!carregando && popularesFii.length === 0 && restoFii.length === 0 && (
+          {acoesFii !== null && popularesFii.length === 0 && (
             <p className="mt-8 text-ink-muted">
               Nenhum FII encontrado com esse termo.
             </p>

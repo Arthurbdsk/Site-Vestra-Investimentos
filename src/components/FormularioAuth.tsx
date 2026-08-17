@@ -143,29 +143,7 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
         <ErroDaUrl />
       </Suspense>
 
-      {modo === "cadastro" && (
-        <label className="mt-8 flex items-start gap-2.5 text-sm text-ink-muted">
-          <input
-            type="checkbox"
-            checked={aceitouTermos}
-            onChange={(e) => setAceitouTermos(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-blue"
-          />
-          <span>
-            Li e aceito os{" "}
-            <Link href="/termos" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
-              Termos de Uso
-            </Link>{" "}
-            e a{" "}
-            <Link href="/privacidade" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
-              Política de Privacidade
-            </Link>
-            .
-          </span>
-        </label>
-      )}
-
-      <div className={modo === "cadastro" ? "mt-6" : "mt-8"}>
+      <div className="mt-8">
         <BotaoGoogle desabilitado={precisaAceitarTermos} />
       </div>
 
@@ -251,6 +229,28 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
             </motion.p>
           )}
         </AnimatePresence>
+
+        {modo === "cadastro" && (
+          <label className="flex items-start gap-2.5 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={aceitouTermos}
+              onChange={(e) => setAceitouTermos(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-blue"
+            />
+            <span>
+              Li e aceito os{" "}
+              <Link href="/termos" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
+                Termos de Uso
+              </Link>{" "}
+              e a{" "}
+              <Link href="/privacidade" target="_blank" className="text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue">
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+        )}
 
         <button
           type="submit"
