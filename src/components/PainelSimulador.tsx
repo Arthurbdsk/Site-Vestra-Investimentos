@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, Sparkles } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -33,7 +33,6 @@ import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
-import { NotasAtualizacao } from "./NotasAtualizacao";
 import { BarraApp, type DestinoApp } from "./app/BarraApp";
 import { Inicio, type PontoPatrimonio } from "./app/Inicio";
 import { Onboarding } from "./app/Onboarding";
@@ -85,7 +84,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico" | "novidades";
+type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -211,7 +210,6 @@ export function PainelSimulador({
     { id: "duelo", label: "Duelo", icone: Swords },
     { id: "agente", label: "Agente IA", icone: Bot },
     { id: "historico", label: "Histórico", icone: Clock },
-    { id: "novidades", label: "Novidades", icone: Sparkles },
   ];
 
   // Quem ja usou a funcao antes (ja tem divida, ja configurou o agente, ja
@@ -523,8 +521,6 @@ export function PainelSimulador({
               {aba === "agente" && <AgentePainel agente={agente} decisoes={decisoesAgente} />}
 
               {aba === "historico" && <Historico transacoes={transacoes} />}
-
-              {aba === "novidades" && <NotasAtualizacao />}
             </motion.div>
           </AnimatePresence>
           </div>
