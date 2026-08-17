@@ -241,6 +241,9 @@ insert into public.ativos_permitidos (ticker, mercado) values
   ('PETR4', 'br'), ('VALE3', 'br'), ('ITUB4', 'br'), ('BBDC4', 'br'), ('BBAS3', 'br'), ('ABEV3', 'br'),
   ('WEGE3', 'br'), ('MGLU3', 'br'), ('B3SA3', 'br'), ('RENT3', 'br'), ('SUZB3', 'br'), ('RAIL3', 'br'),
   ('PRIO3', 'br'), ('EQTL3', 'br'), ('RADL3', 'br'), ('LREN3', 'br'),
+  -- FIIs (Fundos Imobiliarios): tickers da B3 tambem, terminados em 11.
+  ('HGLG11', 'br'), ('MXRF11', 'br'), ('KNRI11', 'br'), ('XPML11', 'br'), ('VISC11', 'br'),
+  ('BTLG11', 'br'), ('HGRE11', 'br'), ('RBRR11', 'br'), ('VILG11', 'br'), ('HFOF11', 'br'),
   ('AAPL', 'us'), ('MSFT', 'us'), ('GOOGL', 'us'), ('AMZN', 'us'),
   ('NVDA', 'us'), ('TSLA', 'us'), ('META', 'us'), ('JPM', 'us'),
   ('KO', 'us'), ('DIS', 'us'), ('NFLX', 'us'), ('V', 'us')

@@ -40,6 +40,7 @@ import { calcularNivel } from "@/lib/nivelInvestidor";
 import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
+import { FIIS } from "@/lib/fiis";
 import { ACOES_USA } from "@/lib/acoesUsa";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
@@ -859,7 +860,7 @@ function Explorar({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
-  const [mercado, setMercado] = useState<"br" | "us">("br");
+  const [mercado, setMercado] = useState<"br" | "us" | "fii">("br");
   const [busca, setBusca] = useState("");
   const [buscaAtrasada, setBuscaAtrasada] = useState("");
   const [b3, setB3] = useState<AcaoB3[]>([]);
@@ -959,6 +960,19 @@ function Explorar({
   const populareTickers = new Set(populares.map((a) => a.ticker));
   const restoB3 = b3.filter((a) => !populareTickers.has(a.ticker));
 
+  // FIIs sao tickers da B3 (terminam em 11), entao reaproveitam a mesma
+  // busca acima, so filtrada. Sem chamada de API separada.
+  const popularesFii = FIIS.filter((f) => {
+    if (!t) return true;
+    return (
+      f.ticker.toLowerCase().includes(t) ||
+      f.nome.toLowerCase().includes(t) ||
+      f.tipo.toLowerCase().includes(t)
+    );
+  }).map((f) => ({ ticker: f.ticker, nome: f.nome, setor: f.tipo, explica: f.explica }));
+  const popularesFiiTickers = new Set(popularesFii.map((f) => f.ticker));
+  const restoFii = b3.filter((a) => a.ticker.endsWith("11") && !popularesFiiTickers.has(a.ticker));
+
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -980,9 +994,82 @@ function Explorar({
         >
           🇺🇸
         </button>
+        <button
+          onClick={() => setMercado("fii")}
+          aria-label="Fundos imobiliários"
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
+            mercado === "fii" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
+          }`}
+        >
+          🏢
+        </button>
       </div>
 
-      {mercado === "us" ? (
+      {mercado === "fii" ? (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha um Fundo Imobiliário
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            FIIs são negociados na B3 igual uma ação (ticker termina em 11),
+            mas o dinheiro vai pra imóveis ou títulos imobiliários, não pra
+            uma empresa. Costumam pagar rendimento todo mês.
+          </p>
+
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, código ou tipo (ex: logística, shopping)"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+
+          {popularesFii.length > 0 && (
+            <>
+              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                Populares
+              </p>
+              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+                {popularesFii.map((a, i) => (
+                  <CartaoAcaoPopular
+                    key={a.ticker}
+                    acao={a}
+                    delay={Math.min(i * 0.04, 0.4)}
+                    favorito={favoritos.has(a.ticker)}
+                    aoComprar={aoComprar}
+                    aoVerDetalhe={aoVerDetalhe}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+
+          {restoFii.length > 0 && (
+            <>
+              <p className="mt-10 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                {t ? "Outros resultados" : "Mais FIIs"}
+              </p>
+              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+                {restoFii.map((a, i) => (
+                  <CartaoAcaoB3
+                    key={a.ticker}
+                    acao={a}
+                    delay={Math.min(i * 0.04, 0.4)}
+                    favorito={favoritos.has(a.ticker)}
+                    aoComprar={aoComprar}
+                    aoVerDetalhe={aoVerDetalhe}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+
+          {!carregando && popularesFii.length === 0 && restoFii.length === 0 && (
+            <p className="mt-8 text-ink-muted">
+              Nenhum FII encontrado com esse termo.
+            </p>
+          )}
+        </>
+      ) : mercado === "us" ? (
         <>
           <h2 className="mt-4 font-display text-2xl text-ink">
             Escolha uma ação dos EUA
