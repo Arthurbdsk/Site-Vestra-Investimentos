@@ -41,6 +41,7 @@ import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES, acaoPorTicker } from "@/lib/acoes";
 import { FIIS } from "@/lib/fiis";
+import { ETFS } from "@/lib/etfs";
 import { ACOES_USA } from "@/lib/acoesUsa";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
@@ -860,7 +861,7 @@ function Explorar({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
-  const [mercado, setMercado] = useState<"br" | "us" | "fii">("br");
+  const [mercado, setMercado] = useState<"br" | "us" | "fii" | "etf">("br");
   const [busca, setBusca] = useState("");
   const [buscaAtrasada, setBuscaAtrasada] = useState("");
   const [b3, setB3] = useState<AcaoB3[]>([]);
@@ -893,6 +894,16 @@ function Explorar({
       .then((json) => setAcoesFii(json.acoes ?? []))
       .catch(() => setAcoesFii([]));
   }, [mercado, acoesFii]);
+
+  // Mesmo caso dos FIIs: ETFs tambem ficam de fora da busca "type=stock".
+  const [acoesEtf, setAcoesEtf] = useState<AcaoB3[] | null>(null);
+  useEffect(() => {
+    if (mercado !== "etf" || acoesEtf) return;
+    fetch("/api/etfs")
+      .then((r) => r.json())
+      .then((json) => setAcoesEtf(json.acoes ?? []))
+      .catch(() => setAcoesEtf([]));
+  }, [mercado, acoesEtf]);
 
   useEffect(() => {
     const id = setTimeout(() => setBuscaUsaAtrasada(buscaUsa.trim()), 400);
@@ -982,6 +993,15 @@ function Explorar({
     );
   }).map((f) => ({ ticker: f.ticker, nome: f.nome, setor: f.tipo, explica: f.explica }));
 
+  const popularesEtf = ETFS.filter((e) => {
+    if (!t) return true;
+    return (
+      e.ticker.toLowerCase().includes(t) ||
+      e.nome.toLowerCase().includes(t) ||
+      e.indice.toLowerCase().includes(t)
+    );
+  }).map((e) => ({ ticker: e.ticker, nome: e.nome, setor: e.indice, explica: e.explica }));
+
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -1012,9 +1032,75 @@ function Explorar({
         >
           🏢
         </button>
+        <button
+          onClick={() => setMercado("etf")}
+          aria-label="ETFs e fundos de índice"
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
+            mercado === "etf" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
+          }`}
+        >
+          📊
+        </button>
       </div>
 
-      {mercado === "fii" ? (
+      {mercado === "etf" ? (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha um ETF
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            ETFs seguem um índice inteiro numa única cota (tipo o Ibovespa ou
+            o S&P 500), em vez de você escolher ação por ação. Também são
+            negociados na B3 como uma ação comum.
+          </p>
+
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, código ou índice (ex: Ibovespa, S&P 500)"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+
+          {acoesEtf === null ? (
+            <div className="mt-6 flex items-center gap-2 text-ink-muted">
+              <Loader2 size={16} className="animate-spin" />
+              Carregando ETFs…
+            </div>
+          ) : popularesEtf.length > 0 ? (
+            <>
+              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+                Populares
+              </p>
+              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+                {popularesEtf.map((a, i) => {
+                  const dado = acoesEtf?.find((x) => x.ticker === a.ticker);
+                  return (
+                    <CartaoAcaoPopular
+                      key={a.ticker}
+                      acao={a}
+                      delay={Math.min(i * 0.04, 0.4)}
+                      favorito={favoritos.has(a.ticker)}
+                      dadosPre={{
+                        preco: dado?.preco ?? null,
+                        variacao: dado?.variacao ?? null,
+                        logo: dado?.logo ?? null,
+                      }}
+                      aoComprar={aoComprar}
+                      aoVerDetalhe={aoVerDetalhe}
+                    />
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+
+          {acoesEtf !== null && popularesEtf.length === 0 && (
+            <p className="mt-8 text-ink-muted">
+              Nenhum ETF encontrado com esse termo.
+            </p>
+          )}
+        </>
+      ) : mercado === "fii" ? (
         <>
           <h2 className="mt-4 font-display text-2xl text-ink">
             Escolha um Fundo Imobiliário

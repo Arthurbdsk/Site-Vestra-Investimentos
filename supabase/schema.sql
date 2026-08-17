@@ -244,6 +244,8 @@ insert into public.ativos_permitidos (ticker, mercado) values
   -- FIIs (Fundos Imobiliarios): tickers da B3 tambem, terminados em 11.
   ('HGLG11', 'br'), ('MXRF11', 'br'), ('KNRI11', 'br'), ('XPML11', 'br'), ('VISC11', 'br'),
   ('BTLG11', 'br'), ('HGRE11', 'br'), ('RBRR11', 'br'), ('VILG11', 'br'), ('HFOF11', 'br'),
+  -- ETFs (fundos de indice): mesma logica, tickers da B3 terminados em 11.
+  ('BOVA11', 'br'), ('IVVB11', 'br'), ('SMAL11', 'br'), ('DIVO11', 'br'), ('XFIX11', 'br'), ('HASH11', 'br'),
   ('AAPL', 'us'), ('MSFT', 'us'), ('GOOGL', 'us'), ('AMZN', 'us'),
   ('NVDA', 'us'), ('TSLA', 'us'), ('META', 'us'), ('JPM', 'us'),
   ('KO', 'us'), ('DIS', 'us'), ('NFLX', 'us'), ('V', 'us')
