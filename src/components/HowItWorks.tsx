@@ -72,7 +72,7 @@ export function HowItWorks() {
                   <button
                     onClick={() => setAtivo(i)}
                     className="group relative w-full border-l-[3px] py-5 pl-6 text-left transition-colors"
-                    style={{ borderColor: on ? "var(--color-violet)" : "var(--rule)" }}
+                    style={{ borderColor: on ? "var(--color-violet-texto)" : "var(--rule)" }}
                   >
                     {on && (
                       <motion.span
@@ -167,7 +167,7 @@ function PassoVisual({ tipo }: { tipo: string }) {
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.42 }}
-          className="bg-gold px-4 py-3 text-center font-semibold text-blue"
+          className="bg-gold px-4 py-3 text-center font-semibold text-blue-deep"
         >
           Criar conta
         </motion.div>

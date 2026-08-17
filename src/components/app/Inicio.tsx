@@ -101,7 +101,7 @@ export function Inicio({
               style={{
                 color:
                   janela === j.id
-                    ? "var(--color-blue)"
+                    ? "var(--color-azul-texto)"
                     : "var(--color-ink-muted)",
                 background:
                   janela === j.id ? "var(--color-paper-alt)" : "var(--color-paper)",
@@ -249,7 +249,7 @@ function GraficoEvolucao({ serie }: { serie: PontoPatrimonio[] }) {
   const linha = pontos.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const area = `${linha} ${largura},${altura} 0,${altura}`;
   const subiu = valores[valores.length - 1] >= valores[0];
-  const cor = subiu ? "var(--color-teal)" : "var(--color-coral)";
+  const cor = subiu ? "var(--color-teal-texto)" : "var(--color-coral-texto)";
 
   return (
     <div className="px-1 py-3">

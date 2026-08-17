@@ -33,7 +33,9 @@ export function MagneticButton({
   const styles = {
     solid: "bg-blue text-onblue hover:bg-blue-deep",
     ghost: "border border-[var(--rule)] text-ink hover:border-blue hover:text-blue",
-    gold: "bg-gold text-blue hover:bg-gold-soft",
+    // Sobre dourado o texto tem que continuar escuro nos dois temas, por
+    // isso blue-deep e nao blue (que clareia no escuro).
+    gold: "bg-gold text-blue-deep hover:bg-gold-soft",
   }[variant];
 
   return (

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-const CORES = ["var(--color-gold)", "var(--color-blue)", "#4fc7b3", "#e11d48", "var(--color-gold-soft)"];
+const CORES = ["var(--color-gold)", "var(--color-azul-texto)", "#4fc7b3", "#e11d48", "var(--color-gold-soft)"];
 
 /**
  * Confete leve (sem lib externa): uma penca de retangulos que explode

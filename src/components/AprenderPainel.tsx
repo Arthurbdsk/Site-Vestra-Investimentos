@@ -59,7 +59,7 @@ export function AprenderPainel() {
               key={id}
               onClick={() => setAba(id)}
               className="relative flex shrink-0 items-center gap-2 px-4 py-4 text-sm font-medium transition-colors"
-              style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+              style={{ color: aba === id ? "var(--color-azul-texto)" : "var(--color-ink-muted)" }}
             >
               <Icone size={16} />
               {label}
@@ -278,7 +278,7 @@ function Artigos() {
                 >
                   Artigo
                 </span>
-                <Icone size={36} className={estilo.fundo === "bg-gold" ? "text-blue" : "text-gold"} />
+                <Icone size={36} className={estilo.fundo === "bg-gold" ? "text-blue-deep" : "text-gold"} />
               </div>
               <div className="p-5">
                 <p className="font-display text-xl font-bold leading-snug text-ink group-hover:text-blue">
@@ -469,8 +469,8 @@ function CalculadoraJuros() {
           ))}
           <defs>
             <linearGradient id={`grad-juros-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-blue)" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="var(--color-blue)" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--color-azul-texto)" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="var(--color-azul-texto)" stopOpacity="0" />
             </linearGradient>
           </defs>
           <motion.path
@@ -483,7 +483,7 @@ function CalculadoraJuros() {
           <motion.path
             d={linha}
             fill="none"
-            stroke="var(--color-blue)"
+            stroke="var(--color-azul-texto)"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"

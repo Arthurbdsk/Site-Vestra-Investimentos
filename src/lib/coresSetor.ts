@@ -1,8 +1,11 @@
+// Variantes "-texto" porque a cor do setor sempre aparece como texto ou
+// borda sobre o papel, nunca como bloco de fundo. No tema escuro elas
+// clareiam; usando as cores base, a tag do setor sumia no escuro.
 const PALETA = [
-  "var(--color-teal)",
-  "var(--color-coral)",
-  "var(--color-violet)",
-  "var(--color-sky)",
+  "var(--color-teal-texto)",
+  "var(--color-coral-texto)",
+  "var(--color-violet-texto)",
+  "var(--color-sky-texto)",
   "var(--color-gold)",
 ];
 

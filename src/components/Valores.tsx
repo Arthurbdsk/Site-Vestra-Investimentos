@@ -8,25 +8,25 @@ const principios = [
     titulo: "Conhecimento não pode ter porteiro",
     texto:
       "Se você precisar de um dicionário pra entender a gente, o erro é nosso. Aqui se fala português.",
-    cor: "var(--color-teal)",
+    cor: "var(--color-teal-texto)",
   },
   {
     titulo: "Errar aqui não custa nada",
     texto:
       "Você treina com dinheiro fictício. O erro vira aprendizado em vez de virar prejuízo.",
-    cor: "var(--color-coral)",
+    cor: "var(--color-coral-texto)",
   },
   {
     titulo: "Começar pequeno já é começar",
     texto:
       "Ninguém precisa esperar sobrar muito. O que muda um futuro é a constância, não o tamanho do primeiro passo.",
-    cor: "var(--color-violet)",
+    cor: "var(--color-violet-texto)",
   },
   {
     titulo: "A gente não vende sonho",
     texto:
       "Sem fórmula secreta, sem promessa de ficar rico rápido. Só o que é real, dito de forma clara.",
-    cor: "var(--color-sky)",
+    cor: "var(--color-sky-texto)",
   },
 ];
 

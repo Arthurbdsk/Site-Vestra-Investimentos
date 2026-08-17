@@ -88,7 +88,7 @@ function Item({
       aria-current={selecionado ? "page" : undefined}
       className="relative flex flex-col items-center gap-1 px-1 pb-2 pt-3 transition-colors"
       style={{
-        color: selecionado ? "var(--color-blue)" : "var(--color-ink-muted)",
+        color: selecionado ? "var(--color-azul-texto)" : "var(--color-ink-muted)",
       }}
     >
       {selecionado && (

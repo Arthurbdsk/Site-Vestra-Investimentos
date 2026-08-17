@@ -8,15 +8,34 @@
   /* Azul da identidade, agora como bloco de destaque */
   --color-blue: #0f2d44;
   --color-blue-deep: #0a2133;
+  /* Azul quando ele e TEXTO sobre o papel, e nao bloco de fundo.
+     Precisa de token proprio porque os dois papeis pedem coisas opostas
+     no tema escuro: o bloco continua azul-escuro (com texto claro em
+     cima), mas o texto azul sobre fundo escuro tem que clarear, senao
+     fica escuro sobre escuro. No claro os dois valores sao iguais. */
+  --color-azul-texto: #0f2d44;
 
   --color-gold: #f5a623;
   --color-gold-soft: #f5c56a;
 
   /* Acentos extras, usados com moderação pra tirar o site do bicromático */
   --color-teal: #1f7a6c;
-  --color-coral: #d1603d;
+  /* Era #d1603d, escurecido pra ficar legivel. Naquele tom, texto claro
+     em cima dava 3,56:1 e o proprio coral como texto no papel branco dava
+     3,85:1, os dois abaixo do minimo de 4,5:1. Agora da 4,69:1 e 5,08:1,
+     e continua sendo o mesmo coral a olho nu. */
+  --color-coral: #b84d2c;
   --color-violet: #6b5b9a;
   --color-sky: #2f6690;
+  /* Mesmas cores quando sao TEXTO (tag de setor, selo de origem do dado,
+     numero de etapa) em vez de bloco de fundo. Iguais no tema claro; no
+     escuro clareiam mantendo o matiz, senao viram cor escura sobre fundo
+     escuro. Elas carregam significado, entao ficar ilegivel apaga a
+     informacao, nao so o enfeite. */
+  --color-teal-texto: #1f7a6c;
+  --color-coral-texto: #b84d2c;
+  --color-violet-texto: #6b5b9a;
+  --color-sky-texto: #2f6690;
 
   /* Texto sobre branco */
   --color-ink: #0f2d44;
@@ -41,6 +60,14 @@
     --color-ink: #e7eaed;
     --color-ink-muted: #98a2ac;
     --rule: rgba(231, 234, 237, 0.12);
+    /* 7,9:1 sobre o papel escuro. O #0f2d44 dava 1,26:1, ou seja, era
+       praticamente invisivel pra qualquer pessoa no tema escuro. */
+    --color-azul-texto: #7ab3e0;
+    /* Entre 6,0:1 e 8,4:1. Antes iam de 2,7:1 a 4,6:1, abaixo do minimo. */
+    --color-teal-texto: #39c6b0;
+    --color-coral-texto: #d68a73;
+    --color-violet-texto: #a297c1;
+    --color-sky-texto: #6ba4cf;
   }
 }
 
@@ -50,6 +77,11 @@
   --color-ink: #e7eaed;
   --color-ink-muted: #98a2ac;
   --rule: rgba(231, 234, 237, 0.12);
+  --color-azul-texto: #7ab3e0;
+  --color-teal-texto: #39c6b0;
+  --color-coral-texto: #d68a73;
+  --color-violet-texto: #a297c1;
+  --color-sky-texto: #6ba4cf;
 }
 
 @theme inline {
@@ -188,6 +220,39 @@ html.lenis body {
 
 .lenis.lenis-smooth {
   scroll-behavior: auto !important;
+}
+
+/* Corrige de uma vez os ~100 lugares que usam `text-blue`.
+   `bg-blue` continua sendo o azul-escuro da marca (bloco de fundo, com
+   texto claro por cima); so o azul usado como TEXTO passa a clarear no
+   tema escuro. Sem isto, azul #0f2d44 sobre papel #14181c dava 1,26:1 de
+   contraste, quando o minimo legivel e 4,5:1: era texto invisivel.
+   A regra fica fora de @layer de proposito, porque estilo sem camada
+   ganha das utilidades do Tailwind, que ficam em camada. */
+:root .text-blue {
+  color: var(--color-azul-texto);
+}
+
+:root .hover\:text-blue:hover {
+  color: var(--color-azul-texto);
+}
+
+/* Mesma coisa pros acentos. `bg-teal`, `bg-coral` etc. continuam
+   intactos: la a cor e fundo, com texto claro por cima. */
+:root .text-teal {
+  color: var(--color-teal-texto);
+}
+
+:root .text-coral {
+  color: var(--color-coral-texto);
+}
+
+:root .text-violet {
+  color: var(--color-violet-texto);
+}
+
+:root .text-sky {
+  color: var(--color-sky-texto);
 }
 
 .text-balance {

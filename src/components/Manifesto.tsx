@@ -45,7 +45,7 @@ export function Manifesto() {
     <section className="grain relative overflow-hidden bg-paper py-24 md:py-36">
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
         <Surge>
-          <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue">
+          <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue-deep">
             01
           </span>
         </Surge>
@@ -80,7 +80,10 @@ export function Manifesto() {
                     key={v}
                     onClick={() => setMensal(v)}
                     className={`relative px-5 py-2.5 font-mono text-sm transition-colors ${
-                      ativo ? "text-blue" : "text-onblue-muted hover:text-onblue"
+                      // blue-deep, e nao blue: a pilula ativa tem fundo
+                      // dourado (o motion.span logo abaixo), entao o texto
+                      // precisa continuar escuro nos dois temas.
+                      ativo ? "text-blue-deep" : "text-onblue-muted hover:text-onblue"
                     }`}
                   >
                     {ativo && (

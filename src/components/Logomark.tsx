@@ -39,7 +39,7 @@ export function Logomark({ size = 40, className = "", withBadge = true }: Logoma
       <polyline
         points="26,34 58,86"
         fill="none"
-        stroke="var(--color-blue)"
+        stroke="var(--color-azul-texto)"
         strokeWidth="14"
         strokeLinecap="round"
         strokeLinejoin="round"

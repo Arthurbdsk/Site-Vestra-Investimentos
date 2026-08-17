@@ -34,6 +34,12 @@ export function ModalOrdem({
 }) {
   const router = useRouter();
   const [qtd, setQtd] = useState(1);
+  // Da pra dizer "quero 3 cotas" ou "quero investir R$ 100". A segunda
+  // forma e a que gente sem experiencia usa naturalmente: ninguem pensa
+  // em cotas, pensa em quanto quer por. A quantidade continua sendo a
+  // fonte da verdade; o valor so calcula ela.
+  const [entrada, setEntrada] = useState<"cotas" | "valor">("cotas");
+  const [valorTexto, setValorTexto] = useState("");
   const [modo, setModo] = useState<"mercado" | "limitada" | "abertura">("mercado");
   const [precoAlvo, setPrecoAlvo] = useState(0);
   const [estado, setEstado] = useState<Estado>({ fase: "formulario" });
@@ -49,6 +55,8 @@ export function ModalOrdem({
   useEffect(() => {
     if (ordem) {
       setQtd(1);
+      setEntrada("cotas");
+      setValorTexto("");
       setModo("mercado");
       setPrecoAlvo(ordem.preco);
       setEstado({ fase: "formulario" });
@@ -70,6 +78,28 @@ export function ModalOrdem({
   const limitada = modo === "limitada";
   const abertura = modo === "abertura";
   const custo = qtd * (limitada ? precoAlvo : ordem.preco);
+
+  const precoEfetivo = limitada ? precoAlvo : ordem.preco;
+  const valorDesejado = Math.max(0, Number(valorTexto) || 0);
+
+  /** No modo por valor, a quantidade e derivada e sempre arredondada pra
+   * baixo: aqui nao existe fracao de cota, entao o que sobra volta pro
+   * caixa em vez de comprar meia acao. */
+  function aoDigitarValor(texto: string) {
+    setValorTexto(texto);
+    const valor = Math.max(0, Number(texto) || 0);
+    setQtd(precoEfetivo > 0 ? Math.floor(valor / precoEfetivo) : 0);
+  }
+
+  /** Ao trocar de modo, leva o que ja foi escolhido pro outro lado, pra
+   * pessoa nao perder o que digitou. */
+  function trocarEntrada(novo: "cotas" | "valor") {
+    if (novo === "valor" && entrada === "cotas") {
+      setValorTexto(qtd > 0 ? (qtd * precoEfetivo).toFixed(2) : "");
+    }
+    if (novo === "cotas" && qtd < 1) setQtd(1);
+    setEntrada(novo);
+  }
 
   const maximo = comprando
     ? Math.max(0, Math.floor(ordem.limite / ordem.preco))
@@ -236,55 +266,141 @@ export function ModalOrdem({
               )}
 
               <div className="mt-6">
-                <label className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
-                  Quantas cotas?
-                </label>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+                    {entrada === "cotas" ? "Quantas cotas?" : "Quanto investir?"}
+                  </label>
 
-                <div className="mt-3 flex items-stretch gap-2">
-                  <button
-                    onClick={() => setQtd((q) => Math.max(1, q - 1))}
-                    aria-label="Diminuir"
-                    className="border border-[var(--rule)] px-3 text-ink transition-colors hover:border-blue"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    value={qtd}
-                    onChange={(e) =>
-                      setQtd(Math.max(1, Math.floor(Number(e.target.value) || 1)))
-                    }
-                    className="w-full border border-[var(--rule)] bg-paper px-4 py-3 text-center font-mono text-lg tabular text-ink outline-none focus:border-blue"
-                  />
-                  <button
-                    onClick={() => setQtd((q) => q + 1)}
-                    aria-label="Aumentar"
-                    className="border border-[var(--rule)] px-3 text-ink transition-colors hover:border-blue"
-                  >
-                    <Plus size={16} />
-                  </button>
+                  <div className="flex gap-px bg-[var(--rule)]">
+                    {(["cotas", "valor"] as const).map((op) => (
+                      <button
+                        key={op}
+                        onClick={() => trocarEntrada(op)}
+                        className="bg-paper px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors"
+                        style={{
+                          color:
+                            entrada === op
+                              ? "var(--color-azul-texto)"
+                              : "var(--color-ink-muted)",
+                          background:
+                            entrada === op
+                              ? "var(--color-paper-alt)"
+                              : "var(--color-paper)",
+                        }}
+                      >
+                        {op === "cotas" ? "Por cotas" : "Por R$"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {[1, 5, 10, 50].filter((n) => n <= maximo).map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => setQtd(n)}
-                      className="border border-[var(--rule)] px-3 py-1.5 font-mono text-xs text-ink-muted transition-colors hover:border-blue hover:text-blue"
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  {maximo > 0 && (
-                    <button
-                      onClick={() => setQtd(maximo)}
-                      className="border border-blue bg-blue/5 px-3 py-1.5 font-mono text-xs text-blue"
-                    >
-                      máximo ({maximo})
-                    </button>
-                  )}
-                </div>
+                {entrada === "cotas" ? (
+                  <>
+                    <div className="mt-3 flex items-stretch gap-2">
+                      <button
+                        onClick={() => setQtd((q) => Math.max(1, q - 1))}
+                        aria-label="Diminuir"
+                        className="border border-[var(--rule)] px-3 text-ink transition-colors hover:border-blue"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={qtd}
+                        onChange={(e) =>
+                          setQtd(Math.max(1, Math.floor(Number(e.target.value) || 1)))
+                        }
+                        className="w-full border border-[var(--rule)] bg-paper px-4 py-3 text-center font-mono text-lg tabular text-ink outline-none focus:border-blue"
+                      />
+                      <button
+                        onClick={() => setQtd((q) => q + 1)}
+                        aria-label="Aumentar"
+                        className="border border-[var(--rule)] px-3 text-ink transition-colors hover:border-blue"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[1, 5, 10, 50].filter((n) => n <= maximo).map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => setQtd(n)}
+                          className="border border-[var(--rule)] px-3 py-1.5 font-mono text-xs text-ink-muted transition-colors hover:border-blue hover:text-blue"
+                        >
+                          {n}
+                        </button>
+                      ))}
+                      {maximo > 0 && (
+                        <button
+                          onClick={() => setQtd(maximo)}
+                          className="border border-blue bg-blue/5 px-3 py-1.5 font-mono text-xs text-blue"
+                        >
+                          máximo ({maximo})
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-3 flex items-stretch border border-[var(--rule)] focus-within:border-blue">
+                      <span className="flex items-center px-4 font-mono text-lg text-ink-muted">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        inputMode="decimal"
+                        value={valorTexto}
+                        onChange={(e) => aoDigitarValor(e.target.value)}
+                        placeholder="0,00"
+                        className="w-full bg-paper py-3 pr-4 font-mono text-lg tabular text-ink outline-none placeholder:text-ink-muted/50"
+                      />
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[50, 100, 500, 1000].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => aoDigitarValor(String(n))}
+                          className="border border-[var(--rule)] px-3 py-1.5 font-mono text-xs text-ink-muted transition-colors hover:border-blue hover:text-blue"
+                        >
+                          {brl(n)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* O ponto do modo por valor: mostrar que acao tem preco
+                        unitario, entao dificilmente o dinheiro fecha certinho.
+                        Dizer quanto sobra evita a impressao de que "sumiu". */}
+                    <p className="mt-3 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
+                      {valorDesejado <= 0 ? (
+                        <>
+                          Cada cota de {ordem.ticker} custa{" "}
+                          {brl(precoEfetivo)}. Diga quanto quer{" "}
+                          {comprando ? "investir" : "resgatar"} e a gente
+                          calcula quantas cotas dá.
+                        </>
+                      ) : qtd < 1 ? (
+                        <>
+                          {brl(valorDesejado)} não dá pra uma cota, que custa{" "}
+                          {brl(precoEfetivo)}. Aumente o valor.
+                        </>
+                      ) : (
+                        <>
+                          {brl(valorDesejado)} dá pra{" "}
+                          <strong className="text-ink">
+                            {qtd === 1 ? "1 cota" : `${qtd} cotas`}
+                          </strong>{" "}
+                          ({brl(custo)}). Sobram {brl(valorDesejado - custo)}
+                          {comprando ? " no seu caixa" : ""}.
+                        </>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-6 space-y-1.5 bg-paper-alt p-4">
@@ -338,12 +454,15 @@ export function ModalOrdem({
                 disabled={
                   estado.fase === "enviando" ||
                   passaDoLimite ||
+                  // No modo por valor a quantidade pode dar zero (dinheiro
+                  // nao alcanca uma cota); nesse caso nao ha ordem a enviar.
+                  qtd < 1 ||
                   (limitada ? precoAlvo <= 0 : maximo < 1)
                 }
                 className={`mt-6 flex w-full items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
                   comprando
                     ? "bg-blue text-onblue hover:bg-blue-deep"
-                    : "bg-gold text-blue hover:bg-gold-soft"
+                    : "bg-gold text-blue-deep hover:bg-gold-soft"
                 }`}
               >
                 {estado.fase === "enviando" ? (

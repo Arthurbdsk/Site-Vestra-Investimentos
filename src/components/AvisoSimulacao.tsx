@@ -79,20 +79,20 @@ export function SeloOrigem({
     real: {
       Icone: Radio,
       rotulo: "Cotação real",
-      cor: "var(--color-teal)",
+      cor: "var(--color-teal-texto)",
       titulo: "Preço vindo da bolsa.",
     },
     atrasado: {
       Icone: Clock3,
       rotulo: "Preço atrasado",
-      cor: "var(--color-sky)",
+      cor: "var(--color-sky-texto)",
       titulo:
         "Preço real da bolsa, porém com atraso. Não use como cotação oficial em tempo real.",
     },
     simulado: {
       Icone: FlaskConical,
       rotulo: "Dado simulado",
-      cor: "var(--color-violet)",
+      cor: "var(--color-violet-texto)",
       titulo:
         "Número gerado por um modelo educacional. Não corresponde a nenhuma empresa ou cotação real.",
     },

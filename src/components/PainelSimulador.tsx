@@ -346,7 +346,7 @@ export function PainelSimulador({
                 title={desbloqueada ? undefined : `Desbloqueia com ${nivelMinimoDaAba(id)} conquistas (você tem ${conquistasConcluidas})`}
                 whileTap={desbloqueada ? { scale: 0.94 } : undefined}
                 className="relative flex shrink-0 items-center gap-2 px-4 py-4 text-sm font-medium transition-colors disabled:opacity-40"
-                style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+                style={{ color: aba === id ? "var(--color-azul-texto)" : "var(--color-ink-muted)" }}
               >
                 {desbloqueada ? <Icone size={16} /> : <Lock size={16} />}
                 {label}
@@ -378,7 +378,7 @@ export function PainelSimulador({
                     title={desbloqueada ? undefined : `Desbloqueia com ${nivelMinimoDaAba(id)} conquistas (você tem ${conquistasConcluidas})`}
                     whileTap={desbloqueada ? { scale: 0.97 } : undefined}
                     className="relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:opacity-40"
-                    style={{ color: aba === id ? "var(--color-blue)" : "var(--color-ink-muted)" }}
+                    style={{ color: aba === id ? "var(--color-azul-texto)" : "var(--color-ink-muted)" }}
                   >
                     {aba === id && (
                       <motion.span
@@ -1492,7 +1492,7 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
                         ? "bg-blue text-onblue"
                         : t.tipo === "dividendo"
                           ? "bg-emerald-600 text-white"
-                          : "bg-gold text-blue"
+                          : "bg-gold text-blue-deep"
                     }`}
                   >
                     {t.tipo}

@@ -21,8 +21,10 @@ intenção). Use valores exatos abaixo, não aproximações.
 - `--color-gold` `#f5a623` / `--color-gold-soft` `#f5c56a`, única cor de ação/CTA. Não usar gold pra decoração aleatória.
 - `--color-ink` `#0f2d44` / `--color-ink-muted` `#5c666f`, texto sobre `paper`
 - `--color-onblue` `#f5f6f7` / `--color-onblue-muted` `#a9b4bf`, texto sobre `blue`
-- Acentos extras (`--color-teal` `#1f7a6c`, `--color-coral` `#d1603d`, `--color-violet` `#6b5b9a`, `--color-sky` `#2f6690`): só pra informação que precisa de cor (setor de uma ação, nível do investidor, medalhas do ranking). **Nunca** decorativo, se a cor não carrega significado, não adicione.
+- Acentos extras (`--color-teal` `#1f7a6c`, `--color-coral` `#b84d2c`, `--color-violet` `#6b5b9a`, `--color-sky` `#2f6690`): só pra informação que precisa de cor (setor de uma ação, nível do investidor, medalhas do ranking). **Nunca** decorativo, se a cor não carrega significado, não adicione.
+- **Cor como texto usa a variante `-texto`**, não a base: `--color-azul-texto`, `--color-teal-texto`, `--color-coral-texto`, `--color-violet-texto`, `--color-sky-texto`. As bases são pensadas pra fundo (bloco colorido com texto claro em cima) e no tema escuro viram cor escura sobre fundo escuro. As classes `text-blue`, `text-teal`, `text-coral`, `text-violet` e `text-sky` já apontam pra variante certa automaticamente (regra no `globals.css`); a variante só precisa ser escrita à mão em `style={{ color: ... }}` e em SVG (`stroke`, `fill`).
 - Modo escuro já existe via `data-theme`/`prefers-color-scheme` no próprio `globals.css`, qualquer cor nova precisa funcionar nos dois temas.
+- **Contraste mínimo 4,5:1** (3:1 pra texto grande). Isso não é enfeite: o público-alvo inclui gente que vai ler no celular, no sol, em tela ruim. Antes de aceitar uma cor de texto nova, meça contra o fundo real nos dois temas.
 
 ## Tipografia
 - `font-display` (Fraunces, serifada), títulos grandes, headlines. Isso é a assinatura visual do site, não trocar por sans-serif genérica.
