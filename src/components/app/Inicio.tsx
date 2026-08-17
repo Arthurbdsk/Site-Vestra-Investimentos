@@ -1,23 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { brl, pct } from "@/lib/formato";
 import { AvisoSimulacaoLinha } from "../AvisoSimulacao";
 
 export type PontoPatrimonio = { data: string; valor: number };
-
-type Janela = { id: string; label: string; dias: number | null };
-
-const JANELAS: Janela[] = [
-  { id: "1d", label: "1D", dias: 1 },
-  { id: "7d", label: "7D", dias: 7 },
-  { id: "1m", label: "1M", dias: 30 },
-  { id: "3m", label: "3M", dias: 90 },
-  { id: "6m", label: "6M", dias: 180 },
-  { id: "1a", label: "1A", dias: 365 },
-  { id: "tudo", label: "Tudo", dias: null },
-];
 
 export function Inicio({
   apelido,
@@ -44,26 +32,12 @@ export function Inicio({
   melhorPosicao: { ticker: string; retornoPct: number } | null;
   aoExplorar: () => void;
 }) {
-  const [janela, setJanela] = useState("1m");
-
-
-  const serie = useMemo(() => {
-    const dias = JANELAS.find((j) => j.id === janela)?.dias ?? null;
-    if (dias == null || historico.length === 0) return historico;
-    // A janela conta a partir do ultimo dia REGISTRADO, e nao do relogio
-    // da maquina. Assim a funcao e pura (nao muda entre um render e outro)
-    // e o recorte continua certo mesmo se ninguem entrar por uns dias.
-    const fim = new Date(historico[historico.length - 1].data).getTime();
-    const corte = fim - dias * 86_400_000;
-    return historico.filter((p) => new Date(p.data).getTime() >= corte);
-  }, [historico, janela]);
-
   const variacaoJanela = useMemo(() => {
-    if (serie.length < 2) return null;
-    const inicio = serie[0].valor;
+    if (historico.length < 2) return null;
+    const inicio = historico[0].valor;
     if (inicio === 0) return null;
-    return ((serie[serie.length - 1].valor - inicio) / inicio) * 100;
-  }, [serie]);
+    return ((historico[historico.length - 1].valor - inicio) / inicio) * 100;
+  }, [historico]);
 
   return (
     <div className="space-y-8">
@@ -90,29 +64,7 @@ export function Inicio({
           <AvisoSimulacaoLinha className="mt-3" />
         </div>
 
-        {/* Os sete periodos dividem a largura por igual, entao cabem numa
-            tela de 375px sem barra de rolagem horizontal aparecendo. */}
-        <div className="flex gap-px border-b border-[var(--rule)] bg-[var(--rule)]">
-          {JANELAS.map((j) => (
-            <button
-              key={j.id}
-              onClick={() => setJanela(j.id)}
-              className="flex-1 bg-paper px-1 py-2.5 font-mono text-[11px] uppercase tracking-tight transition-colors sm:tracking-wider"
-              style={{
-                color:
-                  janela === j.id
-                    ? "var(--color-azul-texto)"
-                    : "var(--color-ink-muted)",
-                background:
-                  janela === j.id ? "var(--color-paper-alt)" : "var(--color-paper)",
-              }}
-            >
-              {j.label}
-            </button>
-          ))}
-        </div>
-
-        <GraficoEvolucao serie={serie} />
+        <GraficoEvolucao serie={historico} />
       </section>
 
       <section className="grid grid-cols-2 gap-px bg-[var(--rule)] lg:grid-cols-4">

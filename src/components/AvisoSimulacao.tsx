@@ -23,9 +23,8 @@ const TEXTO_DESEMPENHO =
 export function AvisoSimulacaoLinha({ className = "" }: { className?: string }) {
   return (
     <p
-      className={`flex items-start gap-2 font-mono text-[11px] leading-relaxed text-ink-muted ${className}`}
+      className={`font-mono text-[11px] leading-relaxed text-ink-muted ${className}`}
     >
-      <FlaskConical size={13} className="mt-px shrink-0 text-gold" aria-hidden />
       {TEXTO_CURTO}
     </p>
   );

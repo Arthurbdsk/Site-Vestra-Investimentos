@@ -50,6 +50,13 @@ import { corDoSetor } from "@/lib/coresSetor";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
 
+const MERCADOS: { id: "br" | "us" | "fii" | "etf"; label: string; aria: string }[] = [
+  { id: "br", label: "BR", aria: "Ações do Brasil" },
+  { id: "us", label: "US", aria: "Ações dos Estados Unidos" },
+  { id: "fii", label: "FII", aria: "Fundos imobiliários" },
+  { id: "etf", label: "ETF", aria: "ETFs e fundos de índice" },
+];
+
 export type Posicao = {
   ticker: string;
   quantidade: number;
@@ -1004,43 +1011,21 @@ function Explorar({
 
   return (
     <div>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setMercado("br")}
-          aria-label="Ações do Brasil"
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
-            mercado === "br" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
-          }`}
-        >
-          🇧🇷
-        </button>
-        <button
-          onClick={() => setMercado("us")}
-          aria-label="Ações dos Estados Unidos"
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
-            mercado === "us" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
-          }`}
-        >
-          🇺🇸
-        </button>
-        <button
-          onClick={() => setMercado("fii")}
-          aria-label="Fundos imobiliários"
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
-            mercado === "fii" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
-          }`}
-        >
-          🏢
-        </button>
-        <button
-          onClick={() => setMercado("etf")}
-          aria-label="ETFs e fundos de índice"
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-opacity ${
-            mercado === "etf" ? "opacity-100 ring-2 ring-blue" : "opacity-40 hover:opacity-70"
-          }`}
-        >
-          📊
-        </button>
+      <div className="flex gap-px border border-[var(--rule)]">
+        {MERCADOS.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setMercado(m.id)}
+            aria-label={m.aria}
+            className="px-4 py-2 font-mono text-[11px] uppercase tracking-wider transition-colors"
+            style={{
+              color: mercado === m.id ? "var(--color-azul-texto)" : "var(--color-ink-muted)",
+              background: mercado === m.id ? "var(--color-paper-alt)" : "var(--color-paper)",
+            }}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       {mercado === "etf" ? (
