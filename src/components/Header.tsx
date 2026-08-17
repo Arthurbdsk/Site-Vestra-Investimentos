@@ -13,6 +13,7 @@ const links = [
   { href: "/simulador", label: "Simulador" },
   { href: "/aprender", label: "Aprender" },
   { href: "/blog", label: "Blog" },
+  { href: "/novidades", label: "Novidades" },
 ];
 
 export function Header({ logado = false }: { logado?: boolean }) {
