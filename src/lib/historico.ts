@@ -182,10 +182,17 @@ export async function buscarHistorico(
   const mercado = mercadoDoTicker(t);
 
   try {
-    const resultado =
+    let resultado =
       mercado === "br"
         ? await buscarNaBrapi(t, config.rangeConsulta, config.interval)
         : await buscarNoYahoo(t, config.rangeConsulta, config.interval);
+
+    // Fallback pra B3: a brapi tem uma cota mensal gratuita que pode
+    // estourar (ja aconteceu). O Yahoo Finance cobre a B3 tambem, via
+    // sufixo ".SA", de graca e sem chave.
+    if (!resultado.ok && mercado === "br") {
+      resultado = await buscarNoYahoo(`${t}.SA`, config.rangeConsulta, config.interval);
+    }
 
     // Yahoo devolve preco em dolar; o resto do site mostra tudo em real,
     // entao converte aqui pra nao aparecer um numero incompativel no grafico.

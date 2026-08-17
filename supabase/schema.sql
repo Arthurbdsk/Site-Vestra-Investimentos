@@ -333,17 +333,20 @@ grant execute on function public.garantir_fx_usd_brl() to authenticated;
 create or replace function public.garantir_cotacao(p_ticker text)
 returns numeric language plpgsql security definer set search_path = public, extensions as $$
 declare
-  v_mercado  text;
-  v_token    text;
-  v_preco    numeric;
-  v_idade    interval;
-  v_resposta jsonb;
-  v_variacao numeric;
-  v_fx       numeric;
-  v_logo     text;
+  v_mercado     text;
+  v_token       text;
+  v_preco       numeric;
+  v_preco_cache numeric;
+  v_idade       interval;
+  v_resposta    jsonb;
+  v_variacao    numeric;
+  v_fx          numeric;
+  v_logo        text;
+  v_prev        numeric;
 begin
   select preco, now() - atualizado_em into v_preco, v_idade
   from public.cotacoes where ticker = p_ticker;
+  v_preco_cache := v_preco;
 
   if v_preco is not null and v_idade < interval '5 minutes' then
     return v_preco;
@@ -358,23 +361,49 @@ begin
   end if;
 
   if v_mercado = 'br' then
+    v_preco := null;
     select valor into v_token from public.segredos where chave = 'brapi_token';
-    if v_token is null then
-      return v_preco;
+    if v_token is not null then
+      begin
+        select content::jsonb into v_resposta
+        from extensions.http_get(
+          'https://brapi.dev/api/v2/stocks/quote?symbols=' || p_ticker || '&token=' || v_token
+        );
+        if not coalesce((v_resposta ->> 'error')::boolean, false) then
+          v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
+          v_variacao := coalesce(
+            (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+          v_logo := v_resposta -> 'results' -> 0 -> 'data' ->> 'logourl';
+        end if;
+      exception when others then
+        v_preco := null;
+      end;
     end if;
 
-    begin
-      select content::jsonb into v_resposta
-      from extensions.http_get(
-        'https://brapi.dev/api/v2/stocks/quote?symbols=' || p_ticker || '&token=' || v_token
-      );
-      v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
-      v_variacao := coalesce(
-        (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
-      v_logo := v_resposta -> 'results' -> 0 -> 'data' ->> 'logourl';
-    exception when others then
-      return v_preco;
-    end;
+    -- Fallback: Yahoo Finance (gratuito, sem chave, sem limite de cota
+    -- conhecido), usado quando a brapi falha ou a cota mensal dela
+    -- estoura (ja aconteceu: plano gratuito da brapi e de 15 mil
+    -- requisicoes/mes).
+    if v_preco is null or v_preco <= 0 then
+      begin
+        select content::jsonb into v_resposta
+        from extensions.http_get(
+          'https://query1.finance.yahoo.com/v8/finance/chart/' || p_ticker || '.SA?range=1d&interval=1d'
+        );
+        v_preco := (v_resposta -> 'chart' -> 'result' -> 0 -> 'meta' ->> 'regularMarketPrice')::numeric;
+        v_prev := (v_resposta -> 'chart' -> 'result' -> 0 -> 'meta' ->> 'chartPreviousClose')::numeric;
+        v_variacao := case when v_prev is not null and v_prev > 0
+          then round(((v_preco - v_prev) / v_prev) * 100, 2)
+          else 0
+        end;
+      exception when others then
+        v_preco := null;
+      end;
+    end if;
+
+    if v_preco is null or v_preco <= 0 then
+      return v_preco_cache;
+    end if;
   else
     select valor into v_token from public.segredos where chave = 'finnhub_token';
     if v_token is null then
@@ -417,7 +446,7 @@ begin
     return round(v_preco, 2);
   end if;
 
-  return v_preco;
+  return v_preco_cache;
 end $$;
 
 -- Atualiza a cotacao dos ativos curados de uma vez (chamada pelo pg_cron
@@ -430,14 +459,18 @@ declare
   v_token_finnhub  text;
   v_ticker         text;
   v_mercado        text;
+  v_tickers_br     text[];
   v_resposta       jsonb;
+  v_item           jsonb;
   v_preco          numeric;
+  v_prev           numeric;
   v_variacao       numeric;
   v_fx             numeric;
   v_logo           text;
   v_logo_existente text;
   v_mais_novo      timestamptz;
   v_contador       integer := 0;
+  v_atualizados_br text[] := array[]::text[];
 begin
   select max(atualizado_em) into v_mais_novo from public.cotacoes;
   if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '60 seconds' then
@@ -448,39 +481,105 @@ begin
   select valor into v_token_finnhub from public.segredos where chave = 'finnhub_token';
   v_fx := public.garantir_fx_usd_brl();
 
-  for v_ticker, v_mercado in select ticker, mercado from public.ativos_permitidos loop
+  select array_agg(ticker) into v_tickers_br
+  from public.ativos_permitidos where mercado = 'br';
+
+  -- B3, tentativa 1: todos os tickers curados numa unica chamada a
+  -- brapi (o parametro "symbols" aceita varios, separados por
+  -- virgula). Bem mais barato em cota do que uma chamada por ticker
+  -- (o plano gratuito e de so 15 mil requisicoes por mes).
+  if v_token_brapi is not null and v_tickers_br is not null then
+    begin
+      select content::jsonb into v_resposta
+      from extensions.http_get(
+        'https://brapi.dev/api/v2/stocks/quote?symbols=' || array_to_string(v_tickers_br, ',') || '&token=' || v_token_brapi
+      );
+
+      if not coalesce((v_resposta ->> 'error')::boolean, false) then
+        for v_item in select * from jsonb_array_elements(coalesce(v_resposta -> 'results', '[]'::jsonb))
+        loop
+          v_ticker := v_item ->> 'symbol';
+          v_preco := (v_item -> 'data' ->> 'regularMarketPrice')::numeric;
+          v_variacao := coalesce((v_item -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
+          v_logo := v_item -> 'data' ->> 'logourl';
+
+          if v_ticker is not null and v_preco is not null and v_preco > 0 then
+            insert into public.cotacoes (ticker, preco, variacao, logo, atualizado_em)
+            values (v_ticker, round(v_preco, 2), round(v_variacao, 2), v_logo, now())
+            on conflict (ticker) do update
+              set preco = excluded.preco,
+                  variacao = excluded.variacao,
+                  logo = coalesce(excluded.logo, public.cotacoes.logo),
+                  atualizado_em = excluded.atualizado_em;
+            v_contador := v_contador + 1;
+            v_atualizados_br := v_atualizados_br || v_ticker;
+          end if;
+        end loop;
+      end if;
+    exception when others then
+      null;
+    end;
+  end if;
+
+  -- B3, fallback: qualquer ticker que a brapi nao tenha atualizado
+  -- (token ausente, cota estourada, erro pontual) busca no Yahoo
+  -- Finance (gratuito, sem chave), um por um.
+  if v_tickers_br is not null then
+    foreach v_ticker in array v_tickers_br loop
+      if v_ticker = any(v_atualizados_br) then continue; end if;
+      begin
+        select content::jsonb into v_resposta
+        from extensions.http_get(
+          'https://query1.finance.yahoo.com/v8/finance/chart/' || v_ticker || '.SA?range=1d&interval=1d'
+        );
+        v_preco := (v_resposta -> 'chart' -> 'result' -> 0 -> 'meta' ->> 'regularMarketPrice')::numeric;
+        v_prev := (v_resposta -> 'chart' -> 'result' -> 0 -> 'meta' ->> 'chartPreviousClose')::numeric;
+        v_variacao := case when v_prev is not null and v_prev > 0
+          then round(((v_preco - v_prev) / v_prev) * 100, 2)
+          else 0
+        end;
+
+        if v_preco is not null and v_preco > 0 then
+          insert into public.cotacoes (ticker, preco, variacao, atualizado_em)
+          values (v_ticker, round(v_preco, 2), round(v_variacao, 2), now())
+          on conflict (ticker) do update
+            set preco = excluded.preco,
+                variacao = excluded.variacao,
+                atualizado_em = excluded.atualizado_em;
+          v_contador := v_contador + 1;
+        end if;
+      exception when others then
+        continue;
+      end;
+    end loop;
+  end if;
+
+  -- EUA: Finnhub nao tem endpoint de cotacao em lote no plano gratuito,
+  -- entao continua uma chamada por ticker (quota separada e maior).
+  for v_ticker, v_mercado in select ticker, mercado from public.ativos_permitidos where mercado = 'us' loop
     begin
       v_logo := null;
-      if v_mercado = 'us' then
-        if v_token_finnhub is null then continue; end if;
-        select content::jsonb into v_resposta
-        from extensions.http_get('https://finnhub.io/api/v1/quote?symbol=' || v_ticker || '&token=' || v_token_finnhub);
-        v_preco := (v_resposta ->> 'c')::numeric;
-        v_variacao := coalesce((v_resposta ->> 'dp')::numeric, 0);
-        if v_preco is not null and v_fx is not null then
-          v_preco := v_preco * v_fx;
-        end if;
+      if v_token_finnhub is null then continue; end if;
+      select content::jsonb into v_resposta
+      from extensions.http_get('https://finnhub.io/api/v1/quote?symbol=' || v_ticker || '&token=' || v_token_finnhub);
+      v_preco := (v_resposta ->> 'c')::numeric;
+      v_variacao := coalesce((v_resposta ->> 'dp')::numeric, 0);
+      if v_preco is not null and v_fx is not null then
+        v_preco := v_preco * v_fx;
+      end if;
 
-        -- O logo de uma empresa nao muda de 5 em 5 minutos: so busca de
-        -- novo se ainda nao tiver um salvo, pra nao gastar chamada a toa.
-        select logo into v_logo_existente from public.cotacoes where ticker = v_ticker;
-        if v_logo_existente is null then
-          begin
-            select content::jsonb ->> 'logo' into v_logo
-            from extensions.http_get('https://finnhub.io/api/v1/stock/profile2?symbol=' || v_ticker || '&token=' || v_token_finnhub);
-          exception when others then
-            v_logo := null;
-          end;
-        else
-          v_logo := v_logo_existente;
-        end if;
+      -- O logo de uma empresa nao muda de 5 em 5 minutos: so busca de
+      -- novo se ainda nao tiver um salvo, pra nao gastar chamada a toa.
+      select logo into v_logo_existente from public.cotacoes where ticker = v_ticker;
+      if v_logo_existente is null then
+        begin
+          select content::jsonb ->> 'logo' into v_logo
+          from extensions.http_get('https://finnhub.io/api/v1/stock/profile2?symbol=' || v_ticker || '&token=' || v_token_finnhub);
+        exception when others then
+          v_logo := null;
+        end;
       else
-        if v_token_brapi is null then continue; end if;
-        select content::jsonb into v_resposta
-        from extensions.http_get('https://brapi.dev/api/v2/stocks/quote?symbols=' || v_ticker || '&token=' || v_token_brapi);
-        v_preco := (v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketPrice')::numeric;
-        v_variacao := coalesce((v_resposta -> 'results' -> 0 -> 'data' ->> 'regularMarketChangePercent')::numeric, 0);
-        v_logo := v_resposta -> 'results' -> 0 -> 'data' ->> 'logourl';
+        v_logo := v_logo_existente;
       end if;
 
       if v_preco is not null and v_preco > 0 then
@@ -494,7 +593,6 @@ begin
         v_contador := v_contador + 1;
       end if;
     exception when others then
-      -- Um papel que falhou nao derruba os outros. Fica a cotacao anterior.
       continue;
     end;
   end loop;
