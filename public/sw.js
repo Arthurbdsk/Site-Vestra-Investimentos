@@ -1,5 +1,10 @@
 const CACHE = "vestra-v1";
-const PRECACHE_URLS = ["/icons/icon-192.png", "/icons/icon-512.png"];
+const PAGINA_OFFLINE = "/offline.html";
+const PRECACHE_URLS = [
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  PAGINA_OFFLINE,
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -25,6 +30,21 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+
+  // Abrir uma pagina sem internet: em vez da tela de erro do navegador,
+  // mostra a nossa, que explica por que nao ha numero na tela. A pagina
+  // continua NUNCA saindo do cache quando ha rede, so serve de ultimo
+  // recurso quando o fetch falha.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches
+          .match(PAGINA_OFFLINE)
+          .then((resposta) => resposta ?? Response.error()),
+      ),
+    );
+    return;
+  }
 
   // So os arquivos versionados do Next (hash no nome, nunca ficam
   // desatualizados) usam cache-first. Paginas, saldo, cotacoes, sessao

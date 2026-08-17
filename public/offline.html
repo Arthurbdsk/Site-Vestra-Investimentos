@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sem conexão | Vestra</title>
+    <!-- Servida pelo service worker quando o aparelho esta sem internet.
+         Precisa ser 100% autonoma: nada de fonte, script ou imagem de
+         fora, porque justamente nao ha rede pra buscar. -->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --papel: #ffffff;
+        --tinta: #0f2d44;
+        --tinta-fraca: #5c666f;
+        --regua: #e3e6e8;
+        --ouro: #f5a623;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --papel: #0a2133;
+          --tinta: #f5f6f7;
+          --tinta-fraca: #a9b4bf;
+          --regua: #1d3a4f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--papel);
+        color: var(--tinta);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .caixa {
+        max-width: 26rem;
+      }
+      .marca {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--tinta-fraca);
+      }
+      h1 {
+        margin: 22px 0 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 2.1rem;
+        line-height: 1.15;
+        font-weight: 600;
+      }
+      p {
+        margin: 18px 0 0;
+        padding-left: 18px;
+        border-left: 3px solid var(--ouro);
+        line-height: 1.65;
+        color: var(--tinta-fraca);
+      }
+      button {
+        margin-top: 30px;
+        padding: 13px 26px;
+        border: 0;
+        background: var(--ouro);
+        color: #0a2133;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .rodape {
+        margin-top: 34px;
+        padding-top: 18px;
+        border-top: 1px solid var(--regua);
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--tinta-fraca);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="caixa">
+      <div class="marca">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true">
+          <rect width="120" height="120" rx="28" fill="#0f2d44" />
+          <polyline
+            points="26,34 58,86"
+            fill="none"
+            stroke="#f5c56a"
+            stroke-width="14"
+            stroke-linecap="round"
+          />
+          <polyline
+            points="58,86 94,26"
+            fill="none"
+            stroke="#f5a623"
+            stroke-width="14"
+            stroke-linecap="round"
+          />
+        </svg>
+        Vestra
+      </div>
+
+      <h1>Você está sem internet.</h1>
+
+      <p>
+        O Vestra precisa de conexão pra buscar os preços da bolsa. Não
+        mostramos o preço guardado do último acesso de propósito: número
+        velho parecendo cotação de agora é pior do que número nenhum.
+      </p>
+
+      <button onclick="location.reload()">Tentar de novo</button>
+
+      <div class="rodape">
+        Sua carteira está salva no servidor. Nada se perde enquanto você
+        estiver offline.
+      </div>
+    </div>
+  </body>
+</html>

@@ -6,6 +6,9 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Vestra",
     description:
       "Simulador de investimentos com dinheiro fictício e preços reais da B3 e da bolsa americana.",
+    lang: "pt-BR",
+    dir: "ltr",
+    categories: ["finance", "education"],
     start_url: "/simulador",
     id: "/simulador",
     display: "standalone",
