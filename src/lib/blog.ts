@@ -242,6 +242,146 @@ export const POSTS_BLOG: PostBlog[] = [
       ),
     ],
   },
+  {
+    slug: "fundos-imobiliarios-fii-o-que-sao",
+    titulo: "Fundos Imobiliários (FIIs): o que são e como funcionam",
+    resumo:
+      "Como um FII permite investir em imóveis sem comprar um imóvel, a diferença entre fundos de papel e de tijolo, e como o rendimento mensal funciona.",
+    palavrasChave: [
+      "fundos imobiliários",
+      "o que é FII",
+      "FII de papel",
+      "FII de tijolo",
+      "investir em FII",
+    ],
+    dataPublicacao: "2026-08-13",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Um Fundo de Investimento Imobiliário (FII) reúne o dinheiro de vários investidores para comprar imóveis ou títulos ligados ao setor imobiliário, e depois distribui o resultado entre quem tem cotas do fundo. Cada cota é negociada na B3 como se fosse uma ação, mas o que está por trás dela não é uma empresa: é um conjunto de imóveis ou papéis.",
+      ),
+      h("FII de tijolo x FII de papel"),
+      p(
+        "FIIs de tijolo são donos de imóveis físicos, como galpões logísticos, shoppings ou lajes corporativas, e ganham dinheiro alugando esses espaços. FIIs de papel, por outro lado, não têm imóvel nenhum: investem em títulos de crédito imobiliário (como CRIs), funcionando de forma parecida com renda fixa, mas com o rendimento variando conforme os juros e a inflação do período.",
+      ),
+      h("Por que o rendimento mensal chama tanta atenção"),
+      p(
+        "A maioria dos FIIs distribui pelo menos 95% do resultado obtido no período aos cotistas, geralmente todo mês. Esse fluxo mensal é o que atrai quem busca renda passiva, mas vale lembrar que o valor distribuído pode variar de um mês para o outro, junto com a vacância dos imóveis ou o desempenho dos papéis do fundo.",
+      ),
+      h("O preço da cota também oscila"),
+      p(
+        "Além do rendimento mensal, o preço da cota sobe e desce na bolsa, assim como uma ação. Um FII pode estar pagando bem e ainda assim ter a cota em queda, se o mercado reprecificar o valor dos imóveis ou dos papéis por trás dele, por exemplo, quando a taxa de juros muda.",
+      ),
+      p(
+        "No Vestra, a aba de fundos imobiliários deixa comprar cotas fictícias de FIIs reais da B3 e acompanhar o rendimento sendo creditado como aconteceria de verdade, uma forma de sentir a diferença entre tijolo e papel antes de decidir com dinheiro real.",
+      ),
+    ],
+  },
+  {
+    slug: "etf-o-que-e-como-funciona",
+    titulo: "ETF: o que é e como investir num índice inteiro de uma vez",
+    resumo:
+      "Como um ETF replica um índice como o Ibovespa ou o S&P 500 numa única cota, e por que isso simplifica a diversificação.",
+    palavrasChave: [
+      "o que é ETF",
+      "ETF Ibovespa",
+      "ETF S&P 500",
+      "investir em ETF",
+      "BOVA11",
+    ],
+    dataPublicacao: "2026-08-14",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "ETF (Exchange Traded Fund) é um fundo que segue um índice de mercado, como o Ibovespa ou o S&P 500, e é negociado na bolsa igual a uma ação comum. Ao comprar uma cota de ETF, você passa a ter uma fração de todas as empresas que compõem aquele índice, na mesma proporção em que elas aparecem nele.",
+      ),
+      h("A vantagem: diversificação instantânea"),
+      p(
+        "Montar uma carteira com 50 ações diferentes exige tempo, estudo e capital. Um ETF entrega esse mesmo efeito de diversificação numa única compra, porque o índice que ele segue já é, por definição, uma cesta de várias empresas. É por isso que ETFs costumam ser o ponto de entrada mais simples pra quem quer se expor à bolsa como um todo, sem escolher ação por ação.",
+      ),
+      h("ETF nacional e ETF internacional"),
+      p(
+        "Existem ETFs que seguem índices brasileiros, como o BOVA11 (que replica o Ibovespa), e ETFs negociados na B3 que dão acesso a índices internacionais, como o IVVB11 (que segue o S&P 500, das maiores empresas americanas). Isso permite ter exposição a mercados fora do Brasil sem precisar abrir conta em corretora no exterior.",
+      ),
+      h("Taxa de administração: o custo de ter alguém replicando o índice"),
+      p(
+        "Todo ETF cobra uma taxa de administração anual, geralmente bem menor que a de fundos de investimento tradicionais, porque a gestão é passiva: o objetivo não é bater o índice, é replicá-lo o mais fielmente possível. Vale comparar essa taxa entre ETFs que seguem o mesmo índice, já que ela é descontada do rendimento ao longo do tempo.",
+      ),
+      p(
+        "No Vestra dá pra comprar ETFs fictícios que seguem índices reais, tanto brasileiros quanto americanos, e comparar como cada um se comporta lado a lado com ações individuais na mesma carteira simulada.",
+      ),
+    ],
+  },
+  {
+    slug: "imposto-de-renda-sobre-acoes",
+    titulo: "Imposto de renda sobre ações: como funciona e quando pagar",
+    resumo:
+      "A isenção até R$ 20 mil em vendas no mês, a alíquota de 15% sobre o lucro, e como funciona a DARF na prática.",
+    palavrasChave: [
+      "imposto de renda ações",
+      "IR sobre ações",
+      "DARF ações",
+      "isenção venda de ações",
+      "imposto sobre lucro em bolsa",
+    ],
+    dataPublicacao: "2026-08-16",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Vender ações com lucro gera imposto de renda, mas a regra tem uma isenção que passa batido por muita gente: se o total vendido em ações no mês for até R$ 20.000, o lucro daquelas vendas fica isento de IR. Essa isenção vale pra soma das vendas no mês, não por operação individual.",
+      ),
+      h("Acima do limite: alíquota de 15%"),
+      p(
+        "Quando o total vendido no mês passa de R$ 20.000, o lucro obtido nessas vendas é tributado em 15%, recolhido pelo próprio investidor (a corretora não desconta automaticamente, como acontece com fundos). Day trade (compra e venda no mesmo dia) segue uma regra separada, com alíquota de 20% e sem a isenção dos R$ 20.000.",
+      ),
+      h("Como funciona a DARF"),
+      p(
+        "Quando há imposto a pagar, o próprio investidor precisa gerar uma DARF (Documento de Arrecadação de Receitas Federais) e pagar até o último dia útil do mês seguinte à venda. A maioria das corretoras oferece uma calculadora ou relatório mensal que já soma as operações e aponta se há imposto devido, o que ajuda bastante a não perder o prazo.",
+      ),
+      h("Prejuízo pode ser compensado depois"),
+      p(
+        "Se um mês fecha com prejuízo, esse valor pode ser abatido do lucro de vendas futuras, reduzindo o imposto a pagar mais adiante. Por isso vale guardar o histórico de operações: mesmo em meses de perda, esse registro tem valor pra compensação futura.",
+      ),
+      p(
+        "Como no Vestra as operações são com dinheiro fictício, não há imposto real envolvido, mas o extrato de transações do simulador segue a mesma lógica de somar compras e vendas por mês, uma forma de já se acostumar com esse tipo de controle antes de precisar declarar imposto de verdade.",
+      ),
+    ],
+  },
+  {
+    slug: "taxa-selic-como-afeta-seus-investimentos",
+    titulo: "Taxa Selic: o que é e como ela afeta seus investimentos",
+    resumo:
+      "Por que a Selic é chamada de taxa básica de juros, e como suas mudanças pesam de forma diferente na renda fixa e nas ações.",
+    palavrasChave: [
+      "taxa selic",
+      "o que é selic",
+      "selic e investimentos",
+      "selic alta ou baixa",
+      "juros e bolsa",
+    ],
+    dataPublicacao: "2026-08-17",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "A Selic é a taxa básica de juros da economia brasileira, definida pelo Comitê de Política Monetária (Copom) do Banco Central a cada 45 dias. Ela serve como referência para praticamente todas as outras taxas de juros do país, do rendimento de um Tesouro Selic ao juro cobrado no cartão de crédito.",
+      ),
+      h("Selic alta: renda fixa mais atrativa"),
+      p(
+        "Quando a Selic sobe, investimentos de renda fixa passam a pagar mais, porque grande parte deles é atrelada direta ou indiretamente a ela (Tesouro Selic, CDBs pós-fixados, fundos DI). Isso também deixa o crédito mais caro para empresas e pessoas, o que tende a desacelerar a economia.",
+      ),
+      h("Selic alta costuma pressionar as ações"),
+      p(
+        "Com a renda fixa pagando mais e sem o risco de oscilação de preço, parte do dinheiro que estaria em ações migra para lá, buscando um retorno mais previsível. Além disso, juros mais altos encarecem o crédito das empresas e reduzem o valor presente dos lucros futuros usado para precificar ações, dois fatores que costumam pesar negativamente sobre a bolsa.",
+      ),
+      h("Selic baixa: o efeito contrário"),
+      p(
+        "Com a Selic baixa, a renda fixa perde parte do apelo, e o mercado tende a olhar mais para ações e outros ativos de maior risco em busca de retorno melhor. É por isso que o mercado de ações costuma reagir tão rápido a qualquer sinal sobre o rumo dos juros, mesmo antes de o Copom anunciar qualquer decisão oficial.",
+      ),
+      p(
+        "No Vestra, os títulos de renda fixa simulados rendem com base na Selic real, então dá pra sentir na prática como uma mudança da taxa afeta o rendimento acumulado, e comparar esse efeito com o que acontece ao mesmo tempo na carteira de ações fictícia.",
+      ),
+    ],
+  },
 ];
 
 export function postPorSlug(slug: string): PostBlog | undefined {
