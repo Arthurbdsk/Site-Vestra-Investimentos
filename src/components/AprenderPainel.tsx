@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { CAPAS, type CapaArtigo } from "@/lib/blog";
 import {
   BookOpen,
   Newspaper,
@@ -150,14 +152,21 @@ function Dicionario() {
 
 /* ------------------------------------------------------------------ */
 
-const ESTILO_ARTIGO: { icone: LucideIcon; fundo: string }[] = [
-  { icone: Compass, fundo: "bg-blue" },
-  { icone: Scale, fundo: "bg-gold" },
-  { icone: Layers, fundo: "bg-blue" },
-  { icone: Percent, fundo: "bg-gold" },
-  { icone: AlertTriangle, fundo: "bg-blue" },
-  { icone: LineChart, fundo: "bg-gold" },
-];
+/**
+ * Capa de cada trilha, por assunto (nao rotativa): a foto entra no lugar
+ * do bloco de cor chapada, e o icone fica sobre ela pra a leitura rapida
+ * do cartao nao depender da imagem carregar.
+ */
+const ESTILO_ARTIGO: Record<string, { icone: LucideIcon; capa: CapaArtigo }> = {
+  "por-onde-comecar": { icone: Compass, capa: "conceito" },
+  "renda-fixa-vs-variavel": { icone: Scale, capa: "mercado" },
+  "diversificar-de-verdade": { icone: Layers, capa: "bolsa" },
+  "selic-sobe-desce": { icone: Percent, capa: "renda-fixa" },
+  "erros-comuns-iniciante": { icone: AlertTriangle, capa: "mercado" },
+  "ler-grafico-sem-se-perder": { icone: LineChart, capa: "imoveis" },
+};
+
+const ESTILO_RESERVA = { icone: Compass, capa: "conceito" as CapaArtigo };
 
 function tempoLeitura(artigo: Artigo): number {
   const palavras = artigo.corpo.join(" ").split(/\s+/).length;
@@ -253,7 +262,7 @@ function Artigos() {
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {ARTIGOS.map((a, i) => {
-          const estilo = ESTILO_ARTIGO[i % ESTILO_ARTIGO.length];
+          const estilo = ESTILO_ARTIGO[a.slug] ?? ESTILO_RESERVA;
           const Icone = estilo.icone;
           const concluido = concluidos.includes(a.slug);
           return (
@@ -270,15 +279,21 @@ function Artigos() {
                   <Check size={13} />
                 </span>
               )}
-              <div className={`relative flex h-28 items-center justify-center ${estilo.fundo}`}>
-                <span
-                  className={`absolute left-3 top-3 font-mono text-[10px] font-bold uppercase tracking-widest ${
-                    estilo.fundo === "bg-gold" ? "text-blue/70" : "text-onblue-muted"
-                  }`}
-                >
+              <div className="relative flex h-28 items-center justify-center overflow-hidden bg-blue">
+                <Image
+                  src={CAPAS[estilo.capa].arquivo}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {/* Véu escuro: as capas variam de exposição, e sem ele o
+                    ícone e o rótulo somem nas mais claras. */}
+                <div className="absolute inset-0 bg-blue-deep/55" />
+                <span className="absolute left-3 top-3 font-mono text-[10px] font-bold uppercase tracking-widest text-onblue-muted">
                   Artigo
                 </span>
-                <Icone size={36} className={estilo.fundo === "bg-gold" ? "text-blue-deep" : "text-gold"} />
+                <Icone size={36} className="relative text-gold" />
               </div>
               <div className="p-5">
                 <p className="font-display text-xl font-bold leading-snug text-ink group-hover:text-blue">
