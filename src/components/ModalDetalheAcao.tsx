@@ -7,6 +7,8 @@ import { GraficoAvancado } from "./GraficoAvancado";
 import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
 import { ativoPorTicker } from "@/lib/ativos";
+import { fiiPorTicker } from "@/lib/fiis";
+import { etfPorTicker } from "@/lib/etfs";
 import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
 import { BotaoFavorito } from "./BotaoFavorito";
@@ -76,10 +78,20 @@ export function ModalDetalheAcao({
     if (!ticker) return;
     setCabecalho(null);
     setPeriodo("3mo");
-    // Ticker da B3 tem 4 letras + 1 ou 2 numeros (ex: PETR4); qualquer
-    // outro formato de 1 a 5 letras e uma acao americana (ex: AAPL).
-    const ehUS = /^[A-Z]{1,5}$/.test(ticker);
-    const rota = ehUS ? `/api/acoes-usa?q=${encodeURIComponent(ticker)}` : `/api/acoes?q=${encodeURIComponent(ticker)}`;
+    // A busca geral da B3 (/api/acoes) usa type=stock na brapi, que NAO
+    // devolve FII nem ETF. Sem este desvio o preco vinha nulo e o botao
+    // "Comprar" ficava travado justamente pra quem abriu o detalhe de um
+    // fundo imobiliario ou de um ETF. /api/fiis e /api/etfs leem a
+    // tabela cotacoes, que cobre os dois.
+    const rota = fiiPorTicker(ticker)
+      ? "/api/fiis"
+      : etfPorTicker(ticker)
+        ? "/api/etfs"
+        : // Ticker da B3 tem 4 letras + 1 ou 2 numeros (ex: PETR4);
+          // qualquer outro formato de 1 a 5 letras e acao americana.
+          /^[A-Z]{1,5}$/.test(ticker)
+          ? `/api/acoes-usa?q=${encodeURIComponent(ticker)}`
+          : `/api/acoes?q=${encodeURIComponent(ticker)}`;
     fetch(rota)
       .then((r) => r.json())
       .then((json) => {

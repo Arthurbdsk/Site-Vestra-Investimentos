@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { decidirOperacao } from "@/lib/agenteIA";
 import { buscarFundamentosVarios } from "@/lib/fundamentos";
-import { acaoPorTicker } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import type { Resultado } from "./operacoes";
 import { comprar, vender, criarOrdemLimitada } from "./operacoes";
 
@@ -71,7 +71,11 @@ export async function rodarAgente(): Promise<Resultado> {
 
   const cotacoesDisponiveis = (cotacoesRes.data ?? [])
     .map((c) => {
-      const info = acaoPorTicker(c.ticker);
+      // ativoPorTicker (nao acaoPorTicker): a tabela cotacoes cobre FII,
+      // ETF e acao americana tambem. Com a busca so na lista da B3, 28
+      // dos 44 tickers chegavam no prompt como "HGLG11 (HGLG11, setor
+      // outro)" e o agente decidia sem saber o que era cada ativo.
+      const info = ativoPorTicker(c.ticker);
       const f = fundamentosMap.get(c.ticker);
       return {
         ticker: c.ticker,

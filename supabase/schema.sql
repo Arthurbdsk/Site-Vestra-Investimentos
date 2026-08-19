@@ -357,7 +357,11 @@ begin
     return v_preco;
   end if;
 
-  if p_ticker ~ '^[A-Z]{4}[0-9]{1,2}$' then
+  -- O miolo aceita digito porque existe ticker da B3 com numero no meio:
+  -- B3SA3 nao casava com [A-Z]{4} nem com [A-Z]{1,5}, caia no else e a
+  -- funcao retornava null, o que fazia comprar/vender abortarem com
+  -- "Nao consegui confirmar o preco" sempre que o cache passava de 5 min.
+  if p_ticker ~ '^[A-Z][A-Z0-9]{3}[0-9]{1,2}$' then
     v_mercado := 'br';
   elsif p_ticker ~ '^[A-Z]{1,5}$' then
     v_mercado := 'us';

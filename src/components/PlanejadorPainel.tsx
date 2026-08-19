@@ -17,6 +17,7 @@ export function PlanejadorPainel({
   const [objetivo, setObjetivo] = useState<Objetivo>("rentabilidade");
   const [plano, setPlano] = useState<Plano | null>(null);
   const [comprando, setComprando] = useState<string | null>(null);
+  const [erroCompra, setErroCompra] = useState<string | null>(null);
 
   function gerar() {
     setPlano(gerarPlano(valor, prazoAnos, objetivo));
@@ -24,13 +25,20 @@ export function PlanejadorPainel({
 
   async function comprarAgora(ticker: string, nome: string) {
     setComprando(ticker);
+    setErroCompra(null);
     try {
       const resposta = await fetch(`/api/acoes?q=${encodeURIComponent(ticker)}`);
       const json = await resposta.json();
       const encontrada = json.acoes?.find((a: { ticker: string }) => a.ticker === ticker);
       if (encontrada?.preco != null) {
         aoComprar(ticker, encontrada.preco, nome);
+      } else {
+        // Sem este aviso o botao apenas piscava e voltava ao normal, sem
+        // modal e sem explicacao, quando a cotacao nao vinha.
+        setErroCompra(`Não consegui buscar o preço de ${ticker} agora. Tente de novo em instantes.`);
       }
+    } catch {
+      setErroCompra(`Não consegui buscar o preço de ${ticker} agora. Tente de novo em instantes.`);
     } finally {
       setComprando(null);
     }
@@ -170,6 +178,10 @@ export function PlanejadorPainel({
               </motion.li>
             ))}
           </ul>
+
+          {erroCompra && (
+            <p className="mt-4 text-sm leading-relaxed text-rose-600">{erroCompra}</p>
+          )}
 
           <p className="mt-6 font-mono text-[11px] text-ink-muted">
             Sugestão educativa, não recomendação de investimento. Renda

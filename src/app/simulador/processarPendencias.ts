@@ -1,7 +1,27 @@
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { precoAtualQualquerTicker } from "@/lib/cotacoes";
 import { buscarDividendos } from "@/lib/dividendos";
 import { statusMercado, mercadoDoTicker } from "@/lib/mercadoStatus";
+
+/**
+ * Preco de qualquer ticker, por dentro do banco.
+ *
+ * garantir_cotacao cobre B3, FII, ETF e NYSE/NASDAQ (finnhub + cambio) e
+ * ja mantem a cache. A alternativa em TS (precoAtualQualquerTicker) fala
+ * so com a brapi, que nao cobre os EUA: com ela, alerta de preco em AAPL
+ * ficava ativo pra sempre e ordem limitada de acao americana nunca
+ * executava, sem erro nenhum aparecer.
+ */
+async function precoDoTicker(
+  supabase: Awaited<ReturnType<typeof criarClienteServidor>>,
+  ticker: string,
+): Promise<number | null> {
+  const { data, error } = await supabase.rpc("garantir_cotacao", {
+    p_ticker: ticker.trim().toUpperCase(),
+  });
+  if (error || data == null) return null;
+  const preco = Number(data);
+  return Number.isFinite(preco) && preco > 0 ? preco : null;
+}
 
 type OrdemPendente = {
   id: string;
@@ -103,7 +123,7 @@ async function processarAlertas(
   if (!alertas || alertas.length === 0) return;
 
   for (const alerta of alertas as AlertaPreco[]) {
-    const preco = await precoAtualQualquerTicker(alerta.ticker);
+    const preco = await precoDoTicker(supabase, alerta.ticker);
     if (preco === null) continue;
 
     const precoAlvo = Number(alerta.preco_alvo);
@@ -136,7 +156,7 @@ async function processarOrdens(
       // momento (nao ha preco-alvo pra comparar aqui).
       if (!statusMercado(agora, mercadoDoTicker(ordem.ticker)).aberto) continue;
     } else {
-      const preco = await precoAtualQualquerTicker(ordem.ticker);
+      const preco = await precoDoTicker(supabase, ordem.ticker);
       if (preco === null) continue;
 
       const precoAlvo = Number(ordem.preco_alvo);

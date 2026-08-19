@@ -33,6 +33,7 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
   const [dias, setDias] = useState(30);
   const [criando, setCriando] = useState(false);
   const [codigoNovo, setCodigoNovo] = useState<string | null>(null);
+  const [erroCriar, setErroCriar] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   const [codigoEntrar, setCodigoEntrar] = useState("");
@@ -41,13 +42,19 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
 
   function criar() {
     setCriando(true);
+    setErroCriar(null);
     iniciar(async () => {
       const r = await criarDuelo(dias);
       setCriando(false);
-      if (r.ok && r.codigo) {
-        setCodigoNovo(r.codigo);
-        router.refresh();
+      // Sem o ramo de erro, uma falha ao criar parava o spinner e nao
+      // mostrava codigo nem aviso: parecia que nada tinha acontecido.
+      if (!r.ok) {
+        setErroCriar(r.mensagem);
+        return;
       }
+      if (r.codigo) setCodigoNovo(r.codigo);
+      else setErroCriar("O duelo foi criado, mas o código não voltou. Recarregue a página pra vê-lo.");
+      router.refresh();
     });
   }
 
@@ -123,6 +130,10 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
                 {copiado ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
               </button>
             </div>
+          )}
+
+          {erroCriar && (
+            <p className="mt-4 text-sm leading-relaxed text-rose-600">{erroCriar}</p>
           )}
         </div>
 

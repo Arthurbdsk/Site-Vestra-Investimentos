@@ -19,9 +19,17 @@ export type StatusMercado = {
   mensagem: string;
 };
 
-/** Detecta o mercado pelo FORMATO do ticker: B3 termina em digito (PETR4), EUA e so letras (AAPL). */
+/**
+ * Detecta o mercado pelo FORMATO do ticker: B3 termina em digito
+ * (PETR4, HGLG11), EUA e so letras (AAPL).
+ *
+ * O miolo aceita numero porque existe ticker da B3 com digito no meio:
+ * B3SA3 (a propria B3) nao casava com [A-Z]{4} e era classificado como
+ * acao americana, o que quebrava grafico, horario de pregao e ate a
+ * compra dela.
+ */
 export function mercadoDoTicker(ticker: string): Mercado {
-  return /^[A-Z]{4}[0-9]{1,2}$/.test(ticker.trim().toUpperCase()) ? "br" : "us";
+  return /^[A-Z][A-Z0-9]{3}[0-9]{1,2}$/.test(ticker.trim().toUpperCase()) ? "br" : "us";
 }
 
 function offsetHorasNY(data: Date): number {

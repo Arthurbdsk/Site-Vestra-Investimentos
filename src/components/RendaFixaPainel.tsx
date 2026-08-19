@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Loader2, Landmark, PiggyBank, TrendingUp } from "lucide-react";
 import { CDBS } from "@/lib/rendaFixa";
 import { investirRendaFixa, resgatarRendaFixa } from "@/app/simulador/operacoesRendaFixa";
+import type { Resultado } from "@/app/simulador/operacoes";
 import { brl, numero, data as fmtData } from "@/lib/formato";
 
 export type PosicaoRendaFixa = {
@@ -150,11 +151,12 @@ export function RendaFixaPainel({ posicoes }: { posicoes: PosicaoRendaFixa[] }) 
 function FormularioInvestir({
   onConfirmar,
 }: {
-  onConfirmar: (valor: number) => Promise<void>;
+  onConfirmar: (valor: number) => Promise<Resultado>;
 }) {
   const [aberto, setAberto] = useState(false);
   const [valor, setValor] = useState(1000);
   const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   if (!aberto) {
     return (
@@ -179,15 +181,21 @@ function FormularioInvestir({
       <button
         onClick={async () => {
           setEnviando(true);
-          await onConfirmar(valor);
+          setErro(null);
+          const r = await onConfirmar(valor);
           setEnviando(false);
-          setAberto(false);
+          // Só fecha se deu certo. Antes fechava sempre, então saldo
+          // insuficiente parecia investimento feito: o formulário sumia
+          // e a aplicação simplesmente não existia.
+          if (r.ok) setAberto(false);
+          else setErro(r.mensagem);
         }}
         disabled={enviando}
         className="flex w-full items-center justify-center gap-2 bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
       >
         {enviando ? <Loader2 size={15} className="animate-spin" /> : `Confirmar ${brl(valor)}`}
       </button>
+      {erro && <p className="text-sm leading-relaxed text-rose-600">{erro}</p>}
     </div>
   );
 }
@@ -226,8 +234,14 @@ function CdbCartao({
       </p>
       <FormularioInvestir
         onConfirmar={async (valor) => {
-          await investirRendaFixa("cdb", `CDB ${cdb.banco} (${cdb.percentualCdi}% do CDI)`, valor, taxaAnual);
-          router.refresh();
+          const r = await investirRendaFixa(
+            "cdb",
+            `CDB ${cdb.banco} (${cdb.percentualCdi}% do CDI)`,
+            valor,
+            taxaAnual,
+          );
+          if (r.ok) router.refresh();
+          return r;
         }}
       />
     </motion.li>
@@ -266,8 +280,9 @@ function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number
       </p>
       <FormularioInvestir
         onConfirmar={async (valor) => {
-          await investirRendaFixa("tesouro", titulo.nome, valor, taxaAnual);
-          router.refresh();
+          const r = await investirRendaFixa("tesouro", titulo.nome, valor, taxaAnual);
+          if (r.ok) router.refresh();
+          return r;
         }}
       />
     </motion.li>
@@ -277,13 +292,19 @@ function TesouroCartao({ titulo, delay }: { titulo: TituloTesouro; delay: number
 function PosicaoCartao({ pos, delay }: { pos: PosicaoRendaFixa; delay: number }) {
   const router = useRouter();
   const [resgatando, setResgatando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const atual = valorAtual(pos);
   const ganho = atual - pos.valorInvestido;
 
   async function resgatar() {
     setResgatando(true);
-    await resgatarRendaFixa(pos.id);
-    router.refresh();
+    setErro(null);
+    // Sem olhar o resultado, um resgate recusado deixava o botao voltar
+    // de "Resgatando..." e a posicao na tela, sem dizer o motivo.
+    const r = await resgatarRendaFixa(pos.id);
+    setResgatando(false);
+    if (r.ok) router.refresh();
+    else setErro(r.mensagem);
   }
 
   return (
@@ -306,6 +327,7 @@ function PosicaoCartao({ pos, delay }: { pos: PosicaoRendaFixa; delay: number })
       >
         {resgatando ? "Resgatando…" : "Resgatar"}
       </button>
+      {erro && <p className="mt-2 text-sm leading-relaxed text-rose-600">{erro}</p>}
     </motion.li>
   );
 }

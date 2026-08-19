@@ -41,8 +41,8 @@ import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES } from "@/lib/acoes";
 import { ativoPorTicker } from "@/lib/ativos";
-import { FIIS } from "@/lib/fiis";
-import { ETFS } from "@/lib/etfs";
+import { FIIS, fiiPorTicker } from "@/lib/fiis";
+import { ETFS, etfPorTicker } from "@/lib/etfs";
 import { ACOES_USA } from "@/lib/acoesUsa";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
@@ -1546,9 +1546,20 @@ function FavoritasFaixa({
 
   useEffect(() => {
     let cancelado = false;
+    // Cada favorito vai pra rota que cobre o mercado dele. Antes tudo ia
+    // pra /api/acoes (type=stock na brapi, so B3), entao favoritar um
+    // FII, um ETF ou uma acao americana acendia a estrela mas o ativo
+    // nunca aparecia nesta faixa, sem aviso nenhum.
+    function rotaDe(t: string) {
+      if (fiiPorTicker(t)) return "/api/fiis";
+      if (etfPorTicker(t)) return "/api/etfs";
+      if (/^[A-Z]{1,5}$/.test(t)) return `/api/acoes-usa?q=${encodeURIComponent(t)}`;
+      return `/api/acoes?q=${encodeURIComponent(t)}`;
+    }
+
     Promise.all(
       tickers.map((t) =>
-        fetch(`/api/acoes?q=${encodeURIComponent(t)}`)
+        fetch(rotaDe(t))
           .then((r) => r.json())
           .then((json) => json.acoes?.find((a: AcaoB3) => a.ticker === t) ?? null)
           .catch(() => null),
