@@ -913,6 +913,47 @@ function Explorar({
       .catch(() => setAcoesEtf([]));
   }, [mercado, acoesEtf]);
 
+  // Busca no catalogo COMPLETO da B3: 332 FIIs e 182 ETFs, contra os 10 e
+  // 6 curados. So os curados tem explicacao escrita, entao eles seguem
+  // como "Populares" e a busca cobre o resto.
+  const [buscaFundoAtrasada, setBuscaFundoAtrasada] = useState("");
+  const [resultadosFundo, setResultadosFundo] = useState<AcaoB3[]>([]);
+  const [carregandoFundo, setCarregandoFundo] = useState(false);
+  const [erroFundo, setErroFundo] = useState<string | null>(null);
+
+  const buscandoFundo = mercado === "fii" || mercado === "etf";
+
+  useEffect(() => {
+    const id = setTimeout(() => setBuscaFundoAtrasada(busca.trim()), 400);
+    return () => clearTimeout(id);
+  }, [busca]);
+
+  useEffect(() => {
+    if (!buscandoFundo || buscaFundoAtrasada.length < 2) {
+      setResultadosFundo([]);
+      setErroFundo(null);
+      return;
+    }
+    let cancelado = false;
+    setCarregandoFundo(true);
+    fetch(`/api/${mercado === "fii" ? "fiis" : "etfs"}?q=${encodeURIComponent(buscaFundoAtrasada)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelado) return;
+        setResultadosFundo(json.acoes ?? []);
+        setErroFundo(json.erro ?? null);
+      })
+      .catch(() => {
+        if (!cancelado) setErroFundo("Não foi possível buscar agora. Tente de novo em instantes.");
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoFundo(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [buscandoFundo, mercado, buscaFundoAtrasada]);
+
   useEffect(() => {
     const id = setTimeout(() => setBuscaUsaAtrasada(buscaUsa.trim()), 400);
     return () => clearTimeout(id);
@@ -1037,7 +1078,9 @@ function Explorar({
           <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
             ETFs seguem um índice inteiro numa única cota (tipo o Ibovespa ou
             o S&P 500), em vez de você escolher ação por ação. Também são
-            negociados na B3 como uma ação comum.
+            negociados na B3 como uma ação comum. Explicamos alguns, mas
+            busque qualquer código pra comprar qualquer um dos mais de 180
+            ETFs da bolsa.
           </p>
 
           <input
@@ -1080,7 +1123,19 @@ function Explorar({
             </>
           ) : null}
 
-          {acoesEtf !== null && popularesEtf.length === 0 && (
+          <ResultadosFundo
+            titulo="Outros ETFs da B3"
+            termo={buscaFundoAtrasada}
+            resultados={resultadosFundo}
+            carregando={carregandoFundo}
+            erro={erroFundo}
+            curados={new Set(ETFS.map((e) => e.ticker))}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+
+          {acoesEtf !== null && popularesEtf.length === 0 && !buscaFundoAtrasada && (
             <p className="mt-8 text-ink-muted">
               Nenhum ETF encontrado com esse termo.
             </p>
@@ -1094,7 +1149,9 @@ function Explorar({
           <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
             FIIs são negociados na B3 igual uma ação (ticker termina em 11),
             mas o dinheiro vai pra imóveis ou títulos imobiliários, não pra
-            uma empresa. Costumam pagar rendimento todo mês.
+            uma empresa. Costumam pagar rendimento todo mês. Explicamos
+            alguns conhecidos, mas busque qualquer código pra comprar
+            qualquer um dos mais de 300 FIIs da bolsa.
           </p>
 
           <input
@@ -1137,7 +1194,19 @@ function Explorar({
             </>
           ) : null}
 
-          {acoesFii !== null && popularesFii.length === 0 && (
+          <ResultadosFundo
+            titulo="Outros FIIs da B3"
+            termo={buscaFundoAtrasada}
+            resultados={resultadosFundo}
+            carregando={carregandoFundo}
+            erro={erroFundo}
+            curados={new Set(FIIS.map((f) => f.ticker))}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+
+          {acoesFii !== null && popularesFii.length === 0 && !buscaFundoAtrasada && (
             <p className="mt-8 text-ink-muted">
               Nenhum FII encontrado com esse termo.
             </p>
@@ -1450,6 +1519,70 @@ function CartaoAcaoPopular({
         {dadosFinais ? "Comprar" : "Indisponível agora"}
       </button>
     </motion.li>
+  );
+}
+
+/**
+ * Resultados da busca no catalogo completo de fundos da B3.
+ *
+ * Os curados aparecem acima em "Populares", com explicacao propria, e sao
+ * removidos daqui pra a mesma cota nao sair duas vezes na tela.
+ */
+function ResultadosFundo({
+  titulo,
+  termo,
+  resultados,
+  carregando,
+  erro,
+  curados,
+  favoritos,
+  aoComprar,
+  aoVerDetalhe,
+}: {
+  titulo: string;
+  termo: string;
+  resultados: AcaoB3[];
+  carregando: boolean;
+  erro: string | null;
+  curados: Set<string>;
+  favoritos: Set<string>;
+  aoComprar: (ticker: string, preco: number, nome?: string) => void;
+  aoVerDetalhe: (ticker: string) => void;
+}) {
+  if (termo.length < 2) return null;
+
+  const novos = resultados.filter((a) => !curados.has(a.ticker));
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center gap-2">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+          {titulo}
+        </p>
+        {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
+      </div>
+
+      {erro && <p className="mt-4 text-sm text-ink-muted">{erro}</p>}
+
+      {!erro && !carregando && novos.length === 0 && (
+        <p className="mt-4 text-ink-muted">Nada mais encontrado com esse termo.</p>
+      )}
+
+      {!erro && novos.length > 0 && (
+        <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
+          {novos.map((a, i) => (
+            <CartaoAcaoB3
+              key={a.ticker}
+              acao={a}
+              delay={Math.min(i * 0.04, 0.4)}
+              favorito={favoritos.has(a.ticker)}
+              aoComprar={aoComprar}
+              aoVerDetalhe={aoVerDetalhe}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

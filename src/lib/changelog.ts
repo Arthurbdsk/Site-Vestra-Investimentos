@@ -13,6 +13,18 @@ export type NotaAtualizacao = {
 
 export const NOTAS_ATUALIZACAO: NotaAtualizacao[] = [
   {
+    data: "2026-08-19",
+    titulo: "Todos os FIIs e ETFs da B3",
+    descricao:
+      "Antes só dava pra comprar os 10 FIIs e 6 ETFs que a gente explicava. Agora a busca cobre a bolsa inteira: mais de 300 fundos imobiliários e mais de 180 ETFs. Os explicados continuam em destaque como \"Populares\".",
+  },
+  {
+    data: "2026-08-19",
+    titulo: "Correções de compra e de avisos de erro",
+    descricao:
+      "O botão \"Comprar\" ficava travado ao abrir o detalhe de um FII ou ETF, e a ação B3SA3 não podia ser negociada. Alertas de preço e ordens de ações americanas não disparavam. Renda fixa, Planejador e Duelo agora mostram o motivo quando algo falha, em vez de fechar em silêncio.",
+  },
+  {
     data: "2026-08-17",
     titulo: "Aba de novidades",
     descricao:
