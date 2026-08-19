@@ -36,7 +36,7 @@ type ToolCall = { id: string; type: "function"; function: { name: string; argume
 // combinar isso com ferramentas customizadas no mesmo pedido, entao o
 // modo "busca" usa Compound (sem executar acoes) e o modo "padrao" usa
 // o modelo normal com as ferramentas de comprar/vender/criar ordem.
-const MODELO_PADRAO = "llama-3.3-70b-versatile";
+const MODELO_PADRAO = "openai/gpt-oss-120b";
 const MODELO_BUSCA = "groq/compound-mini";
 
 export type ModoAssistente = "padrao" | "busca";

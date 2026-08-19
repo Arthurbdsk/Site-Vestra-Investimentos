@@ -30,7 +30,7 @@ const LIMITE_POR_PERFIL: Record<ContextoAgente["perfilRisco"], number> = {
 
 // Groq: chave gratuita, cota bem mais alta que a do Gemini. API
 // compativel com o formato da OpenAI (messages/tools/tool_calls).
-const MODELO = "llama-3.3-70b-versatile";
+const MODELO = "openai/gpt-oss-120b";
 
 /**
  * Pede pro modelo decidir UMA operacao (comprar, vender ou manter),
