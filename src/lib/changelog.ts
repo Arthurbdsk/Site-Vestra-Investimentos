@@ -14,6 +14,12 @@ export type NotaAtualizacao = {
 export const NOTAS_ATUALIZACAO: NotaAtualizacao[] = [
   {
     data: "2026-08-19",
+    titulo: "Oito artigos novos no blog",
+    descricao:
+      "Reserva de emergência, juros compostos, poupança, inflação e IPCA, perfil de investidor, renda fixa x variável, erros de iniciante e day trade. O blog agora tem 18 artigos.",
+  },
+  {
+    data: "2026-08-19",
     titulo: "Todos os FIIs e ETFs da B3",
     descricao:
       "Antes só dava pra comprar os 10 FIIs e 6 ETFs que a gente explicava. Agora a busca cobre a bolsa inteira: mais de 300 fundos imobiliários e mais de 180 ETFs. Os explicados continuam em destaque como \"Populares\".",

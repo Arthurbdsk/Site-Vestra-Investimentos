@@ -382,6 +382,331 @@ export const POSTS_BLOG: PostBlog[] = [
       ),
     ],
   },
+  {
+    slug: "reserva-de-emergencia-quanto-e-onde",
+    titulo: "Reserva de emergência: quanto guardar e onde deixar o dinheiro",
+    resumo:
+      "Como calcular o tamanho da sua reserva, por que ela vem antes de qualquer investimento, e quais aplicações servem pra ela.",
+    palavrasChave: [
+      "reserva de emergência",
+      "quanto guardar reserva de emergência",
+      "onde investir reserva de emergência",
+      "liquidez diária",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Reserva de emergência é o dinheiro separado pra imprevisto: perder o emprego, quebrar o carro, uma consulta que o plano não cobre. Ela não existe pra render bem, existe pra estar disponível no dia em que você precisar dela.",
+      ),
+      h("Quanto guardar"),
+      p(
+        "A conta parte das suas despesas mensais, não do seu salário. Some o que você realmente gasta por mês (aluguel, comida, transporte, contas) e multiplique por 3 a 6. Quem tem renda fixa e estável fica mais perto de 3; quem é autônomo, tem renda variável ou sustenta outras pessoas se aproxima de 6, ou mais.",
+      ),
+      h("Onde deixar: liquidez importa mais que rentabilidade"),
+      p(
+        "A reserva precisa de duas coisas: baixo risco e resgate rápido. Isso aponta pra aplicações de liquidez diária, como Tesouro Selic ou CDBs que permitem resgate a qualquer momento. O ponto não é achar o que rende mais, é garantir que o dinheiro esteja lá amanhã, sem prejuízo por sacar na hora errada.",
+      ),
+      h("O que não serve como reserva"),
+      p(
+        "Ações, fundos imobiliários e qualquer coisa com preço oscilando não servem: se a emergência coincidir com um mês ruim, você vende no prejuízo. Títulos com vencimento longo e resgate antecipado penalizado também ficam de fora, mesmo sendo de renda fixa.",
+      ),
+      h("Por que ela vem primeiro"),
+      p(
+        "Sem reserva, qualquer imprevisto te obriga a desmontar investimentos no pior momento possível, ou a recorrer a crédito caro. É por isso que ela costuma ser tratada como etapa zero: não é um investimento entre outros, é o que protege todos os outros.",
+      ),
+      p(
+        "No simulador do Vestra dá pra aplicar em títulos de liquidez diária com dinheiro fictício e acompanhar o rendimento se acumulando dia a dia, o que ajuda a ver na prática a diferença entre deixar a reserva parada na conta e deixar ela rendendo.",
+      ),
+    ],
+  },
+  {
+    slug: "juros-compostos-como-funcionam",
+    titulo: "Juros compostos: como o tempo faz o trabalho pesado",
+    resumo:
+      "A diferença entre juro simples e composto, por que começar cedo pesa mais que aportar muito, e como ver isso na prática.",
+    palavrasChave: [
+      "juros compostos",
+      "como funcionam juros compostos",
+      "juros simples e compostos",
+      "efeito bola de neve investimento",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Juro composto é juro que rende sobre juro. Em vez de o rendimento incidir sempre sobre o valor que você aplicou no início, ele passa a incidir sobre o valor aplicado mais tudo o que já rendeu até ali. É essa diferença que faz o resultado crescer em curva, e não em linha reta.",
+      ),
+      h("Simples x composto, na prática"),
+      p(
+        "No juro simples, aplicar R$ 1.000 a 10% ao ano rende R$ 100 todo ano, sempre igual. No composto, o primeiro ano rende R$ 100, o segundo rende sobre R$ 1.100, o terceiro sobre R$ 1.210, e assim por diante. Nos primeiros anos a diferença parece pequena; em duas ou três décadas ela é o que separa os dois resultados por uma distância enorme.",
+      ),
+      h("Tempo pesa mais que valor"),
+      p(
+        "Essa é a parte contraintuitiva: quem começa cedo com pouco costuma terminar à frente de quem começa tarde com muito, porque o composto precisa de tempo pra agir. Cada ano a mais de aplicação não adiciona um pedaço igual ao anterior, adiciona um pedaço maior, já que a base sobre a qual o rendimento incide cresceu.",
+      ),
+      h("Por que retirar no meio custa caro"),
+      p(
+        "Sacar parte do dinheiro não interrompe só o valor sacado, interrompe também todo o rendimento que aquele valor teria gerado nos anos seguintes. É por isso que o composto e a paciência andam juntos: o efeito depende de deixar o dinheiro trabalhando sem interrupção.",
+      ),
+      h("O composto também trabalha contra você"),
+      p(
+        "A mesma matemática rege dívidas. Juro de cartão de crédito e cheque especial é composto, e roda contra o seu bolso na mesma velocidade em que ele rodaria a favor num investimento. Quitar uma dívida caras costuma render mais, em termos práticos, do que qualquer aplicação.",
+      ),
+      p(
+        "A simulação da página inicial do Vestra mostra esse efeito com números: você escolhe um valor mensal e vê quanto sairia do seu bolso e quanto o juro acrescentaria em 30 anos. É a forma mais direta de ver o tamanho da diferença sem precisar fazer a conta na mão.",
+      ),
+    ],
+  },
+  {
+    slug: "poupanca-vale-a-pena",
+    titulo: "Poupança vale a pena? O que ela rende e quando faz sentido",
+    resumo:
+      "Como a poupança calcula o rendimento, por que ela costuma perder de outras aplicações igualmente seguras, e o que ela tem de bom.",
+    palavrasChave: [
+      "poupança vale a pena",
+      "quanto rende a poupança",
+      "poupança ou tesouro direto",
+      "rendimento da poupança",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 4,
+    corpo: [
+      p(
+        "A poupança é a aplicação mais conhecida do país, e também uma das que rendem menos entre as opções de risco parecido. Vale entender como o rendimento dela é calculado, porque a regra não é intuitiva.",
+      ),
+      h("Como o rendimento é definido"),
+      p(
+        "A poupança segue uma regra fixada em lei, atrelada à Selic. Quando a Selic está acima de um certo patamar, a poupança rende um percentual fixo ao mês mais a TR; quando está abaixo, passa a render uma fração da Selic. O ponto importante: o rendimento dela não acompanha integralmente a taxa de juros, mesmo quando os juros sobem bastante.",
+      ),
+      h("O detalhe do aniversário"),
+      p(
+        "A poupança só credita rendimento na data de aniversário do depósito, uma vez por mês. Se você saca um dia antes, perde o rendimento do mês inteiro daquele valor. Aplicações de liquidez diária, por comparação, rendem proporcionalmente aos dias em que o dinheiro ficou aplicado.",
+      ),
+      h("O que ela tem de bom"),
+      p(
+        "Dois pontos reais: é isenta de imposto de renda para pessoa física, e é simples de usar, sem precisar entender produto nenhum. A isenção, porém, raramente compensa a diferença de rentabilidade frente a um título público ou um CDB que pague perto de 100% do CDI, porque a diferença bruta costuma ser maior que o imposto.",
+      ),
+      h("Quando faz sentido"),
+      p(
+        "Pra quem está começando e ainda não abriu conta em corretora, a poupança é melhor que deixar o dinheiro na conta corrente rendendo zero. Mas ela funciona mais como um degrau do que como destino: assim que existe acesso a renda fixa de liquidez diária, o mesmo dinheiro tende a render mais lá, com risco equivalente.",
+      ),
+      p(
+        "Comparar isso lado a lado ajuda mais que qualquer explicação. No Vestra você aplica em títulos simulados e acompanha o rendimento diário acumulando, o que dá pra contrastar com o que a poupança entregaria no mesmo período.",
+      ),
+    ],
+  },
+  {
+    slug: "inflacao-ipca-e-seu-dinheiro",
+    titulo: "Inflação e IPCA: por que render pouco pode significar perder",
+    resumo:
+      "O que o IPCA mede, a diferença entre ganho nominal e ganho real, e como proteger o poder de compra do dinheiro.",
+    palavrasChave: [
+      "inflação",
+      "o que é IPCA",
+      "ganho real e nominal",
+      "proteger dinheiro da inflação",
+      "IPCA investimentos",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Inflação é a perda de poder de compra do dinheiro ao longo do tempo: a mesma quantia compra menos coisa depois de um período. No Brasil, o índice oficial que mede isso é o IPCA, calculado pelo IBGE a partir de uma cesta de produtos e serviços que representa o consumo das famílias.",
+      ),
+      h("Ganho nominal x ganho real"),
+      p(
+        "Ganho nominal é o número que aparece no extrato. Ganho real é o que sobra depois de descontar a inflação do período, e é ele que diz se você ficou mais rico de verdade. Um investimento que rendeu 8% num ano em que a inflação foi 6% entregou ganho real de aproximadamente 2%, não de 8%.",
+      ),
+      h("Por que dinheiro parado perde"),
+      p(
+        "Dinheiro na conta corrente rende zero nominal, o que significa ganho real negativo em qualquer ano com inflação. Não é uma perda visível (o saldo não diminui), mas o que aquele saldo compra vai encolhendo mês a mês. É a forma mais silenciosa de perder dinheiro.",
+      ),
+      h("Aplicações atreladas à inflação"),
+      p(
+        "Existem títulos que pagam a inflação mais uma taxa fixa, como o Tesouro IPCA+. A lógica deles é justamente garantir ganho real: independentemente de a inflação vir alta ou baixa, você recebe ela mais um percentual acima. Isso os torna comuns em objetivos de prazo longo, em que a inflação acumulada pesa muito.",
+      ),
+      h("Prazo curto e prazo longo pedem coisas diferentes"),
+      p(
+        "Pra dinheiro que vai ser usado logo, inflação importa pouco: alguns meses não mudam muito o poder de compra. Pra dinheiro de dez ou vinte anos, ela é provavelmente o fator mais importante da conta, porque a perda acumulada é grande mesmo com inflação moderada.",
+      ),
+      p(
+        "No simulador do Vestra os títulos de renda fixa rendem com base em taxas reais do mercado, então dá pra acompanhar como diferentes tipos de aplicação se comportam ao longo do tempo, com dinheiro fictício, antes de decidir onde colocar dinheiro de verdade.",
+      ),
+    ],
+  },
+  {
+    slug: "perfil-de-investidor-qual-o-seu",
+    titulo: "Perfil de investidor: conservador, moderado ou arrojado?",
+    resumo:
+      "O que define seu perfil de verdade, por que ele não é só sobre coragem, e como ele muda ao longo da vida.",
+    palavrasChave: [
+      "perfil de investidor",
+      "conservador moderado arrojado",
+      "qual meu perfil de investidor",
+      "tolerância ao risco",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Perfil de investidor é a combinação entre quanto risco você tolera e por quanto tempo o dinheiro pode ficar aplicado. As corretoras costumam classificar em três faixas — conservador, moderado e arrojado — mas o rótulo importa menos que os dois fatores que o formam.",
+      ),
+      h("Não é só sobre coragem"),
+      p(
+        "Muita gente responde ao questionário pensando só em quanto aguenta ver o saldo cair. Isso é metade da conta. A outra metade é o prazo: alguém que vai usar o dinheiro em um ano não deveria estar em renda variável, mesmo que tenha estômago de sobra, porque não haveria tempo pra recuperar uma queda.",
+      ),
+      h("Conservador"),
+      p(
+        "Prioriza previsibilidade e preservação do valor. Concentra em renda fixa, aceitando rentabilidade menor em troca de saber mais ou menos o que vai receber. É também o perfil natural de qualquer dinheiro de curto prazo, independentemente de quem seja o dono.",
+      ),
+      h("Moderado"),
+      p(
+        "Aceita alguma oscilação em parte do patrimônio em busca de retorno maior, mantendo a maior parte em aplicações mais previsíveis. Na prática costuma significar uma carteira majoritariamente de renda fixa com uma fatia em renda variável.",
+      ),
+      h("Arrojado"),
+      p(
+        "Tolera quedas relevantes no meio do caminho, apostando em retorno maior no longo prazo. Só faz sentido pra dinheiro que realmente não será tocado por muitos anos, e pra quem não vai vender no pânico durante uma queda, o que é mais difícil na prática do que parece na teoria.",
+      ),
+      h("O perfil muda"),
+      p(
+        "Ele não é um traço permanente. Muda quando a sua situação muda: um filho, uma troca de emprego, a aposentadoria se aproximando. Vale revisitar de tempo em tempo, em vez de responder uma vez e assumir que valerá pra sempre.",
+      ),
+      p(
+        "O Vestra tem um quiz de perfil e, mais útil que ele, um ambiente pra testar na prática: dá pra montar uma carteira arrojada com dinheiro fictício e descobrir como você reage a um mês ruim de verdade, sem que isso custe nada.",
+      ),
+    ],
+  },
+  {
+    slug: "renda-fixa-ou-renda-variavel",
+    titulo: "Renda fixa ou renda variável: qual a diferença de verdade",
+    resumo:
+      "O que separa as duas categorias, por que renda fixa também oscila, e como decidir a proporção entre elas.",
+    palavrasChave: [
+      "renda fixa ou renda variável",
+      "diferença renda fixa e variável",
+      "o que é renda variável",
+      "alocação de carteira",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "A diferença central é a previsibilidade da regra de remuneração. Em renda fixa, você sabe desde a aplicação como o rendimento será calculado (uma taxa fixa, ou a Selic, ou a inflação mais um percentual). Em renda variável, não existe regra: o retorno depende do que acontecer com o preço do ativo.",
+      ),
+      h("Renda fixa não significa valor fixo"),
+      p(
+        "Esse é o mal-entendido mais comum. Um título prefixado tem rendimento definido se você levar até o vencimento, mas o preço dele oscila todos os dias no mercado. Vender antes da data pode significar receber menos do que aplicou, especialmente se a taxa de juros subiu no meio do caminho. Renda fixa previsível até o fim, não estável no meio.",
+      ),
+      h("Renda variável: o retorno vem de duas fontes"),
+      p(
+        "Em ações e fundos imobiliários, o retorno vem da valorização do preço e da distribuição de resultado (dividendos ou rendimentos). Nenhuma das duas é garantida: empresa pode não dar lucro, imóvel pode ficar vago, e o preço pode passar anos abaixo do que você pagou.",
+      ),
+      h("Como pensar a proporção"),
+      p(
+        "Uma forma mais útil que decidir percentuais no vácuo é separar por objetivo e prazo. Dinheiro que você vai usar em menos de dois anos tende a ficar inteiro em renda fixa de baixa oscilação. Dinheiro de prazo longo suporta uma fatia em renda variável, porque há tempo pra atravessar quedas. A proporção sai dessa divisão, não de uma regra genérica.",
+      ),
+      h("As duas juntas, não uma contra a outra"),
+      p(
+        "Não é uma escolha excludente. A maioria das carteiras usa as duas, com pesos diferentes conforme o momento de vida: a renda fixa dá o piso e a liquidez, a variável dá o potencial de crescimento acima da inflação no longo prazo.",
+      ),
+      p(
+        "No Vestra as duas convivem no mesmo simulador: você aplica em títulos de renda fixa e compra ações e fundos com o mesmo saldo fictício, o que deixa comparar o comportamento das duas partes da carteira ao longo das semanas.",
+      ),
+    ],
+  },
+  {
+    slug: "erros-comuns-de-quem-comeca-a-investir",
+    titulo: "7 erros comuns de quem está começando a investir",
+    resumo:
+      "Os tropeços que aparecem com mais frequência entre iniciantes, e o raciocínio por trás de cada um.",
+    palavrasChave: [
+      "erros ao investir",
+      "erros de iniciante investimentos",
+      "o que não fazer ao investir",
+      "dicas para começar a investir",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 6,
+    corpo: [
+      p(
+        "A maior parte dos erros de quem começa não tem a ver com escolher o ativo errado, e sim com estrutura: ordem das etapas, prazo, e reação a oscilação. Estes são os que aparecem com mais frequência.",
+      ),
+      h("1. Investir antes de ter reserva de emergência"),
+      p(
+        "Sem reserva, o primeiro imprevisto te força a vender investimento na hora errada. A reserva não é uma etapa opcional que se resolve depois; ela é o que permite que o resto da carteira fique intocado quando a vida acontece.",
+      ),
+      h("2. Investir com dinheiro de curto prazo em renda variável"),
+      p(
+        "Colocar em ações o dinheiro da entrada do apartamento que você vai dar no ano que vem transforma uma oscilação normal em prejuízo real, porque não há tempo pra esperar recuperação. O prazo do dinheiro define o tipo de aplicação, não o contrário.",
+      ),
+      h("3. Concentrar tudo numa única aposta"),
+      p(
+        "Colocar todo o patrimônio numa ação ou num setor faz o resultado inteiro depender de um evento específico dar certo. Diversificar não elimina risco, mas evita que uma única decisão errada apague anos de aporte.",
+      ),
+      h("4. Comprar porque subiu"),
+      p(
+        "Perseguir o ativo que mais valorizou nos últimos meses é comprar depois que a alta aconteceu, muitas vezes perto do topo. Rentabilidade passada não é indicação de rentabilidade futura, e isso vale especialmente pra o que acabou de disparar.",
+      ),
+      h("5. Vender no pânico"),
+      p(
+        "Vender durante uma queda transforma uma oscilação temporária em perda definitiva, e costuma acontecer justamente quando os preços estão mais baixos. É o erro mais caro da lista, e o mais difícil de evitar, porque é emocional e não técnico.",
+      ),
+      h("6. Ignorar taxas e imposto"),
+      p(
+        "Taxa de administração, taxa de custódia e imposto de renda saem do seu rendimento todos os anos. Duas aplicações com rentabilidade bruta parecida podem entregar resultados líquidos bem diferentes, e essa diferença se acumula ao longo do tempo.",
+      ),
+      h("7. Esperar o momento perfeito pra começar"),
+      p(
+        "Adiar o início esperando o cenário ideal custa o fator que mais pesa no resultado final: tempo. Começar pequeno e aprender com valores baixos costuma ser melhor que ficar de fora estudando por anos.",
+      ),
+      p(
+        "Vários desses erros são mais fáceis de entender depois de senti-los. O Vestra existe pra isso: você comete o erro com dinheiro fictício, vê o que acontece com a carteira e aprende o mecanismo sem que a lição custe dinheiro de verdade.",
+      ),
+    ],
+  },
+  {
+    slug: "day-trade-por-que-a-maioria-perde",
+    titulo: "Day trade: o que é e por que a maioria perde dinheiro",
+    resumo:
+      "Como funciona a operação de curtíssimo prazo, o que os estudos mostram sobre o resultado dos day traders, e a tributação diferente.",
+    palavrasChave: [
+      "day trade",
+      "day trade vale a pena",
+      "day trade é arriscado",
+      "quanto ganha um day trader",
+    ],
+    dataPublicacao: "2026-08-18",
+    tempoLeituraMin: 5,
+    corpo: [
+      p(
+        "Day trade é comprar e vender o mesmo ativo no mesmo dia, tentando lucrar com a oscilação de preço em horas ou minutos. É diferente de investir: não há tese sobre o negócio da empresa nem prazo longo, o objetivo é acertar a direção do preço no curtíssimo prazo.",
+      ),
+      h("O que os estudos mostram"),
+      p(
+        "Pesquisas acadêmicas que acompanharam day traders no mercado brasileiro encontraram um resultado consistente: a grande maioria não consegue lucro sustentável, e a proporção dos que se mantêm lucrativos ao longo de anos é muito pequena. Não é uma questão de esforço ou de método secreto; é o que os dados mostram sobre a atividade.",
+      ),
+      h("Por que é tão difícil"),
+      p(
+        "Três fatores se acumulam. Primeiro, cada operação tem custo (corretagem, emolumentos), e operar muitas vezes ao dia multiplica esse custo. Segundo, o adversário do outro lado da tela costuma ser instituição com mais informação e velocidade. Terceiro, o acerto precisa ser frequente: alguns erros grandes apagam muitos acertos pequenos.",
+      ),
+      h("A tributação é diferente e menos favorável"),
+      p(
+        "Operação normal de ações tem isenção de imposto de renda se o total vendido no mês ficar até R$ 20.000. Em day trade essa isenção não existe, e a alíquota é 20% sobre o lucro, contra 15% da operação comum. Há ainda retenção na fonte a cada operação com lucro.",
+      ),
+      h("Alavancagem multiplica os dois lados"),
+      p(
+        "Muitas plataformas permitem operar valores maiores que o saldo disponível. Isso amplia o ganho potencial e, na mesma proporção, a perda: é possível perder mais do que se tinha, virando dívida com a corretora.",
+      ),
+      h("O que fazer se ainda quiser testar"),
+      p(
+        "Se a curiosidade existe, testar em simulador antes é o caminho de menor custo: você observa quantas operações dão certo, quanto os custos consomem, e como você reage a uma sequência de perdas, tudo sem dinheiro real envolvido.",
+      ),
+      p(
+        "No Vestra dá pra fazer esse teste com preços reais de mercado e saldo fictício. Não é uma recomendação pra operar assim — é a chance de descobrir na prática, e de graça, o que os números acima descrevem.",
+      ),
+    ],
+  },
 ];
 
 export function postPorSlug(slug: string): PostBlog | undefined {
