@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { acaoPorTicker } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import { brl, numero } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
 
@@ -66,7 +66,7 @@ function Grupo({
                   <span>
                     <span className="font-mono text-sm font-semibold text-ink">{c.ticker}</span>
                     <span className="ml-2 text-xs text-ink-muted">
-                      {acaoPorTicker(c.ticker)?.nome}
+                      {ativoPorTicker(c.ticker)?.nome}
                     </span>
                   </span>
                 </span>

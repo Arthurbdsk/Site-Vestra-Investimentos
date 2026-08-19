@@ -4,16 +4,15 @@ import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
 import { NotasAtualizacao } from "@/components/NotasAtualizacao";
 
-const TITULO = "Novidades do Vestra: o que mudou na plataforma";
 const DESCRICAO =
   "Acompanhe as últimas atualizações do simulador Vestra: novas funções, ajustes de tela e conteúdo adicionado.";
 
 export const metadata: Metadata = {
-  title: TITULO,
+  title: "Novidades",
   description: DESCRICAO,
   alternates: { canonical: "https://vestra-simulator.com.br/novidades" },
   openGraph: {
-    title: TITULO,
+    title: "Novidades | Vestra Simulador de Investimentos",
     description: DESCRICAO,
     url: "https://vestra-simulator.com.br/novidades",
     type: "website",

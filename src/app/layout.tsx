@@ -29,12 +29,24 @@ const plexMono = IBM_Plex_Mono({
 const TITULO = "Vestra: educação financeira sem enrolação";
 const DESCRICAO =
   "Simulador de investimentos com dinheiro fictício e preços reais da B3 e da bolsa americana. Aprenda a investir na prática, sem economês e sem arriscar dinheiro de verdade.";
+const BASE_URL = "https://vestra-simulator.com.br";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vestra-simulator.com.br"),
-  title: TITULO,
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: TITULO,
+    // "Vestra" sozinho ja tem empresas de logistica e moda ocupando a
+    // primeira pagina do Google ha anos; o titulo de cada rota entra
+    // como %s aqui, entao toda pagina interna carrega "Vestra" + o
+    // termo especifico dela (ex: "Blog | Vestra Simulador de
+    // Investimentos"), que e o par que o site realmente tem chance de
+    // rankear.
+    template: "%s | Vestra Simulador de Investimentos",
+  },
   description: DESCRICAO,
   keywords: [
+    "vestra simulador de investimentos",
+    "vestra educação financeira",
     "simulador de investimentos",
     "educação financeira",
     "como investir",
@@ -48,8 +60,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: TITULO,
     description: DESCRICAO,
-    url: "https://vestra-simulator.com.br",
-    siteName: "Vestra",
+    url: BASE_URL,
+    siteName: "Vestra Simulador de Investimentos",
     locale: "pt_BR",
     type: "website",
   },
@@ -68,6 +80,30 @@ export const metadata: Metadata = {
     icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
   },
+};
+
+// Ajuda o Google a entender "Vestra" como esta entidade especifica, e
+// nao a transportadora nem a marca de moda de mesmo nome que ja ocupam
+// a busca. sameAs (perfis sociais) fica de fora enquanto nao existirem
+// perfis confirmados: melhor sem o campo do que apontando pro perfil
+// de outra empresa.
+const JSON_LD_ORGANIZACAO = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Vestra",
+  alternateName: "Vestra Simulador de Investimentos",
+  url: BASE_URL,
+  logo: `${BASE_URL}/icon.svg`,
+  description: DESCRICAO,
+};
+
+const JSON_LD_SITE = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Vestra Simulador de Investimentos",
+  alternateName: "Vestra",
+  url: BASE_URL,
+  inLanguage: "pt-BR",
 };
 
 export const viewport: Viewport = {
@@ -95,6 +131,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             sem ela o atalho abre dentro do Safari em vez de em tela
             cheia. O React 19 sobe esta tag pro <head> sozinho. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_ORGANIZACAO) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SITE) }}
+        />
 
         {/* Aplica o tema salvo antes da primeira pintura, pra quem
             escolheu escuro nao levar um flash de tela branca. Precisa ser

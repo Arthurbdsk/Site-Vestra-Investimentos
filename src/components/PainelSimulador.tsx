@@ -39,7 +39,8 @@ import { Onboarding } from "./app/Onboarding";
 import { calcularNivel } from "@/lib/nivelInvestidor";
 import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
-import { ACOES, acaoPorTicker } from "@/lib/acoes";
+import { ACOES } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import { FIIS } from "@/lib/fiis";
 import { ETFS } from "@/lib/etfs";
 import { ACOES_USA } from "@/lib/acoesUsa";
@@ -642,7 +643,7 @@ function Carteira({
                 {posicoes.map((p) => {
                   const c = precoDe(p.ticker);
                   const preco = c?.preco ?? p.preco_medio;
-                  const info = acaoPorTicker(p.ticker);
+                  const info = ativoPorTicker(p.ticker);
                   const valor = p.quantidade * preco;
                   const custo = p.quantidade * p.preco_medio;
                   const dif = valor - custo;

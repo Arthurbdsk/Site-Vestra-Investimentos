@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { acaoPorTicker } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import { corDoSetor } from "@/lib/coresSetor";
 import { brl, numero } from "@/lib/formato";
 import type { Posicao } from "./PainelSimulador";
@@ -22,7 +22,7 @@ export function ComposicaoCarteira({
     for (const p of posicoes) {
       const preco = precoDe(p.ticker)?.preco ?? p.preco_medio;
       const valor = p.quantidade * preco;
-      const setor = acaoPorTicker(p.ticker)?.setor ?? "Outros";
+      const setor = ativoPorTicker(p.ticker)?.setor ?? "Outros";
       porSetor.set(setor, (porSetor.get(setor) ?? 0) + valor);
     }
     const total = [...porSetor.values()].reduce((s, v) => s + v, 0);

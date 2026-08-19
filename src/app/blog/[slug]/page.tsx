@@ -26,7 +26,10 @@ export async function generateMetadata({
   const url = `${BASE_URL}/blog/${post.slug}`;
 
   return {
-    title: `${post.titulo} | Blog Vestra`,
+    // absolute: o titulo do artigo ja e longo; deixar o template do
+    // layout somar " | Vestra Simulador de Investimentos" passaria bem
+    // do que o Google mostra.
+    title: { absolute: `${post.titulo} | Vestra` },
     description: post.resumo,
     keywords: post.palavrasChave,
     alternates: { canonical: url },

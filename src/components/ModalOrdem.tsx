@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, CheckCircle2, AlertCircle, Minus, Plus } from "lucide-react";
 import { comprar, vender, criarOrdemLimitada, criarOrdemMercadoAbertura } from "@/app/simulador/operacoes";
-import { acaoPorTicker } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import { brl } from "@/lib/formato";
 import { statusMercado, mercadoDoTicker } from "@/lib/mercadoStatus";
 
@@ -73,7 +73,7 @@ export function ModalOrdem({
 
   if (!ordem) return null;
 
-  const info = acaoPorTicker(ordem.ticker);
+  const info = ativoPorTicker(ordem.ticker);
   const comprando = ordem.tipo === "comprar";
   const limitada = modo === "limitada";
   const abertura = modo === "abertura";

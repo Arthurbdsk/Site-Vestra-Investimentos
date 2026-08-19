@@ -6,7 +6,7 @@ import { X, Loader2, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide
 import { GraficoAvancado } from "./GraficoAvancado";
 import { LogoAcao } from "./LogoAcao";
 import { PERIODOS, type Periodo, type PontoSerie } from "@/lib/historico";
-import { acaoPorTicker } from "@/lib/acoes";
+import { ativoPorTicker } from "@/lib/ativos";
 import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
 import { BotaoFavorito } from "./BotaoFavorito";
@@ -61,7 +61,7 @@ export function ModalDetalheAcao({
   const [periodo, setPeriodo] = useState<Periodo>("3mo");
   const [grafico, setGrafico] = useState<EstadoGrafico>({ fase: "carregando" });
 
-  const info = ticker ? acaoPorTicker(ticker) : undefined;
+  const info = ticker ? ativoPorTicker(ticker) : undefined;
 
   useEffect(() => {
     if (!ticker) return;

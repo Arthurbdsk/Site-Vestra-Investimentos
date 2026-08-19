@@ -6,7 +6,10 @@ import { usuarioAtual } from "@/lib/supabase/server";
 import { POSTS_BLOG } from "@/lib/blog";
 import { data as fmtData } from "@/lib/formato";
 
-const TITULO = "Blog Vestra: educação financeira e investimentos para iniciantes";
+// Curto de proposito: o layout raiz acrescenta " | Vestra Simulador de
+// Investimentos" via template, e o Google corta o titulo perto de 60
+// caracteres.
+const TITULO = "Blog";
 const DESCRICAO =
   "Artigos sobre como começar a investir, ações, Tesouro Direto, CDB, diversificação e dividendos, escritos em português simples pra quem está começando.";
 
@@ -22,7 +25,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vestra-simulator.com.br/blog" },
   openGraph: {
-    title: TITULO,
+    // openGraph nao passa pelo template do layout, entao aqui o nome
+    // completo entra na mao.
+    title: "Blog | Vestra Simulador de Investimentos",
     description: DESCRICAO,
     url: "https://vestra-simulator.com.br/blog",
     type: "website",
