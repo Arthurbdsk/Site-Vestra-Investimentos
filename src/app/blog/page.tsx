@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
-import { POSTS_BLOG } from "@/lib/blog";
+import { POSTS_BLOG, CAPAS } from "@/lib/blog";
 import { data as fmtData } from "@/lib/formato";
 
 // Curto de proposito: o layout raiz acrescenta " | Vestra Simulador de
@@ -51,16 +52,31 @@ export default async function BlogPage() {
           </p>
 
           <ul className="mt-12 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-            {posts.map((post) => (
-              <li key={post.slug} className="bg-paper p-6">
+            {posts.map((post, i) => (
+              <li key={post.slug} className="bg-paper">
                 <Link href={`/blog/${post.slug}`} className="group block">
-                  <p className="font-mono text-[11px] text-ink-muted">
-                    {fmtData(post.dataPublicacao)} · {post.tempoLeituraMin} min de leitura
-                  </p>
-                  <h2 className="mt-2 font-display text-xl text-ink transition-colors group-hover:text-blue">
-                    {post.titulo}
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-muted">{post.resumo}</p>
+                  <div className="relative aspect-[16/9] overflow-hidden">
+                    <Image
+                      src={CAPAS[post.capa].arquivo}
+                      alt={CAPAS[post.capa].alt}
+                      fill
+                      // Só as quatro primeiras entram acima da dobra; o
+                      // resto carrega sob demanda pra a listagem não puxar
+                      // as cinco capas de uma vez no primeiro paint.
+                      priority={i < 4}
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <p className="font-mono text-[11px] text-ink-muted">
+                      {fmtData(post.dataPublicacao)} · {post.tempoLeituraMin} min de leitura
+                    </p>
+                    <h2 className="mt-2 font-display text-xl text-ink transition-colors group-hover:text-blue">
+                      {post.titulo}
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-muted">{post.resumo}</p>
+                  </div>
                 </Link>
               </li>
             ))}

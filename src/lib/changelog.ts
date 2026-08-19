@@ -14,6 +14,12 @@ export type NotaAtualizacao = {
 export const NOTAS_ATUALIZACAO: NotaAtualizacao[] = [
   {
     data: "2026-08-19",
+    titulo: "Blog com calculadoras e imagens",
+    descricao:
+      "Os artigos agora têm calculadoras que você mexe em vez de só ler: juros compostos com gráfico ao vivo, tamanho da sua reserva de emergência, e comparação de poupança contra CDB e Tesouro já com o imposto descontado. Cada artigo também ganhou imagem de capa.",
+  },
+  {
+    data: "2026-08-19",
     titulo: "Oito artigos novos no blog",
     descricao:
       "Reserva de emergência, juros compostos, poupança, inflação e IPCA, perfil de investidor, renda fixa x variável, erros de iniciante e day trade. O blog agora tem 18 artigos.",

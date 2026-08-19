@@ -5,7 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
-import { POSTS_BLOG, postPorSlug } from "@/lib/blog";
+import Image from "next/image";
+import { POSTS_BLOG, postPorSlug, CAPAS } from "@/lib/blog";
+import { WidgetArtigo } from "@/components/artigo/WidgetArtigo";
 import { data as fmtData } from "@/lib/formato";
 
 const BASE_URL = "https://vestra-simulator.com.br";
@@ -39,11 +41,15 @@ export async function generateMetadata({
       url,
       type: "article",
       publishedTime: post.dataPublicacao,
+      // Sem imagem, o link compartilhado no WhatsApp/LinkedIn sai como
+      // um bloco de texto sem nada; a capa do tema resolve isso.
+      images: [{ url: CAPAS[post.capa].arquivo, alt: CAPAS[post.capa].alt }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: post.titulo,
       description: post.resumo,
+      images: [CAPAS[post.capa].arquivo],
     },
   };
 }
@@ -100,18 +106,37 @@ export default async function PostBlogPage({
             {post.resumo}
           </p>
 
+          {/* priority: e a maior imagem acima da dobra, entao carregar
+              depois do resto empurraria o texto e piscaria o layout. */}
+          <div className="relative mt-8 aspect-[16/7] overflow-hidden border border-[var(--rule)]">
+            <Image
+              src={CAPAS[post.capa].arquivo}
+              alt={CAPAS[post.capa].alt}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="object-cover"
+            />
+          </div>
+
           <div className="mt-10 space-y-5">
-            {post.corpo.map((bloco, i) =>
-              bloco.tipo === "subtitulo" ? (
-                <h2 key={i} className="pt-2 font-display text-2xl text-ink">
-                  {bloco.texto}
-                </h2>
-              ) : (
+            {post.corpo.map((bloco, i) => {
+              if (bloco.tipo === "subtitulo") {
+                return (
+                  <h2 key={i} className="pt-2 font-display text-2xl text-ink">
+                    {bloco.texto}
+                  </h2>
+                );
+              }
+              if (bloco.tipo === "widget") {
+                return <WidgetArtigo key={i} nome={bloco.nome} />;
+              }
+              return (
                 <p key={i} className="leading-relaxed text-ink">
                   {bloco.texto}
                 </p>
-              ),
-            )}
+              );
+            })}
           </div>
 
           <div className="mt-12 border-t border-[var(--rule)] pt-8">

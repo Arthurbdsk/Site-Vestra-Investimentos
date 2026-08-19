@@ -3,9 +3,47 @@
  * indexaveis, cada uma mirando um conjunto de palavras-chave). Conteudo
  * original, sem recomendacao de compra especifica (ver /termos).
  */
+import type { NomeWidget } from "@/components/artigo/WidgetArtigo";
+
 export type BlocoArtigo =
   | { tipo: "paragrafo"; texto: string }
-  | { tipo: "subtitulo"; texto: string };
+  | { tipo: "subtitulo"; texto: string }
+  /** Calculadora interativa no meio do texto (ver components/artigo). */
+  | { tipo: "widget"; nome: NomeWidget };
+
+/**
+ * Capas por TEMA, nao uma por artigo.
+ *
+ * Cinco imagens reaproveitadas entre os posts: mantem o peso da pagina
+ * baixo, o cache quente, e evita o visual de banco de imagens que vem de
+ * escolher uma foto qualquer pra cada texto. Todas do Unsplash, cuja
+ * licenca permite uso comercial sem atribuicao, baixadas pra
+ * public/images/blog (link externo quebra quando a origem sai do ar).
+ */
+export type CapaArtigo = "conceito" | "mercado" | "imoveis" | "renda-fixa" | "bolsa";
+
+export const CAPAS: Record<CapaArtigo, { arquivo: string; alt: string }> = {
+  conceito: {
+    arquivo: "/images/blog/capa-conceito.jpg",
+    alt: "Curva de arquitetura moderna em azul escuro contra o céu",
+  },
+  mercado: {
+    arquivo: "/images/blog/capa-mercado.jpg",
+    alt: "Tela de negociação com gráfico de candles em verde e vermelho",
+  },
+  imoveis: {
+    arquivo: "/images/blog/capa-imoveis.jpg",
+    alt: "Arranha-céus de escritórios vistos de baixo para cima",
+  },
+  "renda-fixa": {
+    arquivo: "/images/blog/capa-renda-fixa.jpg",
+    alt: "Fachada de vidro escuro em padrão geométrico repetido",
+  },
+  bolsa: {
+    arquivo: "/images/blog/capa-bolsa.jpg",
+    alt: "Estrutura de vidro azul em ângulos geométricos vista de baixo",
+  },
+};
 
 export type PostBlog = {
   slug: string;
@@ -14,6 +52,7 @@ export type PostBlog = {
   palavrasChave: string[];
   dataPublicacao: string;
   tempoLeituraMin: number;
+  capa: CapaArtigo;
   corpo: BlocoArtigo[];
 };
 
@@ -22,6 +61,9 @@ function p(texto: string): BlocoArtigo {
 }
 function h(texto: string): BlocoArtigo {
   return { tipo: "subtitulo", texto };
+}
+function w(nome: NomeWidget): BlocoArtigo {
+  return { tipo: "widget", nome };
 }
 
 export const POSTS_BLOG: PostBlog[] = [
@@ -38,6 +80,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-01",
     tempoLeituraMin: 6,
+    capa: "conceito",
     corpo: [
       p(
         "Quem nunca investiu costuma pular direto pra pergunta errada: \"em que ação eu compro?\". Antes disso existem duas ou três decisões que pesam muito mais no resultado final, e que a maioria dos guias por aí não menciona.",
@@ -46,6 +89,7 @@ export const POSTS_BLOG: PostBlog[] = [
       p(
         "Reserva de emergência é o dinheiro que cobre de 3 a 6 meses das suas despesas, guardado em algo de liquidez imediata (Tesouro Selic ou um CDB de liquidez diária, por exemplo). Sem isso, qualquer imprevisto te obriga a vender investimentos no pior momento possível, muitas vezes com prejuízo.",
       ),
+      w("reserva-emergencia"),
       h("2. Descubra seu perfil de investidor"),
       p(
         "Perfil de investidor é a combinação entre quanto risco você tolera e quanto tempo o dinheiro pode ficar aplicado. Alguém com objetivo de 20 anos pela frente aguenta oscilação de preço de um jeito que alguém que vai usar o dinheiro ano que vem não aguenta. Não existe perfil \"melhor\", existe o que combina com a sua situação.",
@@ -77,6 +121,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-03",
     tempoLeituraMin: 5,
+    capa: "bolsa",
     corpo: [
       p(
         "Uma ação é um pedaço de uma empresa. Quando você compra uma ação da Petrobras, por exemplo, você passa a ser dono de uma fração minúscula da empresa, com direito a uma parte proporcional do lucro (via dividendos) e do valor dela.",
@@ -116,6 +161,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-05",
     tempoLeituraMin: 5,
+    capa: "renda-fixa",
     corpo: [
       p(
         "Tesouro Direto é um programa do governo federal que permite qualquer pessoa emprestar dinheiro pro governo, recebendo de volta esse valor mais juros depois de um tempo combinado. Na prática, é considerado o investimento de menor risco do país, porque quem está devendo é o próprio governo.",
@@ -153,6 +199,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-07",
     tempoLeituraMin: 4,
+    capa: "renda-fixa",
     corpo: [
       p(
         "CDB (Certificado de Depósito Bancário) é um empréstimo que você faz a um banco: em troca de deixar seu dinheiro aplicado por um tempo, o banco devolve com juros. É um dos investimentos de renda fixa mais comuns no Brasil.",
@@ -161,6 +208,7 @@ export const POSTS_BLOG: PostBlog[] = [
       p(
         "CDI é uma taxa de referência do mercado financeiro, próxima da Selic. Quando um CDB promete \"110% do CDI\", significa que ele rende 10% a mais do que essa taxa de referência ao longo do período. Quanto maior esse percentual, melhor a rentabilidade prometida, mas geralmente bancos menores oferecem percentuais mais altos pra compensar o risco de serem menos conhecidos.",
       ),
+      w("comparador-renda-fixa"),
       h("CDB tem proteção do FGC"),
       p(
         "Até um determinado limite por CPF e por instituição financeira, o CDB é coberto pelo Fundo Garantidor de Créditos (FGC): se o banco quebrar, o FGC devolve o valor investido. Essa garantia é um dos motivos do CDB ser considerado relativamente seguro, mesmo em bancos pequenos.",
@@ -187,6 +235,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-09",
     tempoLeituraMin: 5,
+    capa: "conceito",
     corpo: [
       p(
         "Diversificar significa espalhar o dinheiro entre investimentos diferentes, em vez de concentrar tudo num único lugar. A lógica é simples: se um investimento vai mal, os outros podem compensar, e o resultado da carteira como um todo fica menos dependente de uma única aposta dar certo.",
@@ -221,6 +270,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-11",
     tempoLeituraMin: 5,
+    capa: "mercado",
     corpo: [
       p(
         "Dividendo é a parte do lucro que uma empresa decide distribuir aos seus acionistas, em vez de reinvestir tudo de volta no próprio negócio. Se você tem ações de uma empresa que paga dividendos, esse valor cai na sua conta proporcionalmente à quantidade de ações que você possui.",
@@ -256,6 +306,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-13",
     tempoLeituraMin: 5,
+    capa: "imoveis",
     corpo: [
       p(
         "Um Fundo de Investimento Imobiliário (FII) reúne o dinheiro de vários investidores para comprar imóveis ou títulos ligados ao setor imobiliário, e depois distribui o resultado entre quem tem cotas do fundo. Cada cota é negociada na B3 como se fosse uma ação, mas o que está por trás dela não é uma empresa: é um conjunto de imóveis ou papéis.",
@@ -291,6 +342,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-14",
     tempoLeituraMin: 5,
+    capa: "bolsa",
     corpo: [
       p(
         "ETF (Exchange Traded Fund) é um fundo que segue um índice de mercado, como o Ibovespa ou o S&P 500, e é negociado na bolsa igual a uma ação comum. Ao comprar uma cota de ETF, você passa a ter uma fração de todas as empresas que compõem aquele índice, na mesma proporção em que elas aparecem nele.",
@@ -326,6 +378,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-16",
     tempoLeituraMin: 5,
+    capa: "renda-fixa",
     corpo: [
       p(
         "Vender ações com lucro gera imposto de renda, mas a regra tem uma isenção que passa batido por muita gente: se o total vendido em ações no mês for até R$ 20.000, o lucro daquelas vendas fica isento de IR. Essa isenção vale pra soma das vendas no mês, não por operação individual.",
@@ -361,6 +414,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-17",
     tempoLeituraMin: 5,
+    capa: "renda-fixa",
     corpo: [
       p(
         "A Selic é a taxa básica de juros da economia brasileira, definida pelo Comitê de Política Monetária (Copom) do Banco Central a cada 45 dias. Ela serve como referência para praticamente todas as outras taxas de juros do país, do rendimento de um Tesouro Selic ao juro cobrado no cartão de crédito.",
@@ -395,6 +449,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "conceito",
     corpo: [
       p(
         "Reserva de emergência é o dinheiro separado pra imprevisto: perder o emprego, quebrar o carro, uma consulta que o plano não cobre. Ela não existe pra render bem, existe pra estar disponível no dia em que você precisar dela.",
@@ -403,6 +458,7 @@ export const POSTS_BLOG: PostBlog[] = [
       p(
         "A conta parte das suas despesas mensais, não do seu salário. Some o que você realmente gasta por mês (aluguel, comida, transporte, contas) e multiplique por 3 a 6. Quem tem renda fixa e estável fica mais perto de 3; quem é autônomo, tem renda variável ou sustenta outras pessoas se aproxima de 6, ou mais.",
       ),
+      w("reserva-emergencia"),
       h("Onde deixar: liquidez importa mais que rentabilidade"),
       p(
         "A reserva precisa de duas coisas: baixo risco e resgate rápido. Isso aponta pra aplicações de liquidez diária, como Tesouro Selic ou CDBs que permitem resgate a qualquer momento. O ponto não é achar o que rende mais, é garantir que o dinheiro esteja lá amanhã, sem prejuízo por sacar na hora errada.",
@@ -433,6 +489,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "conceito",
     corpo: [
       p(
         "Juro composto é juro que rende sobre juro. Em vez de o rendimento incidir sempre sobre o valor que você aplicou no início, ele passa a incidir sobre o valor aplicado mais tudo o que já rendeu até ali. É essa diferença que faz o resultado crescer em curva, e não em linha reta.",
@@ -445,6 +502,10 @@ export const POSTS_BLOG: PostBlog[] = [
       p(
         "Essa é a parte contraintuitiva: quem começa cedo com pouco costuma terminar à frente de quem começa tarde com muito, porque o composto precisa de tempo pra agir. Cada ano a mais de aplicação não adiciona um pedaço igual ao anterior, adiciona um pedaço maior, já que a base sobre a qual o rendimento incide cresceu.",
       ),
+      p(
+        "Em vez de acreditar na explicação, mexa nos controles abaixo. Repare no que acontece com a linha quando você aumenta os anos, e compare com o efeito de aumentar o valor mensal:",
+      ),
+      w("juros-compostos"),
       h("Por que retirar no meio custa caro"),
       p(
         "Sacar parte do dinheiro não interrompe só o valor sacado, interrompe também todo o rendimento que aquele valor teria gerado nos anos seguintes. É por isso que o composto e a paciência andam juntos: o efeito depende de deixar o dinheiro trabalhando sem interrupção.",
@@ -471,6 +532,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 4,
+    capa: "renda-fixa",
     corpo: [
       p(
         "A poupança é a aplicação mais conhecida do país, e também uma das que rendem menos entre as opções de risco parecido. Vale entender como o rendimento dela é calculado, porque a regra não é intuitiva.",
@@ -487,6 +549,10 @@ export const POSTS_BLOG: PostBlog[] = [
       p(
         "Dois pontos reais: é isenta de imposto de renda para pessoa física, e é simples de usar, sem precisar entender produto nenhum. A isenção, porém, raramente compensa a diferença de rentabilidade frente a um título público ou um CDB que pague perto de 100% do CDI, porque a diferença bruta costuma ser maior que o imposto.",
       ),
+      p(
+        "O comparador abaixo já desconta o imposto de renda das outras opções, então o que aparece é o que sobraria na sua mão em cada uma:",
+      ),
+      w("comparador-renda-fixa"),
       h("Quando faz sentido"),
       p(
         "Pra quem está começando e ainda não abriu conta em corretora, a poupança é melhor que deixar o dinheiro na conta corrente rendendo zero. Mas ela funciona mais como um degrau do que como destino: assim que existe acesso a renda fixa de liquidez diária, o mesmo dinheiro tende a render mais lá, com risco equivalente.",
@@ -510,6 +576,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "conceito",
     corpo: [
       p(
         "Inflação é a perda de poder de compra do dinheiro ao longo do tempo: a mesma quantia compra menos coisa depois de um período. No Brasil, o índice oficial que mede isso é o IPCA, calculado pelo IBGE a partir de uma cesta de produtos e serviços que representa o consumo das famílias.",
@@ -548,6 +615,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "bolsa",
     corpo: [
       p(
         "Perfil de investidor é a combinação entre quanto risco você tolera e por quanto tempo o dinheiro pode ficar aplicado. As corretoras costumam classificar em três faixas — conservador, moderado e arrojado — mas o rótulo importa menos que os dois fatores que o formam.",
@@ -590,6 +658,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "mercado",
     corpo: [
       p(
         "A diferença central é a previsibilidade da regra de remuneração. Em renda fixa, você sabe desde a aplicação como o rendimento será calculado (uma taxa fixa, ou a Selic, ou a inflação mais um percentual). Em renda variável, não existe regra: o retorno depende do que acontecer com o preço do ativo.",
@@ -628,6 +697,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 6,
+    capa: "mercado",
     corpo: [
       p(
         "A maior parte dos erros de quem começa não tem a ver com escolher o ativo errado, e sim com estrutura: ordem das etapas, prazo, e reação a oscilação. Estes são os que aparecem com mais frequência.",
@@ -678,6 +748,7 @@ export const POSTS_BLOG: PostBlog[] = [
     ],
     dataPublicacao: "2026-08-18",
     tempoLeituraMin: 5,
+    capa: "mercado",
     corpo: [
       p(
         "Day trade é comprar e vender o mesmo ativo no mesmo dia, tentando lucrar com a oscilação de preço em horas ou minutos. É diferente de investir: não há tese sobre o negócio da empresa nem prazo longo, o objetivo é acertar a direção do preço no curtíssimo prazo.",
