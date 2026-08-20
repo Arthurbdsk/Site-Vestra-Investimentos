@@ -164,6 +164,7 @@ export default async function SimuladorPage() {
 
   const diasSeguidos = Number(acessoRes.data?.diasSeguidos ?? 0);
   const novoDia = Boolean(acessoRes.data?.novoDia);
+  const perdaoStreak = Boolean(acessoRes.data?.perdoado);
 
   const favoritos: string[] = (favoritosRes.data ?? []).map((f) => f.ticker);
   const duelos: Duelo[] = duelosRes.data ?? [];
@@ -319,6 +320,7 @@ export default async function SimuladorPage() {
         rankingMensal={rankingMensal}
         diasSeguidos={diasSeguidos}
         novoDia={novoDia}
+        perdaoStreak={perdaoStreak}
         perfilInvestidorDefinido={perfilInvestidorDefinido}
         alertas={alertas}
         favoritos={favoritos}

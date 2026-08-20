@@ -5,7 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Flame } from "lucide-react";
 import { Confete } from "./Confete";
 
-export function PopupStreak({ dias }: { dias: number }) {
+export function PopupStreak({
+  dias,
+  perdoado = false,
+}: {
+  dias: number;
+  /** O banco tolerou UM dia de falta pra nao zerar a sequencia. Sem
+   * dizer isso aqui, a pessoa que faltou nao entende por que o numero
+   * continuou subindo. */
+  perdoado?: boolean;
+}) {
   const [aberto, setAberto] = useState(dias > 1);
 
   if (!aberto) return null;
@@ -50,10 +59,22 @@ export function PopupStreak({ dias }: { dias: number }) {
           <p className="mt-1 font-display text-xl font-bold text-ink">
             {dias === 1 ? "dia seguido" : "dias seguidos"}!
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-            Você está voltando todo dia pra investir. Continue assim que a
-            consistência é o que mais importa no longo prazo.
-          </p>
+          {perdoado ? (
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                Você faltou ontem e a sequência continuou de pé. Um dia de
+                folga não desfaz o costume que você está construindo.
+              </p>
+              <p className="mt-2 font-mono text-[11px] leading-relaxed text-ink-muted">
+                Esse perdão vale uma vez por semana.
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+              Você está voltando todo dia pra investir. Continue assim que a
+              consistência é o que mais importa no longo prazo.
+            </p>
+          )}
 
           <button
             onClick={() => setAberto(false)}

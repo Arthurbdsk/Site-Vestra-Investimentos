@@ -1338,6 +1338,8 @@ declare
   v_usuario uuid := auth.uid();
   v_perfil  public.perfis%rowtype;
   v_novo_dia boolean;
+  v_perdoado boolean := false;
+  v_pode_perdoar boolean;
   v_mes_atual text := to_char(current_date, 'YYYY-MM');
 begin
   if v_usuario is null then
@@ -1353,9 +1355,26 @@ begin
     v_novo_dia := false;
   else
     v_novo_dia := true;
+    -- Perdao de streak: faltar UM dia nao zera a sequencia. Lally et al.
+    -- (2010) mostra que um dia perdido nao prejudica materialmente a
+    -- formacao de habito, entao zerar punia algo que nao importa e
+    -- desmoralizava quem ainda estava construindo o costume. Vale no
+    -- maximo uma vez a cada 7 dias, senao o streak nunca quebraria.
+    v_pode_perdoar := v_perfil.perdao_streak_em is null
+                      or v_perfil.perdao_streak_em < current_date - 7;
+
     if v_perfil.ultimo_acesso = current_date - 1 then
       update public.perfis
         set dias_seguidos = dias_seguidos + 1, ultimo_acesso = current_date
+        where id = v_usuario;
+    elsif v_perfil.ultimo_acesso = current_date - 2
+          and coalesce(v_perfil.dias_seguidos, 0) > 0
+          and v_pode_perdoar then
+      v_perdoado := true;
+      update public.perfis
+        set dias_seguidos = dias_seguidos + 1,
+            ultimo_acesso = current_date,
+            perdao_streak_em = current_date
         where id = v_usuario;
     else
       update public.perfis
@@ -1374,7 +1393,7 @@ begin
   select dias_seguidos into v_perfil.dias_seguidos
     from public.perfis where id = v_usuario;
 
-  return json_build_object('ok', true, 'diasSeguidos', v_perfil.dias_seguidos, 'novoDia', v_novo_dia);
+  return json_build_object('ok', true, 'diasSeguidos', v_perfil.dias_seguidos, 'novoDia', v_novo_dia, 'perdoado', v_perdoado);
 end $$;
 
 

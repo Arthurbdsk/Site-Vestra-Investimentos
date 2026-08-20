@@ -101,6 +101,7 @@ export function PainelSimulador({
   rankingMensal,
   diasSeguidos,
   novoDia,
+  perdaoStreak = false,
   perfilInvestidorDefinido,
   alertas,
   favoritos,
@@ -125,6 +126,7 @@ export function PainelSimulador({
   rankingMensal: RankingMensalLinha[];
   diasSeguidos: number;
   novoDia: boolean;
+  perdaoStreak?: boolean;
   perfilInvestidorDefinido: boolean;
   alertas: AlertaPreco[];
   favoritos: string[];
@@ -553,7 +555,7 @@ export function PainelSimulador({
       ) : !perfilInvestidorDefinido ? (
         <PopupPerfilInvestidor mostrar />
       ) : (
-        novoDia && <PopupStreak dias={diasSeguidos} />
+        novoDia && <PopupStreak dias={diasSeguidos} perdoado={perdaoStreak} />
       )}
 
       {!mostrarOnboarding && (
