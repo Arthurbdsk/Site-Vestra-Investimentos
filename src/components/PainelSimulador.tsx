@@ -200,6 +200,15 @@ export function PainelSimulador({
     null,
   );
 
+  /**
+   * Posicao no ranking, pra entrar no cartao compartilhavel.
+   *
+   * O ranking vem so com o topo, entao quem esta fora dele fica com null
+   * — e a linha some do cartao, em vez de mostrar posicao inventada.
+   */
+  const posicaoRanking =
+    ranking.find((r) => r.apelido === apelido)?.posicao ?? null;
+
   const abas: { id: Aba; label: string; icone: typeof Wallet }[] = [
     { id: "inicio", label: "Início", icone: Home },
     { id: "carteira", label: "Minha carteira", icone: Wallet },
@@ -467,6 +476,7 @@ export function PainelSimulador({
                 />
 
                 <FerramentasCarteira
+                  posicaoRanking={posicaoRanking}
                   alertas={alertas}
                   posicoes={posicoes}
                   precoDe={precoDe}
@@ -741,6 +751,7 @@ function FerramentasCarteira({
   apelido,
   patrimonio,
   lucroPct,
+  posicaoRanking,
   mostrarCartao,
   setMostrarCartao,
 }: {
@@ -751,6 +762,7 @@ function FerramentasCarteira({
   apelido: string;
   patrimonio: number;
   lucroPct: number;
+  posicaoRanking: number | null;
   mostrarCartao: boolean;
   setMostrarCartao: (fn: (v: boolean) => boolean) => void;
 }) {
@@ -796,6 +808,7 @@ function FerramentasCarteira({
                       apelido={apelido}
                       patrimonio={patrimonio}
                       lucroPct={lucroPct}
+                      posicaoRanking={posicaoRanking}
                     />
                   </div>
                 )}

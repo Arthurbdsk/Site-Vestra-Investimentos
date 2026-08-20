@@ -11,10 +11,14 @@ export function CartaoCompartilhavel({
   apelido,
   patrimonio,
   lucroPct,
+  posicaoRanking = null,
 }: {
   apelido: string;
   patrimonio: number;
   lucroPct: number;
+  /** null quando a pessoa esta fora do topo do ranking: a linha some, em
+   * vez de o cartao anunciar uma posicao que nao existe. */
+  posicaoRanking?: number | null;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [baixando, setBaixando] = useState(false);
@@ -102,6 +106,14 @@ export function CartaoCompartilhavel({
           <text x="80" y="640" fontFamily="monospace" fontSize="22" fill="#a9b4bf">
             desde o início, em dinheiro fictício
           </text>
+
+          {/* Posicao no ranking: e a comparacao social que faz um numero
+              virar post. Só entra quando existe de verdade. */}
+          {posicaoRanking != null && (
+            <text x="80" y="730" fontFamily="monospace" fontSize="34" fill="#f5f6f7">
+              {posicaoRanking}º no ranking do Vestra
+            </text>
+          )}
 
           <line x1="80" y1={H - 160} x2={W - 80} y2={H - 160} stroke="#f5a623" strokeOpacity="0.3" />
           <text

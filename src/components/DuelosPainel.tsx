@@ -73,8 +73,19 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
     });
   }
 
+  /**
+   * Copia o LINK, nao o codigo solto.
+   *
+   * Codigo cru obriga o convidado a descobrir onde digitar, e ele
+   * desiste antes. O link abre o placar sem login, e o cadastro passa a
+   * ser o passo pra responder ao desafio.
+   */
   function copiar(codigo: string) {
-    navigator.clipboard?.writeText(codigo).then(() => {
+    const link =
+      typeof window === "undefined"
+        ? codigo
+        : `${window.location.origin}/duelo/${codigo}`;
+    navigator.clipboard?.writeText(link).then(() => {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     });
@@ -119,13 +130,16 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
           {codigoNovo && (
             <div className="mt-4 flex items-center justify-between gap-3 border-l-[3px] border-gold bg-gold/10 px-4 py-3">
               <div>
-                <p className="text-xs text-ink-muted">Manda esse código pro seu amigo</p>
+                <p className="text-xs text-ink-muted">
+                  Copie o link e manda pro seu amigo: ele vê o placar sem
+                  precisar criar conta.
+                </p>
                 <p className="font-mono text-lg font-semibold tabular text-ink">{codigoNovo}</p>
               </div>
               <button
                 onClick={() => copiar(codigoNovo)}
                 className="shrink-0 text-ink-muted transition-colors hover:text-blue"
-                aria-label="Copiar código"
+                aria-label="Copiar link do duelo"
               >
                 {copiado ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
               </button>
@@ -179,7 +193,7 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
                 <button
                   onClick={() => copiar(d.codigoConvite)}
                   className="text-ink-muted transition-colors hover:text-blue"
-                  aria-label="Copiar código"
+                  aria-label="Copiar link do duelo"
                 >
                   <Copy size={15} />
                 </button>
