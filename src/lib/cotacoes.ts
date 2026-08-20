@@ -17,7 +17,10 @@ export type Cotacao = {
  */
 
 let cache: { dados: Cotacao[]; expiraEm: number } | null = null;
-const TTL = 60_000;
+/** 30s, alinhado ao cron de cotacoes (que roda de 2 em 2 minutos): cache
+ * mais longo que isso segurava na tela um preco que o banco ja tinha
+ * atualizado. */
+const TTL = 30_000;
 
 async function buscarUm(ticker: string, token: string): Promise<Cotacao | null> {
   try {

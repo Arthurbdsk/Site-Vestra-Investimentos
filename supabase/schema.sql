@@ -353,7 +353,8 @@ begin
   from public.cotacoes where ticker = p_ticker;
   v_preco_cache := v_preco;
 
-  if v_preco is not null and v_idade < interval '5 minutes' then
+  -- 2 min, alinhado ao cron (que roda de 2 em 2 minutos no pregao).
+  if v_preco is not null and v_idade < interval '2 minutes' then
     return v_preco;
   end if;
 
@@ -482,7 +483,9 @@ declare
   v_atualizados_br text[] := array[]::text[];
 begin
   select max(atualizado_em) into v_mais_novo from public.cotacoes;
-  if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '60 seconds' then
+  -- 30s: com 60s este guarda barrava a propria rodada de 2 minutos
+  -- quando o agendador atrasava um pouco.
+  if not p_forcar and v_mais_novo is not null and v_mais_novo > now() - interval '30 seconds' then
     return 0;
   end if;
 
@@ -836,7 +839,7 @@ do $$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     perform cron.unschedule(jobid) from cron.job where jobname = 'atualizar-cotacoes';
-    perform cron.schedule('atualizar-cotacoes', '*/5 10-21 * * 1-5', 'select public.atualizar_cotacoes(true)');
+    perform cron.schedule('atualizar-cotacoes', '*/2 10-21 * * 1-5', 'select public.atualizar_cotacoes(true)');
   end if;
 end $$;
 
