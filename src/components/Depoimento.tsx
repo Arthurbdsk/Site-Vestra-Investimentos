@@ -1,8 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 
+/**
+ * Antes esta secao trazia um depoimento: frase inventada, foto de banco
+ * de imagens e assinatura "Usuario do simulador Vestra". Depoimento
+ * fabricado apresentado como real e propaganda enganosa (CDC art. 37),
+ * e o estudo Spiegel/Northwestern mostra que UM depoimento e o pior
+ * caso possivel — paga o custo de credibilidade sem atingir o limiar
+ * que faz prova social funcionar (que fica perto de cinco).
+ *
+ * Trocado por um dado de terceiro neutro, verificado na fonte primaria.
+ * Quando houver depoimentos reais (nome, contexto, autorizacao), eles
+ * podem voltar — cinco, nao um.
+ */
 export function Depoimento() {
   return (
     <section className="grain relative bg-paper py-24 md:py-32">
@@ -14,34 +25,40 @@ export function Depoimento() {
           <span className="h-px flex-1 bg-[var(--rule)]" />
         </div>
 
-        <motion.figure
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7 }}
-          className="flex flex-col items-start gap-6 sm:flex-row sm:items-center"
+          className="max-w-3xl"
         >
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-sky">
-            <Image
-              src="/images/depoimento-avatar.jpg"
-              alt=""
-              width={128}
-              height={128}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+            O tamanho do problema
+          </p>
 
-          <blockquote className="border-l-[3px] border-sky pl-5">
-            <p className="font-display text-xl leading-relaxed text-ink sm:text-2xl">
-              &ldquo;Testei umas três semanas antes de colocar dinheiro de
-              verdade. Foi a primeira vez que uma carteira de ações fez
-              sentido pra mim.&rdquo;
-            </p>
-            <figcaption className="mt-4 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-              Usuário do simulador Vestra
-            </figcaption>
-          </blockquote>
-        </motion.figure>
+          <p className="mt-4 font-display text-[13vw] leading-[0.95] text-ink sm:text-[8vw] md:text-[5rem]">
+            36%
+          </p>
+
+          <p className="mt-4 border-l-[3px] border-sky pl-5 text-xl leading-relaxed text-ink sm:text-2xl">
+            É quanto da população brasileira tem algum investimento
+            financeiro. A maioria não investe — e quase nunca é por falta de
+            vontade.
+          </p>
+
+          <p className="mt-6 font-mono text-[11px] leading-relaxed text-ink-muted">
+            Fonte: ANBIMA, Raio X do Investidor Brasileiro, 9ª edição, com
+            dados de 2025.{" "}
+            <a
+              href="https://www.anbima.com.br/pt_br/especial/raio-x-do-investidor-brasileiro.htm"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 transition-colors hover:text-blue"
+            >
+              Ver a pesquisa
+            </a>
+          </p>
+        </motion.div>
       </div>
     </section>
   );

@@ -26,6 +26,20 @@ export function Hero() {
       >
         <div className="grid gap-14 md:grid-cols-[1.15fr_0.85fr] md:items-end">
           <div>
+            {/* A manchete abaixo e voz de marca, nao explicacao: quem cai
+                aqui pela primeira vez nao descobre em um segundo o que o
+                site E. Esta linha diz a categoria em texto simples, antes
+                da frase poetica, e de quebra e conteudo indexavel. */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+            >
+              Simulador de investimentos gratuito · preços reais da B3 e da
+              bolsa americana
+            </motion.p>
+
             <h1 className="font-display text-[13vw] leading-[0.94] tracking-tight text-ink sm:text-[9vw] md:text-[5.6rem]">
               {linhas.map((linha, li) => (
                 <span key={linha} className="block overflow-hidden">
