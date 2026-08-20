@@ -300,7 +300,7 @@ function Artigos() {
                   {a.titulo}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">{a.resumo}</p>
-                <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-gold-soft">
+                <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-gold-texto">
                   <Clock size={12} />
                   {tempoLeitura(a)} min de leitura
                 </p>

@@ -36,6 +36,12 @@
   --color-coral-texto: #b84d2c;
   --color-violet-texto: #6b5b9a;
   --color-sky-texto: #2f6690;
+  /* O dourado tinha o mesmo defeito que o coral, e pior: #f5a623 como
+     texto no papel branco da 2,03:1, e o gold-soft 1,61:1, contra o
+     minimo de 4,5:1 — ilegivel, nao "sutil". Este tom escurece mantendo
+     o matiz 37 (mede 4,95:1) e vale SO pra dourado que e texto; dourado
+     como fundo (bg-gold) ou sobre azul continua sendo --color-gold. */
+  --color-gold-texto: #9c6407;
 
   /* Texto sobre branco */
   --color-ink: #0f2d44;
@@ -68,6 +74,8 @@
     --color-coral-texto: #d68a73;
     --color-violet-texto: #a297c1;
     --color-sky-texto: #6ba4cf;
+    /* No escuro o dourado original ja da 8,8:1, entao volta a ser ele. */
+    --color-gold-texto: #f5a623;
   }
 }
 
@@ -82,6 +90,7 @@
   --color-coral-texto: #d68a73;
   --color-violet-texto: #a297c1;
   --color-sky-texto: #6ba4cf;
+  --color-gold-texto: #f5a623;
 }
 
 @theme inline {
@@ -91,6 +100,7 @@
   --color-blue-deep: var(--color-blue-deep);
   --color-gold: var(--color-gold);
   --color-gold-soft: var(--color-gold-soft);
+  --color-gold-texto: var(--color-gold-texto);
   --color-teal: var(--color-teal);
   --color-coral: var(--color-coral);
   --color-violet: var(--color-violet);

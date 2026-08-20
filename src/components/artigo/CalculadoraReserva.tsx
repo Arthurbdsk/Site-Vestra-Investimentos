@@ -96,7 +96,7 @@ export function CalculadoraReserva() {
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">
           Sua reserva deveria ser perto de
         </p>
-        <p className="mt-1 font-mono text-3xl tabular text-gold">{brl(alvo)}</p>
+        <p className="mt-1 font-mono text-3xl tabular text-gold-texto">{brl(alvo)}</p>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {escolhido.meses} meses de despesa, guardados em algo de liquidez
           diária — dá pra resgatar a qualquer momento, sem perder valor por
