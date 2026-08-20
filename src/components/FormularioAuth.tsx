@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 import { Logomark } from "./Logomark";
-import { BotaoVisitante } from "./BotaoVisitante";
 import { BotaoGoogle } from "./BotaoGoogle";
 
 type Modo = "cadastro" | "login";
@@ -280,13 +279,6 @@ export function FormularioAuth({ modo }: { modo: Modo }) {
           {t.trocaLink}
         </Link>
       </p>
-
-      <div className="mt-8 border-t border-[var(--rule)] pt-6">
-        <p className="text-sm text-ink-muted">
-          Prefere testar antes de criar conta?
-        </p>
-        <BotaoVisitante className="mt-3" />
-      </div>
 
       <p className="mt-8 font-mono text-[11px] leading-relaxed text-ink-muted">
         Não pedimos CPF, cartão nem dados bancários. Todo o dinheiro do

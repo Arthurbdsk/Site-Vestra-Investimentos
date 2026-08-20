@@ -33,8 +33,7 @@ export default async function PrivacidadePage() {
               Ao criar uma conta, guardamos o e-mail e a senha (ou, se você
               entrar com o Google, os dados básicos que o Google
               compartilha, como nome e e-mail) e o apelido que aparece no
-              simulador e no ranking. Se você entrar como visitante, nada
-              disso é coletado: os dados ficam só no seu navegador.
+              simulador e no ranking.
             </p>
             <p className="mt-3">
               Também guardamos os dados que você gera usando o simulador:

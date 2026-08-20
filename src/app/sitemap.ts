@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { POSTS_BLOG } from "@/lib/blog";
+import { TODAS_COMBINACOES } from "@/lib/quantoRendeu";
 
 const BASE_URL = "https://vestra-simulator.com.br";
 
@@ -10,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { rota: "/aprender", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/blog", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/novidades", prioridade: 0.6, frequencia: "weekly" },
+    { rota: "/quanto-rendeu", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/cadastro", prioridade: 0.7, frequencia: "monthly" },
     { rota: "/login", prioridade: 0.5, frequencia: "monthly" },
     { rota: "/termos", prioridade: 0.3, frequencia: "yearly" },
@@ -30,5 +32,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...estaticas, ...posts];
+  // As paginas de "quanto rendeu" mudam de valor todo dia (dependem do
+  // preco de hoje), por isso daily.
+  const quantoRendeu: MetadataRoute.Sitemap = TODAS_COMBINACOES.map((c) => ({
+    url: `${BASE_URL}/quanto-rendeu/${c.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "daily",
+    priority: 0.5,
+  }));
+
+  return [...estaticas, ...posts, ...quantoRendeu];
 }

@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Logomark } from "./Logomark";
 import { TickerTape } from "./TickerTape";
-import { BotaoVisitante } from "./BotaoVisitante";
 
 export function ConviteEntrar() {
   return (
@@ -70,13 +69,10 @@ export function ConviteEntrar() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="mt-10 border-t border-[var(--rule)] pt-8"
         >
-          <p className="text-sm text-ink-muted">
-            Só quer dar uma olhada antes de decidir?
-          </p>
-          <BotaoVisitante className="mt-3" />
-          <p className="mt-3 max-w-md font-mono text-[11px] leading-relaxed text-ink-muted">
-            Você entra na hora, sem email nem senha. A carteira fica salva
-            neste navegador, e some se você limpar os dados dele.
+          <p className="max-w-md font-mono text-[11px] leading-relaxed text-ink-muted">
+            Criar conta leva menos de um minuto e não pede CPF, cartão nem
+            dados bancários. Assim sua carteira fica salva de verdade, e não
+            só neste navegador.
           </p>
         </motion.div>
       </div>

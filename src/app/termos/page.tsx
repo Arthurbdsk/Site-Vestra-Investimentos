@@ -51,10 +51,9 @@ export default async function TermosPage() {
 
           <Secao titulo="3. Sua conta">
             <p>
-              Você é responsável por manter sua senha em segurança e por
-              tudo que acontece na sua conta. Você pode usar o Vestra
-              como visitante (sem criar conta) ou criando uma conta com
-              e-mail e senha ou login do Google.
+              Para usar o simulador é necessário criar uma conta, com e-mail
+              e senha ou login do Google. Você é responsável por manter sua
+              senha em segurança e por tudo que acontece na sua conta.
             </p>
           </Secao>
 
