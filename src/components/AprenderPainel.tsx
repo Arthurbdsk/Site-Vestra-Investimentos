@@ -20,6 +20,7 @@ import {
   Check,
   X as XIcon,
   Trophy,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { GLOSSARIO } from "@/lib/glossario";
@@ -29,8 +30,13 @@ import { brl } from "@/lib/formato";
 import { artigosConcluidos, marcarArtigoConcluido } from "@/lib/progressoAprender";
 import { QuizPerfil } from "./QuizPerfil";
 import { PopupTrilhaCompleta } from "./PopupTrilhaCompleta";
+import { CENARIOS, type Cenario } from "@/lib/cenarios";
+import { buscarSerieCenario } from "@/app/aprender/buscarCenarioAction";
+import { GraficoPreco } from "./GraficoPreco";
+import type { PontoSerie } from "@/lib/historico";
+import { data as fmtData } from "@/lib/formato";
 
-type Aba = "dicionario" | "artigos" | "calculadora" | "perfil";
+type Aba = "dicionario" | "artigos" | "cenarios" | "calculadora" | "perfil";
 
 export function AprenderPainel({ userId }: { userId?: string | null } = {}) {
   const [aba, setAba] = useState<Aba>("dicionario");
@@ -38,6 +44,7 @@ export function AprenderPainel({ userId }: { userId?: string | null } = {}) {
   const abas: { id: Aba; label: string; icone: typeof BookOpen }[] = [
     { id: "dicionario", label: "Dicionário", icone: BookOpen },
     { id: "artigos", label: "Artigos", icone: Newspaper },
+    { id: "cenarios", label: "Cenários históricos", icone: LineChart },
     { id: "calculadora", label: "Calculadora", icone: Calculator },
     { id: "perfil", label: "Seu perfil", icone: UserCheck },
   ];
@@ -89,6 +96,7 @@ export function AprenderPainel({ userId }: { userId?: string | null } = {}) {
           >
             {aba === "dicionario" && <Dicionario />}
             {aba === "artigos" && <Artigos userId={userId} />}
+            {aba === "cenarios" && <Cenarios />}
             {aba === "calculadora" && <CalculadoraJuros />}
             {aba === "perfil" && <QuizPerfil />}
           </motion.div>
@@ -429,6 +437,132 @@ function QuizArtigo({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+type EstadoCenario =
+  | { fase: "carregando" }
+  | { fase: "erro"; mensagem: string }
+  | { fase: "feito"; serie: PontoSerie[] };
+
+function Cenarios() {
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [estado, setEstado] = useState<EstadoCenario>({ fase: "carregando" });
+  const cenario = CENARIOS.find((c) => c.slug === aberto);
+
+  useEffect(() => {
+    if (!cenario) return;
+    let cancelado = false;
+    setEstado({ fase: "carregando" });
+    buscarSerieCenario(cenario.ticker, cenario.dataInicio, cenario.dataFim).then((r) => {
+      if (cancelado) return;
+      setEstado(r.ok ? { fase: "feito", serie: r.serie } : { fase: "erro", mensagem: r.mensagem });
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [cenario]);
+
+  if (cenario) {
+    return (
+      <div>
+        <button
+          onClick={() => setAberto(null)}
+          className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-blue transition-colors hover:text-gold"
+        >
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+          Voltar pros cenários
+        </button>
+
+        <h2 className="mt-6 font-display text-3xl font-bold text-ink sm:text-4xl">
+          {cenario.titulo}
+        </h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          {cenario.nomeAtivo} · {fmtData(cenario.dataInicio)} a {fmtData(cenario.dataFim)}
+        </p>
+
+        <div className="mt-6 border-l-4 border-gold bg-gold/10 p-5">
+          <p className="text-lg font-semibold leading-snug text-ink">{cenario.resumo}</p>
+        </div>
+
+        <div className="mt-8">
+          {estado.fase === "carregando" && (
+            <div className="flex items-center gap-2 text-sm text-ink-muted">
+              <Loader2 size={14} className="animate-spin" />
+              Buscando o histórico de preço real desse período...
+            </div>
+          )}
+          {estado.fase === "erro" && (
+            <p className="text-sm text-rose-600">{estado.mensagem}</p>
+          )}
+          {estado.fase === "feito" && <GraficoPreco serie={estado.serie} />}
+        </div>
+
+        <div className="mt-8 space-y-4 text-base leading-relaxed text-ink-muted">
+          {cenario.narrativa.map((par, i) => (
+            <p key={i} className={i === 0 ? "text-lg font-semibold leading-relaxed text-ink" : ""}>
+              {par}
+            </p>
+          ))}
+        </div>
+
+        <div className="mt-8 border-t border-[var(--rule)] pt-6">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            Linha do tempo
+          </p>
+          <ul className="mt-4 space-y-3">
+            {cenario.marcos.map((m) => (
+              <li key={m.data} className="flex gap-4">
+                <span className="w-24 shrink-0 font-mono text-xs tabular text-ink-muted">
+                  {fmtData(m.data)}
+                </span>
+                <span className="text-sm text-ink">{m.texto}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="mt-8 font-mono text-[11px] leading-relaxed text-ink-muted">
+          O gráfico usa preço de fechamento real do período (fonte externa,
+          pode ter pequenas diferenças de precisão). Rentabilidade passada
+          não indica rentabilidade futura, cada crise é diferente.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="font-display text-2xl text-ink">Cenários históricos</h2>
+      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+        Reveja, com preço real, o que aconteceu em alguns dos momentos mais
+        marcantes do mercado nos últimos anos.
+      </p>
+
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {CENARIOS.map((c, i) => (
+          <motion.button
+            key={c.slug}
+            onClick={() => setAberto(c.slug)}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i * 0.05, 0.4) }}
+            className="group flex flex-col border border-[var(--rule)] bg-paper p-5 text-left transition-colors hover:border-blue"
+          >
+            <span className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-gold-texto">
+              <LineChart size={12} />
+              {fmtData(c.dataInicio).slice(3)}
+            </span>
+            <p className="mt-2 font-display text-xl font-bold leading-snug text-ink group-hover:text-blue">
+              {c.titulo}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">{c.resumo}</p>
+          </motion.button>
+        ))}
+      </div>
     </div>
   );
 }
