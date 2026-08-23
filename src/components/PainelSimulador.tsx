@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote, Scale } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote, Scale, Users } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -33,6 +33,7 @@ import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
 import { RebalanceamentoPainel } from "./RebalanceamentoPainel";
 import { DesafiosPainel } from "./DesafiosPainel";
+import { LigasPainel, type Liga } from "./LigasPainel";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { CountUp } from "./CountUp";
@@ -88,7 +89,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "rebalancear" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
+type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "rebalancear" | "e-se" | "noticias" | "ranking" | "duelo" | "ligas" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -109,6 +110,7 @@ export function PainelSimulador({
   alertas,
   favoritos,
   duelos,
+  ligas,
   agente,
   decisoesAgente,
   emprestimo,
@@ -136,6 +138,7 @@ export function PainelSimulador({
   alertas: AlertaPreco[];
   favoritos: string[];
   duelos: Duelo[];
+  ligas: Liga[];
   agente: Agente;
   decisoesAgente: DecisaoAgente[];
   emprestimo: EstadoEmprestimo | null;
@@ -229,6 +232,7 @@ export function PainelSimulador({
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
     { id: "duelo", label: "Duelo", icone: Swords },
+    { id: "ligas", label: "Ligas", icone: Users },
     { id: "agente", label: "Agente IA", icone: Bot },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
@@ -561,6 +565,8 @@ export function PainelSimulador({
               )}
 
               {aba === "duelo" && <DuelosPainel duelos={duelos} />}
+
+              {aba === "ligas" && <LigasPainel ligas={ligas} />}
 
               {aba === "agente" && <AgentePainel agente={agente} decisoes={decisoesAgente} />}
 
