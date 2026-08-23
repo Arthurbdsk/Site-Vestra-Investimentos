@@ -32,6 +32,7 @@ import { TourBoasVindas } from "./TourBoasVindas";
 import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
 import { RebalanceamentoPainel } from "./RebalanceamentoPainel";
+import { DesafiosPainel } from "./DesafiosPainel";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { CountUp } from "./CountUp";
@@ -450,7 +451,18 @@ export function PainelSimulador({
 
               {aba === "carteira" && (
                 <>
-                <ConquistasFaixa conquistas={conquistas} />
+                <DesafiosPainel
+                  posicoes={posicoes}
+                  transacoes={transacoes}
+                  favoritos={favoritos}
+                  perfilInvestidorDefinido={perfilInvestidorDefinido}
+                  temRendaFixa={posicoesRendaFixa.length > 0}
+                  temDuelo={duelos.length > 0}
+                  diasSeguidos={diasSeguidos}
+                />
+                <div className="mt-6">
+                  <ConquistasFaixa conquistas={conquistas} />
+                </div>
 
                 <Carteira
                   posicoes={posicoes}
