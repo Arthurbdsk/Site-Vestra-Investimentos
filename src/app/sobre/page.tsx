@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/sobre" },
   title: "Nossa proposta",
   description:
     "Por que o Vestra existe: um simulador de investimentos com dinheiro fictício e preços reais, pensado pra quem nunca teve acesso fácil a esse conhecimento.",

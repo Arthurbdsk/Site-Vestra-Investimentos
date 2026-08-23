@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/termos" },
   title: "Termos de Uso | Vestra",
   description: "Regras de uso do simulador de investimentos Vestra.",
 };

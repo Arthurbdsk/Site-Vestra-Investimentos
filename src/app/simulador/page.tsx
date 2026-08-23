@@ -22,6 +22,7 @@ import { supabaseConfigurado } from "@/lib/supabase/config";
 import { processarPendencias } from "./processarPendencias";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/simulador" },
   title: "Simulador de investimentos",
   description:
     "Monte uma carteira com saldo fictício e preços reais da B3 e da bolsa americana. Compre, venda, ganhe dividendos e acompanhe seu patrimônio dia a dia, sem risco.",

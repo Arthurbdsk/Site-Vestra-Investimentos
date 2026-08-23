@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/perguntas-frequentes" },
   title: "Perguntas frequentes",
   description:
     "Dinheiro é real? Preciso pagar? Como funciona o duelo? Respostas diretas sobre o simulador de investimentos Vestra.",

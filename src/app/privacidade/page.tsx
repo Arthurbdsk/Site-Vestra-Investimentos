@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/privacidade" },
   title: "Política de Privacidade | Vestra",
   description: "Como o Vestra coleta, usa e protege os seus dados.",
 };

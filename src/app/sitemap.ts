@@ -6,8 +6,11 @@ const BASE_URL = "https://vestra-simulator.com.br";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const paginas: { rota: string; prioridade: number; frequencia: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
+    // /simulador fica fora de proposito: exige sessao, entao responde 307
+    // pro /login pra quem nao esta logado, incluindo o Googlebot. Estava
+    // aqui com prioridade 0.9 e virava "pagina com redirecionamento" no
+    // relatorio de indexacao.
     { rota: "", prioridade: 1, frequencia: "weekly" },
-    { rota: "/simulador", prioridade: 0.9, frequencia: "daily" },
     { rota: "/aprender", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/blog", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/novidades", prioridade: 0.6, frequencia: "weekly" },

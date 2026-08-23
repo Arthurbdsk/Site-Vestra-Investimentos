@@ -5,6 +5,7 @@ import { FormularioAuth } from "@/components/FormularioAuth";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/login" },
   title: "Entrar",
   description: "Entre na sua conta Vestra para acessar seu simulador de investimentos.",
 };

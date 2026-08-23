@@ -56,7 +56,11 @@ export const metadata: Metadata = {
     "simulador de ações",
   ],
   authors: [{ name: "Vestra" }],
-  alternates: { canonical: "/" },
+  // Nao declare canonical aqui. Metadata de layout e herdada por toda
+  // rota que nao define a sua, e um canonical global fazia cada pagina
+  // se declarar copia da home; o Google obedecia e se recusava a
+  // indexar (Search Console: "pagina alternativa com tag canonica
+  // adequada"). Cada page.tsx declara o proprio canonical.
   openGraph: {
     title: TITULO,
     description: DESCRICAO,

@@ -9,6 +9,12 @@ import { Depoimento } from "@/components/Depoimento";
 import { CTASection } from "@/components/CTASection";
 import { usuarioAtual } from "@/lib/supabase/server";
 
+// Titulo e descricao continuam vindo do layout; aqui so o canonical, que
+// saiu de la pra nao ser herdado pelas outras rotas.
+export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br" },
+};
+
 export default async function Home() {
   const user = await usuarioAtual();
 

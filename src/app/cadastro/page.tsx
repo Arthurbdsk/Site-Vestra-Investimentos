@@ -5,6 +5,7 @@ import { FormularioAuth } from "@/components/FormularioAuth";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata = {
+  alternates: { canonical: "https://vestra-simulator.com.br/cadastro" },
   title: "Criar conta",
   description:
     "Crie sua conta gratuita no Vestra e receba saldo fictício pra simular investimentos com preços reais da B3 e da bolsa americana.",
