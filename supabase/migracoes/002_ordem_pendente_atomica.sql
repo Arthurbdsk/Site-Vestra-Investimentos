@@ -1,10 +1,7 @@
 -- Vestra: corrige execucao em dobro de ordens limitadas e ordens
 -- stop loss/stop gain orfas.
 --
--- AINDA NAO APLICADO no projeto (ao contrario dos outros arquivos dessa
--- pasta). Copie este arquivo no SQL Editor do Supabase e rode antes (ou
--- depois, e idempotente) de fazer deploy do codigo que usa
--- executar_ordem_pendente. O mesmo conteudo ja esta refletido em
+-- Ja aplicado no projeto. O mesmo conteudo ja esta refletido em
 -- schema.sql, este arquivo fica so como registro do que mudou e por que.
 --
 -- Problema 1 (critico): processarPendencias.ts executava a ordem
