@@ -31,7 +31,7 @@ export default async function ContaPage() {
       supabase
         .from("perfis")
         .select(
-          "apelido, saldo, perfil_investidor, criado_em, convites_bem_sucedidos, codigo_publico, perfil_publico",
+          "apelido, saldo, perfil_investidor, criado_em, convites_bem_sucedidos, codigo_publico, perfil_publico, receber_resumo",
         )
         .eq("id", user.id)
         .single(),
@@ -97,6 +97,7 @@ export default async function ContaPage() {
         membroDesde={membroDesde}
         codigoPublico={perfilRes.data?.codigo_publico ?? null}
         perfilPublico={perfilRes.data?.perfil_publico ?? true}
+        receberResumo={perfilRes.data?.receber_resumo ?? true}
       />
       <Footer />
     </>

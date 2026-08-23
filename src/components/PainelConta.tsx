@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Loader2, Pencil, AlertCircle, ArrowRight, Copy, Globe, Lock } from "lucide-react";
-import { salvarApelido, alternarPerfilPublico } from "@/app/simulador/operacoesPerfil";
+import { Check, Loader2, Pencil, AlertCircle, ArrowRight, Copy, Globe, Lock, Mail } from "lucide-react";
+import { salvarApelido, alternarPerfilPublico, alternarResumoSemanal } from "@/app/simulador/operacoesPerfil";
 import { PERFIS, type PerfilId } from "@/lib/perfilInvestidor";
 import type { Conquista } from "@/lib/conquistas";
 import { QuizPerfil } from "./QuizPerfil";
@@ -23,6 +23,7 @@ export function PainelConta({
   membroDesde,
   codigoPublico,
   perfilPublico,
+  receberResumo,
 }: {
   apelido: string;
   email: string | null;
@@ -34,6 +35,7 @@ export function PainelConta({
   membroDesde: string | null;
   codigoPublico: string | null;
   perfilPublico: boolean;
+  receberResumo: boolean;
 }) {
   const perfil = perfilId ? PERFIS[perfilId] : null;
   const feitas = conquistas.filter((c) => c.concluida).length;
@@ -100,10 +102,49 @@ export function PainelConta({
         </section>
 
         {!visitante && (
-          <PerfilPublicoControle codigoPublico={codigoPublico} perfilPublicoInicial={perfilPublico} />
+          <>
+            <PerfilPublicoControle codigoPublico={codigoPublico} perfilPublicoInicial={perfilPublico} />
+            <ResumoSemanalControle receberInicial={receberResumo} />
+          </>
         )}
       </div>
     </main>
+  );
+}
+
+function ResumoSemanalControle({ receberInicial }: { receberInicial: boolean }) {
+  const [receber, setReceber] = useState(receberInicial);
+  const [, iniciar] = useTransition();
+
+  function alternar() {
+    const novo = !receber;
+    setReceber(novo);
+    iniciar(() => {
+      void alternarResumoSemanal(novo);
+    });
+  }
+
+  return (
+    <section>
+      <h2 className="font-display text-2xl text-ink">Resumo semanal</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        Um email por semana com seu patrimônio, o que mudou nos últimos 7
+        dias e sua posição no ranking.
+      </p>
+
+      <div className="mt-5 flex items-center gap-3 border border-[var(--rule)] bg-paper-alt px-4 py-3">
+        <Mail size={16} className="text-ink-muted" />
+        <span className="flex-1 text-sm text-ink-muted">
+          {receber ? "Você recebe o resumo semanal por email." : "Resumo semanal desativado."}
+        </span>
+        <button
+          onClick={alternar}
+          className="flex items-center gap-1.5 border border-[var(--rule)] px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-muted transition-colors hover:border-blue hover:text-blue"
+        >
+          {receber ? "Desativar" : "Ativar"}
+        </button>
+      </div>
+    </section>
   );
 }
 

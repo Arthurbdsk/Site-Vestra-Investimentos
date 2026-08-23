@@ -77,3 +77,19 @@ export async function alternarPerfilPublico(publico: boolean) {
   revalidatePath("/conta");
   return { ok: true as const };
 }
+
+/** Liga/desliga o resumo semanal por email. */
+export async function alternarResumoSemanal(receber: boolean) {
+  const supabase = await criarClienteServidor();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const };
+
+  const { error: erroResumo } = await supabase.rpc("alternar_resumo_semanal", { p_receber: receber });
+  if (erroResumo) return { ok: false as const };
+
+  revalidatePath("/conta");
+  return { ok: true as const };
+}
