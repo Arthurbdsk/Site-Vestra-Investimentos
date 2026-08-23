@@ -7,6 +7,11 @@ import { supabaseConfigurado } from "@/lib/supabase/config";
 import { calcularConquistas } from "@/lib/conquistas";
 import type { PerfilId } from "@/lib/perfilInvestidor";
 
+export const metadata = {
+  title: "Minha conta",
+  robots: { index: false, follow: false },
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function ContaPage() {

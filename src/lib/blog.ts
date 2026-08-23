@@ -618,7 +618,7 @@ export const POSTS_BLOG: PostBlog[] = [
     capa: "bolsa",
     corpo: [
       p(
-        "Perfil de investidor é a combinação entre quanto risco você tolera e por quanto tempo o dinheiro pode ficar aplicado. As corretoras costumam classificar em três faixas — conservador, moderado e arrojado — mas o rótulo importa menos que os dois fatores que o formam.",
+        "Perfil de investidor é a combinação entre quanto risco você tolera e por quanto tempo o dinheiro pode ficar aplicado. As corretoras costumam classificar em três faixas (conservador, moderado e arrojado), mas o rótulo importa menos que os dois fatores que o formam.",
       ),
       h("Não é só sobre coragem"),
       p(
@@ -774,7 +774,7 @@ export const POSTS_BLOG: PostBlog[] = [
         "Se a curiosidade existe, testar em simulador antes é o caminho de menor custo: você observa quantas operações dão certo, quanto os custos consomem, e como você reage a uma sequência de perdas, tudo sem dinheiro real envolvido.",
       ),
       p(
-        "No Vestra dá pra fazer esse teste com preços reais de mercado e saldo fictício. Não é uma recomendação pra operar assim — é a chance de descobrir na prática, e de graça, o que os números acima descrevem.",
+        "No Vestra dá pra fazer esse teste com preços reais de mercado e saldo fictício. Não é uma recomendação pra operar assim: é a chance de descobrir na prática, e de graça, o que os números acima descrevem.",
       ),
     ],
   },

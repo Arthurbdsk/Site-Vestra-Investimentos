@@ -47,8 +47,16 @@ export function Footer() {
                 Sobre
               </p>
               <ul className="mt-4 space-y-2.5 text-sm text-onblue-muted">
-                <li className="opacity-55">Nossa proposta</li>
-                <li className="opacity-55">Perguntas frequentes</li>
+                <li>
+                  <Link href="/sobre" className="transition-colors hover:text-gold">
+                    Nossa proposta
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/perguntas-frequentes" className="transition-colors hover:text-gold">
+                    Perguntas frequentes
+                  </Link>
+                </li>
                 <li>
                   <Link href="/privacidade" className="transition-colors hover:text-gold">
                     Política de Privacidade
@@ -66,7 +74,7 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col gap-3 border-t border-[var(--rule-inv)] pt-6 font-mono text-[11px] text-onblue-muted sm:flex-row sm:items-center sm:justify-between">
           <p>Ambiente 100% educacional. Nenhum valor aqui é dinheiro real.</p>
-          <p>&copy; {new Date().getFullYear()} projeto em construção</p>
+          <p>&copy; {new Date().getFullYear()} Vestra</p>
         </div>
       </div>
     </footer>

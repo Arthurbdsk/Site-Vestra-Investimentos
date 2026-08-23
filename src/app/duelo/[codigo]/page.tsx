@@ -53,7 +53,7 @@ export async function generateMetadata({
   }
 
   const titulo = d.oponenteApelido
-    ? `${d.criadorApelido} x ${d.oponenteApelido} — duelo no Vestra`
+    ? `${d.criadorApelido} x ${d.oponenteApelido}: duelo no Vestra`
     : `${d.criadorApelido} te desafiou para um duelo no Vestra`;
 
   return {
@@ -109,7 +109,7 @@ export default async function ConviteDueloPage({
               </h1>
               <p className="mt-4 max-w-lg leading-relaxed text-ink-muted">
                 Duelo é quem faz a carteira fictícia render mais no período.
-                Dinheiro nenhum de verdade entra ou sai — o que está em jogo é
+                Dinheiro nenhum de verdade entra ou sai: o que está em jogo é
                 só o placar.
               </p>
 
@@ -179,7 +179,7 @@ function Lado({
         {apelido}
       </p>
       <p className={`mt-1.5 font-mono text-3xl tabular ${cor}`}>
-        {variacao == null ? "—" : pct(variacao)}
+        {variacao == null ? "-" : pct(variacao)}
       </p>
       <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
         {vago ? "ninguém entrou ainda" : "no período do duelo"}

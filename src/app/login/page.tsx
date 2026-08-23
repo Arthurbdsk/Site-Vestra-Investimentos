@@ -4,6 +4,11 @@ import { Footer } from "@/components/Footer";
 import { FormularioAuth } from "@/components/FormularioAuth";
 import { usuarioAtual } from "@/lib/supabase/server";
 
+export const metadata = {
+  title: "Entrar",
+  description: "Entre na sua conta Vestra para acessar seu simulador de investimentos.",
+};
+
 export default async function LoginPage() {
   const user = await usuarioAtual();
 

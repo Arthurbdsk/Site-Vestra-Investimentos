@@ -7,12 +7,12 @@ import { motion } from "framer-motion";
  * de imagens e assinatura "Usuario do simulador Vestra". Depoimento
  * fabricado apresentado como real e propaganda enganosa (CDC art. 37),
  * e o estudo Spiegel/Northwestern mostra que UM depoimento e o pior
- * caso possivel — paga o custo de credibilidade sem atingir o limiar
+ * caso possivel: paga o custo de credibilidade sem atingir o limiar
  * que faz prova social funcionar (que fica perto de cinco).
  *
  * Trocado por um dado de terceiro neutro, verificado na fonte primaria.
  * Quando houver depoimentos reais (nome, contexto, autorizacao), eles
- * podem voltar — cinco, nao um.
+ * podem voltar (cinco, nao um).
  */
 export function Depoimento() {
   return (
@@ -42,7 +42,7 @@ export function Depoimento() {
 
           <p className="mt-4 border-l-[3px] border-sky pl-5 text-xl leading-relaxed text-ink sm:text-2xl">
             É quanto da população brasileira tem algum investimento
-            financeiro. A maioria não investe — e quase nunca é por falta de
+            financeiro. A maioria não investe, e quase nunca é por falta de
             vontade.
           </p>
 

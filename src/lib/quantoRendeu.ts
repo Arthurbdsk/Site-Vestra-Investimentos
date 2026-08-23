@@ -9,13 +9,13 @@ import type { Periodo } from "./historico";
  *
  * Por que existem: sao paginas de FERRAMENTA, nao de texto. A intencao de
  * quem busca "quanto rendeu 1000 reais em petr4" nao e ler um artigo, e
- * ver o numero — e isso e o tipo de pagina que um resumo de IA na busca
+ * ver o numero, e isso e o tipo de pagina que um resumo de IA na busca
  * nao substitui, porque o resultado precisa ser calculado com dado atual.
  *
  * Cada pagina precisa de conteudo proprio de verdade (numero calculado,
  * grafico, comparacao com CDI e poupanca, e a explicacao daquele ativo
  * especifico). Pagina que so troca o nome do ticker num molde vazio conta
- * como doorway page, e o Google descarta o lote inteiro — por isso a
+ * como doorway page, e o Google descarta o lote inteiro, por isso a
  * combinacao sai de catalogo curado (que tem texto proprio por ativo), e
  * nao de um produto cartesiano de tudo com tudo.
  */

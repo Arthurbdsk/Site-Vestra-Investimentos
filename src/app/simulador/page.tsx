@@ -21,6 +21,12 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { supabaseConfigurado } from "@/lib/supabase/config";
 import { processarPendencias } from "./processarPendencias";
 
+export const metadata = {
+  title: "Simulador de investimentos",
+  description:
+    "Monte uma carteira com saldo fictício e preços reais da B3 e da bolsa americana. Compre, venda, ganhe dividendos e acompanhe seu patrimônio dia a dia, sem risco.",
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function SimuladorPage() {
@@ -331,6 +337,7 @@ export default async function SimuladorPage() {
         historico={historico}
         saudacao={saudacao}
         mostrarOnboarding={mostrarOnboarding}
+        userId={user.id}
       />
       <Footer />
     </>

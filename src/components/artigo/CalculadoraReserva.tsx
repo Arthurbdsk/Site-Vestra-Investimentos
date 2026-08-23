@@ -99,7 +99,7 @@ export function CalculadoraReserva() {
         <p className="mt-1 font-mono text-3xl tabular text-gold-texto">{brl(alvo)}</p>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {escolhido.meses} meses de despesa, guardados em algo de liquidez
-          diária — dá pra resgatar a qualquer momento, sem perder valor por
+          diária: dá pra resgatar a qualquer momento, sem perder valor por
           sacar na hora errada.
         </p>
       </div>

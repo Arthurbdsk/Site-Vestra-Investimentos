@@ -145,7 +145,7 @@ export default async function QuantoRendeuPage({
               O que é {c.ativo.ticker}?
             </h2>
             <p className="mt-3 leading-relaxed text-ink">
-              <strong className="font-semibold">{c.ativo.nome}</strong> —{" "}
+              <strong className="font-semibold">{c.ativo.nome}</strong>:{" "}
               {c.ativo.explica}
             </p>
           </section>
@@ -165,7 +165,7 @@ export default async function QuantoRendeuPage({
               A simulação também ignora custos que existem na vida real
               (corretagem, emolumentos e imposto de renda na venda) e, no caso
               de ações e fundos que distribuem resultado, não reinveste
-              dividendos nem rendimentos — o retorno total de quem recebeu e
+              dividendos nem rendimentos: o retorno total de quem recebeu e
               reaplicou seria diferente.
             </p>
             <AvisoSimulacaoLinha className="mt-4" />
@@ -218,7 +218,7 @@ export default async function QuantoRendeuPage({
                         href={`/quanto-rendeu/${v.slug}`}
                         className="text-sm font-semibold text-ink transition-colors hover:text-blue"
                       >
-                        {v.ativo.ticker} — {v.ativo.nome}
+                        {v.ativo.ticker}: {v.ativo.nome}
                       </Link>
                     </li>
                   ))}

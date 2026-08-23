@@ -14,6 +14,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { rota: "/quanto-rendeu", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/cadastro", prioridade: 0.7, frequencia: "monthly" },
     { rota: "/login", prioridade: 0.5, frequencia: "monthly" },
+    { rota: "/sobre", prioridade: 0.5, frequencia: "monthly" },
+    { rota: "/perguntas-frequentes", prioridade: 0.5, frequencia: "monthly" },
     { rota: "/termos", prioridade: 0.3, frequencia: "yearly" },
     { rota: "/privacidade", prioridade: 0.3, frequencia: "yearly" },
   ];

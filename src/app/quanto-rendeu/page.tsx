@@ -15,7 +15,7 @@ import { brl } from "@/lib/formato";
 
 const TITULO = "Quanto teria rendido? Simulações com preço real da bolsa";
 const DESCRICAO =
-  "Veja quanto R$ 1.000 ou R$ 5.000 investidos há 1, 2 ou 5 anos valeriam hoje em ações da B3, ações dos EUA, fundos imobiliários e ETFs — comparado ao CDI e à poupança.";
+  "Veja quanto R$ 1.000 ou R$ 5.000 investidos há 1, 2 ou 5 anos valeriam hoje em ações da B3, ações dos EUA, fundos imobiliários e ETFs, comparado ao CDI e à poupança.";
 
 export const metadata: Metadata = {
   title: TITULO,
@@ -55,7 +55,7 @@ export default async function QuantoRendeuIndex() {
           </h1>
           <p className="mt-4 max-w-xl leading-relaxed text-ink-muted">
             Cada página abaixo calcula, com preço real de fechamento, quanto{" "}
-            {brl(valorPadrao)} investidos há 1, 2 ou 5 anos valeriam hoje — e
+            {brl(valorPadrao)} investidos há 1, 2 ou 5 anos valeriam hoje, e
             compara com o que a mesma quantia renderia no CDI e na poupança.
           </p>
 

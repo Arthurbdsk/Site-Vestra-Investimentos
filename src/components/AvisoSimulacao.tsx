@@ -41,8 +41,8 @@ export function AvisoSimulacaoBloco({
   const corTexto = sobreAzul ? "text-onblue-muted" : "text-ink-muted";
   const corBorda = sobreAzul ? "border-[var(--rule-inv)]" : "border-[var(--rule)]";
   // Sobre azul o dourado original tem contraste de sobra; sobre papel
-  // claro ele da 2,03:1 e este rotulo — que e justamente o aviso de
-  // conformidade — ficava ilegivel. Ver --color-gold-texto no globals.
+  // claro ele da 2,03:1 e este rotulo (que e justamente o aviso de
+  // conformidade) ficava ilegivel. Ver --color-gold-texto no globals.
   const corRotulo = sobreAzul ? "text-gold" : "text-gold-texto";
 
   return (
