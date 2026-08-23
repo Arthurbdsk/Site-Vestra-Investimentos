@@ -82,7 +82,7 @@ export default async function SimuladorPage() {
   ] = await Promise.all([
     supabase
       .from("perfis")
-      .select("apelido, saldo, perfil_investidor, quiz_perfil_visto_em")
+      .select("apelido, saldo, perfil_investidor, quiz_perfil_visto_em, convites_bem_sucedidos")
       .eq("id", user.id)
       .single(),
     supabase.from("posicoes").select("ticker, quantidade, preco_medio").order("ticker"),
@@ -340,6 +340,7 @@ export default async function SimuladorPage() {
         saudacao={saudacao}
         mostrarOnboarding={mostrarOnboarding}
         userId={user.id}
+        convitesBemSucedidos={Number(perfilRes.data?.convites_bem_sucedidos ?? 0)}
       />
       <Footer />
     </>

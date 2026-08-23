@@ -30,7 +30,7 @@ export default async function ContaPage() {
     await Promise.all([
       supabase
         .from("perfis")
-        .select("apelido, saldo, perfil_investidor, criado_em")
+        .select("apelido, saldo, perfil_investidor, criado_em, convites_bem_sucedidos")
         .eq("id", user.id)
         .single(),
       supabase.from("posicoes").select("ticker, quantidade, preco_medio"),
@@ -71,6 +71,7 @@ export default async function ContaPage() {
     temRendaFixa: (rendaFixaRes.data ?? []).length > 0,
     diasSeguidos,
     patrimonio: saldo + valorEmAcoes,
+    convitesBemSucedidos: Number(perfilRes.data?.convites_bem_sucedidos ?? 0),
   });
 
   const membroDesde = perfilRes.data?.criado_em

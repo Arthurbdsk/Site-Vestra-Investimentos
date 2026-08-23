@@ -114,6 +114,7 @@ export function PainelSimulador({
   saudacao = "Bem-vindo de volta",
   mostrarOnboarding = false,
   userId,
+  convitesBemSucedidos = 0,
 }: {
   apelido: string;
   saldo: number;
@@ -140,6 +141,7 @@ export function PainelSimulador({
   saudacao?: string;
   mostrarOnboarding?: boolean;
   userId?: string | null;
+  convitesBemSucedidos?: number;
 }) {
   // O aplicativo abre no Inicio, que e o painel de visao geral. Antes abria
   // direto na carteira (ou no explorar, se vazia), o que jogava a pessoa no
@@ -184,6 +186,7 @@ export function PainelSimulador({
     temRendaFixa: posicoesRendaFixa.length > 0,
     diasSeguidos,
     patrimonio,
+    convitesBemSucedidos,
   });
   const conquistasConcluidas = conquistas.filter((c) => c.concluida).length;
   const nivel = calcularNivel(conquistasConcluidas);

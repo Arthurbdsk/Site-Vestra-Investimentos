@@ -12,6 +12,7 @@ import {
   CalendarCheck2,
   Gem,
   Lock,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import type { Conquista, IconeConquista } from "@/lib/conquistas";
@@ -25,6 +26,7 @@ const ICONES: Record<IconeConquista, LucideIcon> = {
   semana: Flame,
   mes: CalendarCheck2,
   patrimonio: Gem,
+  convite: UserPlus,
 };
 
 export function ConquistasFaixa({ conquistas }: { conquistas: Conquista[] }) {

@@ -31,6 +31,7 @@ alter table public.perfis add column if not exists perfil_investidor text;
 alter table public.perfis add column if not exists mes_referencia text;
 alter table public.perfis add column if not exists patrimonio_inicio_mes numeric(14,2);
 alter table public.perfis add column if not exists termos_aceitos_em timestamptz;
+alter table public.perfis add column if not exists convites_bem_sucedidos integer not null default 0;
 
 alter table public.perfis enable row level security;
 
@@ -1778,8 +1779,10 @@ end $$;
 create or replace function public.entrar_duelo(p_codigo text)
 returns json language plpgsql security definer set search_path = public as $$
 declare
-  v_usuario uuid := auth.uid();
-  v_duelo   public.duelos%rowtype;
+  v_usuario     uuid := auth.uid();
+  v_duelo       public.duelos%rowtype;
+  v_conta_nova  boolean;
+  v_bonus       constant numeric(14,2) := 5000.00;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1801,6 +1804,21 @@ begin
     data_inicio = now(),
     status = 'ativo'
   where id = v_duelo.id;
+
+  -- Convite bem sucedido de verdade: a conta de quem entrou so existia
+  -- DEPOIS do convite ter sido criado, ou seja, essa pessoa veio pro
+  -- Vestra por causa deste duelo especifico, nao era usuario de antes
+  -- topando um desafio qualquer. Premia quem criou o convite com saldo
+  -- ficticio extra, e conta pra conquista de "trouxe alguem".
+  select (created_at > v_duelo.criado_em) into v_conta_nova
+    from auth.users where id = v_usuario;
+
+  if v_conta_nova then
+    update public.perfis set
+      saldo = saldo + v_bonus,
+      convites_bem_sucedidos = convites_bem_sucedidos + 1
+    where id = v_duelo.criador_id;
+  end if;
 
   return json_build_object('ok', true, 'id', v_duelo.id);
 end $$;

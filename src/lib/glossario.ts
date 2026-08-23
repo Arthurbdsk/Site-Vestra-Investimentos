@@ -134,4 +134,18 @@ export const GLOSSARIO: TermoGlossario[] = [
     definicao:
       "O conjunto de todos os investimentos que uma pessoa tem, também chamado de portfólio.",
   },
+  {
+    termo: "Beta",
+    definicao:
+      "Mede o quanto uma ação costuma balançar em relação ao mercado inteiro. Beta 1 significa que ela se move junto com o mercado; acima de 1, ela costuma oscilar mais que a média.",
+  },
+  {
+    termo: "Dividend yield",
+    definicao:
+      "Quanto uma ação pagou de dividendo no último ano, em porcentagem do preço atual dela. Ajuda a comparar o \"aluguel\" que diferentes ações pagam.",
+  },
 ];
+
+export function termoPorNome(termo: string): TermoGlossario | undefined {
+  return GLOSSARIO.find((t) => t.termo.toLowerCase() === termo.toLowerCase());
+}

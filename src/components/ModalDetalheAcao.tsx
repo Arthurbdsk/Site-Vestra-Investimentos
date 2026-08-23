@@ -13,6 +13,7 @@ import { brl, numero } from "@/lib/formato";
 import { corDoSetor } from "@/lib/coresSetor";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { NoticiasDaAcao } from "./NoticiasDaAcao";
+import { TermoGlossario } from "./TermoGlossario";
 
 type Cabecalho = {
   preco: number | null;
@@ -228,19 +229,25 @@ export function ModalDetalheAcao({
                   <div className="mt-3 flex flex-wrap gap-4">
                     {fundamentos.beta != null && (
                       <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">Beta</p>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                          <TermoGlossario termo="Beta">Beta</TermoGlossario>
+                        </p>
                         <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.beta, 2)}</p>
                       </div>
                     )}
                     {fundamentos.precoLucro != null && (
                       <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">P/L</p>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                          <TermoGlossario termo="P/L">P/L</TermoGlossario>
+                        </p>
                         <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.precoLucro, 1)}</p>
                       </div>
                     )}
                     {fundamentos.dividendYield != null && (
                       <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">Dividend yield</p>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                          <TermoGlossario termo="Dividend yield">Dividend yield</TermoGlossario>
+                        </p>
                         <p className="font-mono text-sm tabular text-ink">{numero(fundamentos.dividendYield * 100, 1)}%</p>
                       </div>
                     )}
