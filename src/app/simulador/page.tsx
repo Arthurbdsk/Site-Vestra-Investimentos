@@ -14,6 +14,7 @@ import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPaine
 import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
 import type { Liga } from "@/components/LigasPainel";
+import type { Opcao } from "@/components/OpcoesPainel";
 import type { Agente, DecisaoAgente } from "@/components/AgentePainel";
 import type { EstadoEmprestimo } from "./operacoesEmprestimo";
 import type { PontoPatrimonio } from "@/components/app/Inicio";
@@ -76,6 +77,7 @@ export default async function SimuladorPage() {
     favoritosRes,
     duelosRes,
     ligasRes,
+    opcoesRes,
     alertasRes,
     acessoRes,
     emprestimoRes,
@@ -111,6 +113,7 @@ export default async function SimuladorPage() {
     supabase.from("favoritos").select("ticker"),
     supabase.rpc("listar_meus_duelos"),
     supabase.rpc("listar_minhas_ligas"),
+    supabase.rpc("listar_minhas_opcoes"),
     supabase
       .from("alertas_preco")
       .select("id, ticker, direcao, preco_alvo, status, visto")
@@ -179,6 +182,7 @@ export default async function SimuladorPage() {
   const favoritos: string[] = (favoritosRes.data ?? []).map((f) => f.ticker);
   const duelos: Duelo[] = duelosRes.data ?? [];
   const ligas: Liga[] = ligasRes.data ?? [];
+  const opcoes: Opcao[] = opcoesRes.data ?? [];
 
   const alertas: AlertaPreco[] = (alertasRes.data ?? [])
     .filter((a) => a.status === "ativo" || !a.visto)
@@ -338,6 +342,7 @@ export default async function SimuladorPage() {
         favoritos={favoritos}
         duelos={duelos}
         ligas={ligas}
+        opcoes={opcoes}
         agente={agente}
         decisoesAgente={decisoesAgente}
         emprestimo={emprestimo}
