@@ -31,6 +31,9 @@ alter table public.perfis add column if not exists perfil_investidor text;
 alter table public.perfis add column if not exists mes_referencia text;
 alter table public.perfis add column if not exists patrimonio_inicio_mes numeric(14,2);
 alter table public.perfis add column if not exists termos_aceitos_em timestamptz;
+alter table public.perfis add column if not exists convites_bem_sucedidos integer not null default 0;
+alter table public.perfis add column if not exists codigo_publico text unique;
+alter table public.perfis add column if not exists perfil_publico boolean not null default true;
 
 alter table public.perfis enable row level security;
 
@@ -192,6 +195,7 @@ returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
   v_email   text;
+  v_codigo  text;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -203,8 +207,143 @@ begin
   values (v_usuario, split_part(coalesce(v_email, ''), '@', 1))
   on conflict (id) do nothing;
 
+  -- Perfis criados antes deste recurso existir nao tem codigo_publico.
+  -- Gera um na primeira visita depois do deploy, do mesmo jeito que o
+  -- codigo de convite do duelo.
+  if (select codigo_publico from public.perfis where id = v_usuario) is null then
+    loop
+      v_codigo := lower(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
+      exit when not exists (select 1 from public.perfis where codigo_publico = v_codigo);
+    end loop;
+    update public.perfis set codigo_publico = v_codigo where id = v_usuario;
+  end if;
+
   return json_build_object('ok', true);
 end $$;
+
+create or replace function public.alternar_perfil_publico(p_publico boolean)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.perfis set perfil_publico = p_publico where id = v_usuario;
+
+  return json_build_object('ok', true);
+end $$;
+
+-- ------------------------------------------------------------
+-- PERFIL PUBLICO: pagina de perfil compartilhavel, sem login, no
+-- mesmo espirito do convite de duelo publico. So funciona se a pessoa
+-- nao desativou (perfil_publico = true, ligado por padrao).
+-- ------------------------------------------------------------
+create or replace function public.ver_perfil_publico(p_codigo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_perfil public.perfis%rowtype;
+begin
+  select * into v_perfil from public.perfis
+    where codigo_publico = lower(p_codigo) and perfil_publico = true;
+
+  if not found then
+    return json_build_object('ok', false);
+  end if;
+
+  return json_build_object(
+    'ok', true,
+    'apelido', coalesce(v_perfil.apelido, 'Investidor'),
+    'membroDesde', v_perfil.criado_em,
+    'diasSeguidos', v_perfil.dias_seguidos,
+    'patrimonio', public.patrimonio_de(v_perfil.id),
+    'convitesBemSucedidos', v_perfil.convites_bem_sucedidos,
+    'temCompra', exists(select 1 from public.transacoes where usuario_id = v_perfil.id and tipo = 'compra'),
+    'temVenda', exists(select 1 from public.transacoes where usuario_id = v_perfil.id and tipo = 'venda'),
+    'temDividendo', exists(select 1 from public.transacoes where usuario_id = v_perfil.id and tipo = 'dividendo'),
+    'tickersDistintos', (select count(distinct ticker) from public.posicoes where usuario_id = v_perfil.id),
+    'temRendaFixa', exists(select 1 from public.investimentos_rf where usuario_id = v_perfil.id and resgatado = false),
+    'historico', coalesce((
+      select json_agg(json_build_object('data', h.dia, 'valor', h.valor) order by h.dia)
+      from (
+        select dia, valor from public.patrimonio_historico
+        where usuario_id = v_perfil.id
+        order by dia desc
+        limit 90
+      ) h
+    ), '[]'::json)
+  );
+end $$;
+
+grant execute on function public.ver_perfil_publico(text) to anon, authenticated;
+
+-- ------------------------------------------------------------
+-- RESUMO SEMANAL: dados pro digest por email (envio fica no Next.js,
+-- via Resend, chamado por um cron da Vercel; aqui so fica a consulta).
+-- listar_destinatarios_resumo_semanal() NAO verifica auth.uid(): e uma
+-- consulta administrativa, chamada com a service role key (nunca a
+-- anon key) direto do cron route. Execute revogado de anon/authenticated
+-- de proposito, senao qualquer um com a chave publica veria email e
+-- patrimonio de todo mundo.
+-- ------------------------------------------------------------
+alter table public.perfis add column if not exists receber_resumo boolean not null default true;
+
+create or replace function public.alternar_resumo_semanal(p_receber boolean)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  update public.perfis set receber_resumo = p_receber where id = v_usuario;
+
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.listar_destinatarios_resumo_semanal()
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  return coalesce((
+    select json_agg(json_build_object(
+      'usuarioId', x.id,
+      'email', x.email,
+      'apelido', x.apelido,
+      'patrimonioAtual', x.patrimonio_atual,
+      'ganhoSemanaPct', x.ganho_semana_pct,
+      'posicaoRanking', x.posicao
+    ))
+    from (
+      select
+        p.id,
+        u.email,
+        coalesce(p.apelido, 'Investidor') as apelido,
+        public.patrimonio_de(p.id) as patrimonio_atual,
+        case when h.valor > 0
+          then ((public.patrimonio_de(p.id) - h.valor) / h.valor) * 100
+          else null end as ganho_semana_pct,
+        (select count(*) + 1 from public.perfis p2
+          where public.patrimonio_de(p2.id) > public.patrimonio_de(p.id)) as posicao
+      from public.perfis p
+      join auth.users u on u.id = p.id
+      left join lateral (
+        select valor from public.patrimonio_historico
+        where usuario_id = p.id and dia <= current_date - 7
+        order by dia desc
+        limit 1
+      ) h on true
+      where p.receber_resumo = true
+        and u.email is not null
+        and u.is_anonymous is not true
+    ) x
+    where x.ganho_semana_pct is not null
+  ), '[]'::json);
+end $$;
+
+revoke all on function public.listar_destinatarios_resumo_semanal() from public, anon, authenticated;
+grant execute on function public.listar_destinatarios_resumo_semanal() to service_role;
 
 -- ------------------------------------------------------------
 -- ACEITAR TERMOS: registrado no cadastro por email/senha, no login
@@ -849,6 +988,262 @@ begin
   values (v_usuario, upper(trim(p_ticker)), 'venda', p_qtd, v_preco, v_valor, v_imposto, v_nota);
 
   return json_build_object('ok', true, 'preco', v_preco, 'valor', v_valor, 'imposto', v_imposto, 'liquido', v_liquido);
+end $$;
+
+-- ------------------------------------------------------------
+-- OPCOES SIMPLIFICADAS: so covered call e cash-secured put. Sem fonte
+-- de dado real de opcoes disponivel, o premio e ESTIMADO via
+-- Brenner-Subrahmanyam (C ~= 0.4 * S * sigma * sqrt(T)) com volatilidade
+-- fixa de 35% ao ano, mais decaimento gaussiano conforme o strike se
+-- afasta do preco atual. Aproximacao pedagogica, nao cotacao de
+-- mercado nem Black-Scholes completo.
+--
+-- Simplificacao deliberada: as acoes/caixa que cobrem a opcao NAO ficam
+-- reservados. Vender as acoes ou gastar o caixa antes do vencimento so
+-- faz a opcao expirar sem efeito no vencimento, em vez de forcar uma
+-- operacao. Bloquear de verdade exigiria alterar comprar/vender/
+-- emprestimo/renda-fixa pra reservar saldo.
+-- ------------------------------------------------------------
+create table if not exists public.opcoes (
+  id          uuid primary key default gen_random_uuid(),
+  usuario_id  uuid not null references auth.users(id) on delete cascade,
+  ticker      text not null,
+  tipo        text not null check (tipo in ('covered_call', 'cash_secured_put')),
+  strike      numeric(14,2) not null check (strike > 0),
+  premio      numeric(14,2) not null,
+  quantidade  integer not null check (quantidade > 0),
+  vencimento  date not null,
+  status      text not null default 'aberta' check (status in ('aberta', 'exercida', 'expirada')),
+  criado_em   timestamptz not null default now()
+);
+
+create index if not exists opcoes_usuario_idx on public.opcoes(usuario_id, criado_em desc);
+create index if not exists opcoes_vencimento_idx on public.opcoes(vencimento) where status = 'aberta';
+
+alter table public.opcoes enable row level security;
+
+drop policy if exists "opcoes proprias" on public.opcoes;
+create policy "opcoes proprias" on public.opcoes
+  for select using (auth.uid() = usuario_id);
+
+create or replace function public.calcular_premio_opcao(
+  p_preco_atual numeric, p_strike numeric, p_dias integer, p_tipo text
+)
+returns numeric language plpgsql immutable as $$
+declare
+  v_vol           constant numeric := 0.35;
+  v_tempo         numeric;
+  v_valor_tempo   numeric;
+  v_dist_pct      numeric;
+  v_decaimento    numeric;
+  v_intrinsico    numeric;
+begin
+  if p_preco_atual is null or p_preco_atual <= 0 or p_strike is null or p_strike <= 0 or p_dias is null or p_dias <= 0 then
+    return 0;
+  end if;
+
+  v_tempo := sqrt(p_dias::numeric / 365);
+  v_valor_tempo := 0.4 * p_preco_atual * v_vol * v_tempo;
+
+  v_dist_pct := (p_preco_atual - p_strike) / p_preco_atual;
+  v_decaimento := exp(-2 * power(v_dist_pct, 2));
+
+  v_intrinsico := case
+    when p_tipo = 'covered_call' then greatest(0, p_preco_atual - p_strike)
+    else greatest(0, p_strike - p_preco_atual)
+  end;
+
+  return round(v_intrinsico + (v_valor_tempo * v_decaimento), 2);
+end $$;
+
+create or replace function public.vender_covered_call(p_ticker text, p_strike numeric, p_quantidade integer, p_dias integer)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_preco   numeric(14,2);
+  v_premio  numeric(14,2);
+  v_pos     public.posicoes%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_quantidade is null or p_quantidade <= 0 then
+    raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+  if p_dias is null or p_dias <= 0 or p_dias > 60 then
+    raise exception 'Prazo invalido (1 a 60 dias).';
+  end if;
+  if p_strike is null or p_strike <= 0 then
+    raise exception 'Strike invalido.';
+  end if;
+
+  select * into v_pos from public.posicoes
+    where usuario_id = v_usuario and ticker = upper(trim(p_ticker));
+
+  if not found or v_pos.quantidade < p_quantidade then
+    raise exception 'Voce precisa ter pelo menos % acoes de % pra vender essa covered call.', p_quantidade, p_ticker;
+  end if;
+
+  v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
+  if v_preco is null or v_preco <= 0 then
+    raise exception 'Nao consegui confirmar o preco de %. Tente de novo em instantes.', p_ticker;
+  end if;
+
+  v_premio := public.calcular_premio_opcao(v_preco, p_strike, p_dias, 'covered_call') * p_quantidade;
+
+  insert into public.opcoes (usuario_id, ticker, tipo, strike, premio, quantidade, vencimento)
+  values (v_usuario, upper(trim(p_ticker)), 'covered_call', p_strike, v_premio, p_quantidade, current_date + p_dias);
+
+  update public.perfis set saldo = saldo + v_premio where id = v_usuario;
+
+  return json_build_object('ok', true, 'premio', v_premio);
+end $$;
+
+create or replace function public.vender_cash_secured_put(p_ticker text, p_strike numeric, p_quantidade integer, p_dias integer)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_preco   numeric(14,2);
+  v_premio  numeric(14,2);
+  v_saldo   numeric(14,2);
+  v_reserva numeric(14,2);
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if p_quantidade is null or p_quantidade <= 0 then
+    raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+  if p_dias is null or p_dias <= 0 or p_dias > 60 then
+    raise exception 'Prazo invalido (1 a 60 dias).';
+  end if;
+  if p_strike is null or p_strike <= 0 then
+    raise exception 'Strike invalido.';
+  end if;
+
+  v_reserva := p_strike * p_quantidade;
+
+  select saldo into v_saldo from public.perfis where id = v_usuario;
+  if v_saldo is null or v_saldo < v_reserva then
+    raise exception 'Voce precisa de R$ % em caixa pra vender esse cash-secured put.', v_reserva;
+  end if;
+
+  v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
+  if v_preco is null or v_preco <= 0 then
+    raise exception 'Nao consegui confirmar o preco de %. Tente de novo em instantes.', p_ticker;
+  end if;
+
+  v_premio := public.calcular_premio_opcao(v_preco, p_strike, p_dias, 'cash_secured_put') * p_quantidade;
+
+  insert into public.opcoes (usuario_id, ticker, tipo, strike, premio, quantidade, vencimento)
+  values (v_usuario, upper(trim(p_ticker)), 'cash_secured_put', p_strike, v_premio, p_quantidade, current_date + p_dias);
+
+  update public.perfis set saldo = saldo + v_premio where id = v_usuario;
+
+  return json_build_object('ok', true, 'premio', v_premio);
+end $$;
+
+create or replace function public.listar_minhas_opcoes()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  return coalesce((
+    select json_agg(json_build_object(
+      'id', o.id,
+      'ticker', o.ticker,
+      'tipo', o.tipo,
+      'strike', o.strike,
+      'premio', o.premio,
+      'quantidade', o.quantidade,
+      'vencimento', o.vencimento,
+      'status', o.status,
+      'criadoEm', o.criado_em
+    ) order by o.criado_em desc)
+    from public.opcoes o
+    where o.usuario_id = v_usuario
+    limit 50
+  ), '[]'::json);
+end $$;
+
+create or replace function public.processar_opcoes_vencidas(p_usuario uuid)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_opcao public.opcoes%rowtype;
+  v_preco numeric(14,2);
+  v_pos   public.posicoes%rowtype;
+  v_saldo numeric(14,2);
+begin
+  for v_opcao in
+    select * from public.opcoes
+    where usuario_id = p_usuario and status = 'aberta' and vencimento <= current_date
+  loop
+    v_preco := public.garantir_cotacao(v_opcao.ticker);
+    if v_preco is null or v_preco <= 0 then
+      continue;
+    end if;
+
+    if v_opcao.tipo = 'covered_call' then
+      if v_preco > v_opcao.strike then
+        select * into v_pos from public.posicoes
+          where usuario_id = p_usuario and ticker = v_opcao.ticker;
+
+        if found and v_pos.quantidade >= v_opcao.quantidade then
+          if v_pos.quantidade = v_opcao.quantidade then
+            delete from public.posicoes where id = v_pos.id;
+          else
+            update public.posicoes set quantidade = v_pos.quantidade - v_opcao.quantidade where id = v_pos.id;
+          end if;
+
+          update public.perfis set saldo = saldo + (v_opcao.strike * v_opcao.quantidade) where id = p_usuario;
+
+          insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
+          values (p_usuario, v_opcao.ticker, 'venda', v_opcao.quantidade, v_opcao.strike, v_opcao.strike * v_opcao.quantidade);
+
+          update public.opcoes set status = 'exercida' where id = v_opcao.id;
+        else
+          update public.opcoes set status = 'expirada' where id = v_opcao.id;
+        end if;
+      else
+        update public.opcoes set status = 'expirada' where id = v_opcao.id;
+      end if;
+
+    else
+      if v_preco < v_opcao.strike then
+        select saldo into v_saldo from public.perfis where id = p_usuario;
+
+        if v_saldo is not null and v_saldo >= (v_opcao.strike * v_opcao.quantidade) then
+          update public.perfis set saldo = saldo - (v_opcao.strike * v_opcao.quantidade) where id = p_usuario;
+
+          select * into v_pos from public.posicoes
+            where usuario_id = p_usuario and ticker = v_opcao.ticker;
+
+          if found then
+            update public.posicoes set
+              quantidade = v_pos.quantidade + v_opcao.quantidade,
+              preco_medio = round(((v_pos.quantidade * v_pos.preco_medio) + (v_opcao.strike * v_opcao.quantidade)) / (v_pos.quantidade + v_opcao.quantidade), 2)
+            where id = v_pos.id;
+          else
+            insert into public.posicoes (usuario_id, ticker, quantidade, preco_medio)
+            values (p_usuario, v_opcao.ticker, v_opcao.quantidade, v_opcao.strike);
+          end if;
+
+          insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
+          values (p_usuario, v_opcao.ticker, 'compra', v_opcao.quantidade, v_opcao.strike, v_opcao.strike * v_opcao.quantidade);
+
+          update public.opcoes set status = 'exercida' where id = v_opcao.id;
+        else
+          update public.opcoes set status = 'expirada' where id = v_opcao.id;
+        end if;
+      else
+        update public.opcoes set status = 'expirada' where id = v_opcao.id;
+      end if;
+    end if;
+  end loop;
 end $$;
 
 -- Agenda a atualizacao automatica das cotacoes a cada 5 minutos, em
@@ -1778,8 +2173,10 @@ end $$;
 create or replace function public.entrar_duelo(p_codigo text)
 returns json language plpgsql security definer set search_path = public as $$
 declare
-  v_usuario uuid := auth.uid();
-  v_duelo   public.duelos%rowtype;
+  v_usuario     uuid := auth.uid();
+  v_duelo       public.duelos%rowtype;
+  v_conta_nova  boolean;
+  v_bonus       constant numeric(14,2) := 5000.00;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -1801,6 +2198,21 @@ begin
     data_inicio = now(),
     status = 'ativo'
   where id = v_duelo.id;
+
+  -- Convite bem sucedido de verdade: a conta de quem entrou so existia
+  -- DEPOIS do convite ter sido criado, ou seja, essa pessoa veio pro
+  -- Vestra por causa deste duelo especifico, nao era usuario de antes
+  -- topando um desafio qualquer. Premia quem criou o convite com saldo
+  -- ficticio extra, e conta pra conquista de "trouxe alguem".
+  select (created_at > v_duelo.criado_em) into v_conta_nova
+    from auth.users where id = v_usuario;
+
+  if v_conta_nova then
+    update public.perfis set
+      saldo = saldo + v_bonus,
+      convites_bem_sucedidos = convites_bem_sucedidos + 1
+    where id = v_duelo.criador_id;
+  end if;
 
   return json_build_object('ok', true, 'id', v_duelo.id);
 end $$;
@@ -1841,6 +2253,184 @@ begin
     where d.criador_id = v_usuario or d.oponente_id = v_usuario
   ), '[]'::json);
 end $$;
+
+
+-- ------------------------------------------------------------
+-- LIGAS: mesma mecanica do duelo (rentabilidade percentual desde que
+-- entrou, num prazo fixo, com codigo de convite), mas pra um grupo
+-- qualquer de pessoas em vez de exatamente duas.
+-- ------------------------------------------------------------
+create table if not exists public.ligas (
+  id             uuid primary key default gen_random_uuid(),
+  criador_id     uuid not null references auth.users(id) on delete cascade,
+  nome           text not null,
+  codigo_convite text not null unique,
+  dias           integer not null check (dias > 0 and dias <= 90),
+  criado_em      timestamptz not null default now()
+);
+
+alter table public.ligas enable row level security;
+
+drop policy if exists "ligas: membros veem" on public.ligas;
+create policy "ligas: membros veem" on public.ligas
+  for select using (
+    id in (select liga_id from public.liga_membros where usuario_id = auth.uid())
+  );
+
+create table if not exists public.liga_membros (
+  liga_id            uuid not null references public.ligas(id) on delete cascade,
+  usuario_id         uuid not null references auth.users(id) on delete cascade,
+  patrimonio_inicial numeric(14,2) not null,
+  entrou_em          timestamptz not null default now(),
+  primary key (liga_id, usuario_id)
+);
+
+alter table public.liga_membros enable row level security;
+
+drop policy if exists "liga_membros: membros veem" on public.liga_membros;
+create policy "liga_membros: membros veem" on public.liga_membros
+  for select using (
+    liga_id in (select liga_id from public.liga_membros where usuario_id = auth.uid())
+  );
+
+create or replace function public.criar_liga(p_nome text, p_dias integer)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_codigo  text;
+  v_id      uuid;
+  v_nome    text := left(trim(p_nome), 40);
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+  if v_nome = '' then
+    v_nome := 'Liga sem nome';
+  end if;
+  if p_dias is null or p_dias <= 0 or p_dias > 90 then
+    raise exception 'Duracao invalida (1 a 90 dias).';
+  end if;
+
+  loop
+    v_codigo := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from public.ligas where codigo_convite = v_codigo);
+  end loop;
+
+  insert into public.ligas (criador_id, nome, codigo_convite, dias)
+  values (v_usuario, v_nome, v_codigo, p_dias)
+  returning id into v_id;
+
+  insert into public.liga_membros (liga_id, usuario_id, patrimonio_inicial)
+  values (v_id, v_usuario, public.patrimonio_de(v_usuario));
+
+  return json_build_object('ok', true, 'id', v_id, 'codigo', v_codigo);
+end $$;
+
+create or replace function public.entrar_liga(p_codigo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_liga    public.ligas%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_liga from public.ligas where codigo_convite = upper(p_codigo);
+  if not found then
+    raise exception 'Codigo invalido.';
+  end if;
+
+  if now() > v_liga.criado_em + (v_liga.dias || ' days')::interval then
+    raise exception 'Essa liga ja encerrou.';
+  end if;
+
+  if exists (select 1 from public.liga_membros where liga_id = v_liga.id and usuario_id = v_usuario) then
+    raise exception 'Voce ja esta nessa liga.';
+  end if;
+
+  insert into public.liga_membros (liga_id, usuario_id, patrimonio_inicial)
+  values (v_liga.id, v_usuario, public.patrimonio_de(v_usuario));
+
+  return json_build_object('ok', true, 'id', v_liga.id);
+end $$;
+
+create or replace function public.listar_minhas_ligas()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario uuid := auth.uid();
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  return coalesce((
+    select json_agg(json_build_object(
+      'id', l.id,
+      'nome', l.nome,
+      'codigoConvite', l.codigo_convite,
+      'dias', l.dias,
+      'criadoEm', l.criado_em,
+      'souCriador', l.criador_id = v_usuario,
+      'membros', (
+        select coalesce(json_agg(json_build_object(
+          'apelido', x.apelido,
+          'ganhoPct', x.ganho_pct,
+          'souEu', x.usuario_id = v_usuario
+        ) order by x.ganho_pct desc), '[]'::json)
+        from (
+          select
+            m.usuario_id,
+            coalesce(p.apelido, 'Investidor') as apelido,
+            case when m.patrimonio_inicial > 0
+              then ((public.patrimonio_de(m.usuario_id) - m.patrimonio_inicial) / m.patrimonio_inicial) * 100
+              else 0 end as ganho_pct
+          from public.liga_membros m
+          left join public.perfis p on p.id = m.usuario_id
+          where m.liga_id = l.id
+        ) x
+      )
+    ) order by l.criado_em desc)
+    from public.ligas l
+    where l.id in (select liga_id from public.liga_membros where usuario_id = v_usuario)
+  ), '[]'::json);
+end $$;
+
+create or replace function public.ver_liga_publica(p_codigo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_liga public.ligas%rowtype;
+begin
+  select * into v_liga from public.ligas where codigo_convite = upper(p_codigo);
+  if not found then
+    return json_build_object('ok', false);
+  end if;
+
+  return json_build_object(
+    'ok', true,
+    'nome', v_liga.nome,
+    'dias', v_liga.dias,
+    'criadoEm', v_liga.criado_em,
+    'totalMembros', (select count(*) from public.liga_membros where liga_id = v_liga.id),
+    'top', coalesce((
+      select json_agg(json_build_object('apelido', x.apelido, 'ganhoPct', x.ganho_pct) order by x.ganho_pct desc)
+      from (
+        select
+          coalesce(p.apelido, 'Investidor') as apelido,
+          case when m.patrimonio_inicial > 0
+            then ((public.patrimonio_de(m.usuario_id) - m.patrimonio_inicial) / m.patrimonio_inicial) * 100
+            else 0 end as ganho_pct
+        from public.liga_membros m
+        left join public.perfis p on p.id = m.usuario_id
+        where m.liga_id = v_liga.id
+        order by ganho_pct desc
+        limit 3
+      ) x
+    ), '[]'::json)
+  );
+end $$;
+
+grant execute on function public.ver_liga_publica(text) to anon, authenticated;
 
 
 -- ------------------------------------------------------------

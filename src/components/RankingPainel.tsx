@@ -17,6 +17,21 @@ export type RankingMensalLinha = {
   posicao: number;
 };
 
+const MESES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+/** Nome sazonal do desafio do mes e quantos dias faltam pra ele fechar. */
+function temporadaAtual(): { nome: string; diasRestantes: number } {
+  const agora = new Date();
+  const ultimoDia = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
+  return {
+    nome: `Corrida de ${MESES[agora.getMonth()]}`,
+    diasRestantes: ultimoDia - agora.getDate(),
+  };
+}
+
 const MEDALHAS = [
   { fundo: "#f5d371", texto: "#5c4400" }, // ouro
   { fundo: "#d6d9dc", texto: "#4a4f54" }, // prata
@@ -46,6 +61,7 @@ export function RankingPainel({
   rankingMensal: RankingMensalLinha[];
 }) {
   const [visao, setVisao] = useState<"geral" | "mes">("geral");
+  const temporada = temporadaAtual();
 
   return (
     <div>
@@ -74,6 +90,19 @@ export function RankingPainel({
           Desafio do mês
         </button>
       </div>
+
+      {visao === "mes" && (
+        <div className="mt-5 flex flex-wrap items-baseline justify-between gap-2 border-l-[3px] border-gold bg-paper-alt px-4 py-3">
+          <p className="font-display text-lg text-ink">{temporada.nome}</p>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
+            {temporada.diasRestantes <= 0
+              ? "último dia"
+              : temporada.diasRestantes === 1
+                ? "falta 1 dia"
+                : `faltam ${temporada.diasRestantes} dias`}
+          </p>
+        </div>
+      )}
 
       {visao === "geral" ? (
         ranking.length === 0 ? (

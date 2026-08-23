@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote, Scale, Users, Percent } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -31,6 +31,10 @@ import type { EstadoEmprestimo } from "@/app/simulador/operacoesEmprestimo";
 import { TourBoasVindas } from "./TourBoasVindas";
 import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
+import { RebalanceamentoPainel } from "./RebalanceamentoPainel";
+import { DesafiosPainel } from "./DesafiosPainel";
+import { LigasPainel, type Liga } from "./LigasPainel";
+import { OpcoesPainel, type Opcao } from "./OpcoesPainel";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { CountUp } from "./CountUp";
@@ -86,7 +90,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
+type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "rebalancear" | "opcoes" | "e-se" | "noticias" | "ranking" | "duelo" | "ligas" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -107,6 +111,8 @@ export function PainelSimulador({
   alertas,
   favoritos,
   duelos,
+  ligas,
+  opcoes,
   agente,
   decisoesAgente,
   emprestimo,
@@ -114,6 +120,7 @@ export function PainelSimulador({
   saudacao = "Bem-vindo de volta",
   mostrarOnboarding = false,
   userId,
+  convitesBemSucedidos = 0,
 }: {
   apelido: string;
   saldo: number;
@@ -133,6 +140,8 @@ export function PainelSimulador({
   alertas: AlertaPreco[];
   favoritos: string[];
   duelos: Duelo[];
+  ligas: Liga[];
+  opcoes: Opcao[];
   agente: Agente;
   decisoesAgente: DecisaoAgente[];
   emprestimo: EstadoEmprestimo | null;
@@ -140,6 +149,7 @@ export function PainelSimulador({
   saudacao?: string;
   mostrarOnboarding?: boolean;
   userId?: string | null;
+  convitesBemSucedidos?: number;
 }) {
   // O aplicativo abre no Inicio, que e o painel de visao geral. Antes abria
   // direto na carteira (ou no explorar, se vazia), o que jogava a pessoa no
@@ -184,6 +194,7 @@ export function PainelSimulador({
     temRendaFixa: posicoesRendaFixa.length > 0,
     diasSeguidos,
     patrimonio,
+    convitesBemSucedidos,
   });
   const conquistasConcluidas = conquistas.filter((c) => c.concluida).length;
   const nivel = calcularNivel(conquistasConcluidas);
@@ -219,10 +230,13 @@ export function PainelSimulador({
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
     { id: "emprestimo", label: "Empréstimo", icone: HandCoins },
     { id: "planejador", label: "Planejador", icone: Target },
+    { id: "rebalancear", label: "Rebalancear", icone: Scale },
+    { id: "opcoes", label: "Opções", icone: Percent },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
     { id: "duelo", label: "Duelo", icone: Swords },
+    { id: "ligas", label: "Ligas", icone: Users },
     { id: "agente", label: "Agente IA", icone: Bot },
     { id: "historico", label: "Histórico", icone: Clock },
   ];
@@ -445,7 +459,18 @@ export function PainelSimulador({
 
               {aba === "carteira" && (
                 <>
-                <ConquistasFaixa conquistas={conquistas} />
+                <DesafiosPainel
+                  posicoes={posicoes}
+                  transacoes={transacoes}
+                  favoritos={favoritos}
+                  perfilInvestidorDefinido={perfilInvestidorDefinido}
+                  temRendaFixa={posicoesRendaFixa.length > 0}
+                  temDuelo={duelos.length > 0}
+                  diasSeguidos={diasSeguidos}
+                />
+                <div className="mt-6">
+                  <ConquistasFaixa conquistas={conquistas} />
+                </div>
 
                 <Carteira
                   posicoes={posicoes}
@@ -524,6 +549,21 @@ export function PainelSimulador({
                 />
               )}
 
+              {aba === "rebalancear" && (
+                <RebalanceamentoPainel
+                  posicoes={posicoes}
+                  precoDe={precoDe}
+                  saldo={saldo}
+                  aoOperar={(ticker, preco, tipo, limite) => {
+                    setOrdem({ ticker, preco, tipo, limite });
+                  }}
+                />
+              )}
+
+              {aba === "opcoes" && (
+                <OpcoesPainel posicoes={posicoes} precoDe={precoDe} saldo={saldo} opcoes={opcoes} />
+              )}
+
               {aba === "e-se" && <SeTivesseInvestido />}
 
               {aba === "noticias" && <NoticiasFinanceiras />}
@@ -533,6 +573,8 @@ export function PainelSimulador({
               )}
 
               {aba === "duelo" && <DuelosPainel duelos={duelos} />}
+
+              {aba === "ligas" && <LigasPainel ligas={ligas} />}
 
               {aba === "agente" && <AgentePainel agente={agente} decisoes={decisoesAgente} />}
 

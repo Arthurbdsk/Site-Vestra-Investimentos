@@ -53,6 +53,12 @@ export async function processarPendencias(usuarioId: string): Promise<void> {
     processarOrdens(supabase, usuarioId),
     processarDividendos(supabase, usuarioId),
     processarAlertas(supabase, usuarioId),
+    // Falhar aqui (ex: migracao das opcoes ainda nao rodou) nao pode
+    // atrapalhar o resto: so as opcoes vencidas ficam sem processar.
+    supabase.rpc("processar_opcoes_vencidas", { p_usuario: usuarioId }).then(
+      () => {},
+      () => {},
+    ),
   ]);
 
   // A chamada de margem depende do resultado das ordens/dividendos acima

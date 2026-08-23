@@ -142,7 +142,9 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
               <div>
                 <p className="text-xs text-ink-muted">
                   Copie o link e manda pro seu amigo: ele vê o placar sem
-                  precisar criar conta.
+                  precisar criar conta. Se essa pessoa nunca usou o Vestra e
+                  criar conta pra aceitar, você ganha R$ 5.000 fictícios de
+                  bônus.
                 </p>
                 <p className="font-mono text-lg font-semibold tabular text-ink">{codigoNovo}</p>
               </div>

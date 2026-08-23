@@ -53,6 +53,15 @@ export const ETFS: Etf[] = [
     explica:
       "Segue um índice de criptomoedas (Bitcoin, Ethereum e outras), negociado como um ETF comum na B3. Bem mais volátil que os outros ETFs dessa lista.",
   },
+  {
+    // Ticker a confirmar antes de publicar: verificar na B3 se o codigo
+    // atual do ETF de ouro (LBMA) ainda e este antes de subir pra produção.
+    ticker: "GOLD11",
+    nome: "Trend ETF LBMA Ouro",
+    indice: "Ouro",
+    explica:
+      "Segue o preço do ouro no mercado internacional (LBMA), negociado em reais na B3. Uma forma de ter exposição a ouro sem comprar o metal físico.",
+  },
 ];
 
 export function etfPorTicker(ticker: string): Etf | undefined {

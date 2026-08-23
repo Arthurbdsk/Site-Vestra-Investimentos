@@ -6,7 +6,8 @@ export type IconeConquista =
   | "dividendo"
   | "semana"
   | "mes"
-  | "patrimonio";
+  | "patrimonio"
+  | "convite";
 
 export type Conquista = {
   id: string;
@@ -24,6 +25,7 @@ export type DadosConquistas = {
   temRendaFixa: boolean;
   diasSeguidos: number;
   patrimonio: number;
+  convitesBemSucedidos: number;
 };
 
 /**
@@ -88,6 +90,13 @@ export function calcularConquistas(d: DadosConquistas): Conquista[] {
       descricao: "Chegou a R$ 200.000 de patrimônio (o dobro do inicial).",
       concluida: d.patrimonio >= 200_000,
       icone: "patrimonio",
+    },
+    {
+      id: "trouxe-alguem",
+      nome: "Trouxe alguém",
+      descricao: "Um convite de duelo seu trouxe uma pessoa nova pro Vestra.",
+      concluida: d.convitesBemSucedidos > 0,
+      icone: "convite",
     },
   ];
 }
