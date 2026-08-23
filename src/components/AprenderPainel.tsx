@@ -28,6 +28,7 @@ import { caminhoSuave } from "@/lib/svgPath";
 import { brl } from "@/lib/formato";
 import { artigosConcluidos, marcarArtigoConcluido } from "@/lib/progressoAprender";
 import { QuizPerfil } from "./QuizPerfil";
+import { PopupTrilhaCompleta } from "./PopupTrilhaCompleta";
 
 type Aba = "dicionario" | "artigos" | "calculadora" | "perfil";
 
@@ -176,6 +177,7 @@ function tempoLeitura(artigo: Artigo): number {
 function Artigos({ userId }: { userId?: string | null }) {
   const [aberto, setAberto] = useState<string | null>(null);
   const [concluidos, setConcluidos] = useState<string[]>([]);
+  const [trilhaCompleta, setTrilhaCompleta] = useState(false);
   const artigo = ARTIGOS.find((a) => a.slug === aberto);
 
   useEffect(() => {
@@ -186,13 +188,22 @@ function Artigos({ userId }: { userId?: string | null }) {
   }, [userId]);
 
   function aoConcluirQuiz(slug: string) {
+    const antes = artigosConcluidos(userId);
     marcarArtigoConcluido(slug, userId);
-    setConcluidos(artigosConcluidos(userId));
+    const depois = artigosConcluidos(userId);
+    setConcluidos(depois);
+    // So celebra na transicao pra 100%, nao em toda visita que ja estava completa.
+    if (antes.length < ARTIGOS.length && depois.length === ARTIGOS.length) {
+      setTrilhaCompleta(true);
+    }
   }
 
   if (artigo) {
     return (
       <div>
+        {trilhaCompleta && (
+          <PopupTrilhaCompleta aoFechar={() => setTrilhaCompleta(false)} />
+        )}
         <button
           onClick={() => setAberto(null)}
           className="group inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-blue transition-colors hover:text-gold"
@@ -294,7 +305,7 @@ function Artigos({ userId }: { userId?: string | null }) {
                     ícone e o rótulo somem nas mais claras. */}
                 <div className="absolute inset-0 bg-blue-deep/55" />
                 <span className="absolute left-3 top-3 font-mono text-[10px] font-bold uppercase tracking-widest text-onblue-muted">
-                  Artigo
+                  Aula {String(i + 1).padStart(2, "0")} de {ARTIGOS.length}
                 </span>
                 <Icone size={36} className="relative text-gold" />
               </div>
