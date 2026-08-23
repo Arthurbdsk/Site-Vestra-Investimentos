@@ -30,7 +30,9 @@ export default async function ContaPage() {
     await Promise.all([
       supabase
         .from("perfis")
-        .select("apelido, saldo, perfil_investidor, criado_em, convites_bem_sucedidos")
+        .select(
+          "apelido, saldo, perfil_investidor, criado_em, convites_bem_sucedidos, codigo_publico, perfil_publico",
+        )
         .eq("id", user.id)
         .single(),
       supabase.from("posicoes").select("ticker, quantidade, preco_medio"),
@@ -93,6 +95,8 @@ export default async function ContaPage() {
         patrimonio={saldo + valorEmAcoes}
         diasSeguidos={diasSeguidos}
         membroDesde={membroDesde}
+        codigoPublico={perfilRes.data?.codigo_publico ?? null}
+        perfilPublico={perfilRes.data?.perfil_publico ?? true}
       />
       <Footer />
     </>

@@ -61,3 +61,19 @@ export async function salvarApelido(apelido: string) {
   revalidatePath("/conta");
   return { ok: true as const };
 }
+
+/** Liga/desliga a pagina publica de perfil (/investidor/[codigo]). */
+export async function alternarPerfilPublico(publico: boolean) {
+  const supabase = await criarClienteServidor();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const };
+
+  const { error: erroToggle } = await supabase.rpc("alternar_perfil_publico", { p_publico: publico });
+  if (erroToggle) return { ok: false as const };
+
+  revalidatePath("/conta");
+  return { ok: true as const };
+}
