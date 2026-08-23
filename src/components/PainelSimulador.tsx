@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote, Scale } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -31,6 +31,7 @@ import type { EstadoEmprestimo } from "@/app/simulador/operacoesEmprestimo";
 import { TourBoasVindas } from "./TourBoasVindas";
 import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
+import { RebalanceamentoPainel } from "./RebalanceamentoPainel";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
 import { CountUp } from "./CountUp";
@@ -86,7 +87,7 @@ export type OrdemPendente = {
   criadoEm: string;
 };
 
-type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
+type Aba = "inicio" | "carteira" | "explorar" | "renda-fixa" | "emprestimo" | "planejador" | "rebalancear" | "e-se" | "noticias" | "ranking" | "duelo" | "agente" | "historico";
 
 export function PainelSimulador({
   apelido,
@@ -222,6 +223,7 @@ export function PainelSimulador({
     { id: "renda-fixa", label: "Renda fixa", icone: Landmark },
     { id: "emprestimo", label: "Empréstimo", icone: HandCoins },
     { id: "planejador", label: "Planejador", icone: Target },
+    { id: "rebalancear", label: "Rebalancear", icone: Scale },
     { id: "e-se", label: "E se eu tivesse investido antes?", icone: History },
     { id: "noticias", label: "Notícias", icone: Newspaper },
     { id: "ranking", label: "Ranking", icone: Trophy },
@@ -523,6 +525,17 @@ export function PainelSimulador({
                 <PlanejadorPainel
                   aoComprar={(ticker, preco, nome) => {
                     setOrdem({ ticker, preco, tipo: "comprar", limite: saldo, nome });
+                  }}
+                />
+              )}
+
+              {aba === "rebalancear" && (
+                <RebalanceamentoPainel
+                  posicoes={posicoes}
+                  precoDe={precoDe}
+                  saldo={saldo}
+                  aoOperar={(ticker, preco, tipo, limite) => {
+                    setOrdem({ ticker, preco, tipo, limite });
                   }}
                 />
               )}
