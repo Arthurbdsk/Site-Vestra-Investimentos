@@ -81,8 +81,12 @@ export function PainelAlertas({ alertas }: { alertas: AlertaPreco[] }) {
 
   async function cancelar(id: string) {
     setCancelando(id);
-    await cancelarAlertaPreco(id);
-    router.refresh();
+    try {
+      await cancelarAlertaPreco(id);
+      router.refresh();
+    } finally {
+      setCancelando(null);
+    }
   }
 
   async function criar() {
@@ -90,13 +94,18 @@ export function PainelAlertas({ alertas }: { alertas: AlertaPreco[] }) {
     if (!ticker.trim() || !precoAlvo || precoAlvo <= 0) return;
     setEnviando(true);
     setMensagem(null);
-    const resultado = await criarAlertaPreco(ticker.trim().toUpperCase(), direcao, precoAlvo);
-    setMensagem(resultado.mensagem);
-    setEnviando(false);
-    if (resultado.ok) {
-      setTicker("");
-      setPreco("");
-      router.refresh();
+    try {
+      const resultado = await criarAlertaPreco(ticker.trim().toUpperCase(), direcao, precoAlvo);
+      setMensagem(resultado.mensagem);
+      if (resultado.ok) {
+        setTicker("");
+        setPreco("");
+        router.refresh();
+      }
+    } catch {
+      setMensagem("Não consegui criar o alerta agora. Tente de novo.");
+    } finally {
+      setEnviando(false);
     }
   }
 

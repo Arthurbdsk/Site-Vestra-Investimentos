@@ -13,11 +13,15 @@ const MESES = [
 export function CalendarioDividendos({ transacoes }: { transacoes: Transacao[] }) {
   const grupos = useMemo(() => {
     const dividendos = transacoes.filter((t) => t.tipo === "dividendo");
-    const porMes = new Map<string, { rotulo: string; total: number; itens: Transacao[] }>();
+    // Chave numerica (ano * 12 + mes) pra ordenar de verdade em ordem
+    // cronologica. Uma chave em string tipo "2026-10" x "2026-2" ordena
+    // errado (comparacao lexicografica, nao numerica), pois "10" < "2"
+    // como texto mesmo sendo novembro depois de marco.
+    const porMes = new Map<number, { rotulo: string; total: number; itens: Transacao[] }>();
 
     for (const d of dividendos) {
       const data = new Date(d.criado_em);
-      const chave = `${data.getFullYear()}-${data.getMonth()}`;
+      const chave = data.getFullYear() * 12 + data.getMonth();
       const rotulo = `${MESES[data.getMonth()]} de ${data.getFullYear()}`;
       const existente = porMes.get(chave) ?? { rotulo, total: 0, itens: [] };
       existente.total += d.total;
@@ -26,7 +30,7 @@ export function CalendarioDividendos({ transacoes }: { transacoes: Transacao[] }
     }
 
     return [...porMes.entries()]
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .sort((a, b) => b[0] - a[0])
       .map(([, grupo]) => grupo);
   }, [transacoes]);
 

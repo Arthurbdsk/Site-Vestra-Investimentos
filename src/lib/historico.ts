@@ -94,8 +94,8 @@ async function buscarNaBrapi(
   }
 
   const resposta = await fetch(
-    `https://brapi.dev/api/quote/${ticker}?range=${rangeConsulta}&interval=${interval}&token=${token}`,
-    { cache: "no-store" },
+    `https://brapi.dev/api/quote/${ticker}?range=${rangeConsulta}&interval=${interval}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
   );
   if (!resposta.ok) return { ok: false, mensagem: "erro" };
 

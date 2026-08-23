@@ -46,10 +46,15 @@ export function AgentePainel({ agente, decisoes }: { agente: Agente; decisoes: D
     setRodando(true);
     setMensagem(null);
     iniciar(async () => {
-      const r = await rodarAgente();
-      setRodando(false);
-      setMensagem(r.mensagem);
-      router.refresh();
+      try {
+        const r = await rodarAgente();
+        setMensagem(r.mensagem);
+        router.refresh();
+      } catch {
+        setMensagem("Não consegui rodar o agente agora. Tente de novo.");
+      } finally {
+        setRodando(false);
+      }
     });
   }
 
@@ -154,18 +159,23 @@ function ConfiguracaoAgente({ agente, aoSalvar }: { agente: Agente; aoSalvar: ()
     setSalvando(true);
     setErro(null);
     iniciar(async () => {
-      const r = await criarAgente(
-        perfil,
-        regra.trim() || null,
-        stopLoss.trim() ? Number(stopLoss) : null,
-        stopGain.trim() ? Number(stopGain) : null,
-      );
-      setSalvando(false);
-      if (!r.ok) {
-        setErro(r.mensagem);
-        return;
+      try {
+        const r = await criarAgente(
+          perfil,
+          regra.trim() || null,
+          stopLoss.trim() ? Number(stopLoss) : null,
+          stopGain.trim() ? Number(stopGain) : null,
+        );
+        if (!r.ok) {
+          setErro(r.mensagem);
+          return;
+        }
+        aoSalvar();
+      } catch {
+        setErro("Não consegui salvar a configuração agora. Tente de novo.");
+      } finally {
+        setSalvando(false);
       }
-      aoSalvar();
     });
   }
 

@@ -44,17 +44,22 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
     setCriando(true);
     setErroCriar(null);
     iniciar(async () => {
-      const r = await criarDuelo(dias);
-      setCriando(false);
-      // Sem o ramo de erro, uma falha ao criar parava o spinner e nao
-      // mostrava codigo nem aviso: parecia que nada tinha acontecido.
-      if (!r.ok) {
-        setErroCriar(r.mensagem);
-        return;
+      try {
+        const r = await criarDuelo(dias);
+        // Sem o ramo de erro, uma falha ao criar parava o spinner e nao
+        // mostrava codigo nem aviso: parecia que nada tinha acontecido.
+        if (!r.ok) {
+          setErroCriar(r.mensagem);
+          return;
+        }
+        if (r.codigo) setCodigoNovo(r.codigo);
+        else setErroCriar("O duelo foi criado, mas o código não voltou. Recarregue a página pra vê-lo.");
+        router.refresh();
+      } catch {
+        setErroCriar("Não consegui criar o duelo agora. Tente de novo.");
+      } finally {
+        setCriando(false);
       }
-      if (r.codigo) setCodigoNovo(r.codigo);
-      else setErroCriar("O duelo foi criado, mas o código não voltou. Recarregue a página pra vê-lo.");
-      router.refresh();
     });
   }
 
@@ -63,12 +68,17 @@ export function DuelosPainel({ duelos }: { duelos: Duelo[] }) {
     setEntrando(true);
     setMensagemEntrar(null);
     iniciar(async () => {
-      const r = await entrarDuelo(codigoEntrar.trim());
-      setEntrando(false);
-      setMensagemEntrar(r.mensagem);
-      if (r.ok) {
-        setCodigoEntrar("");
-        router.refresh();
+      try {
+        const r = await entrarDuelo(codigoEntrar.trim());
+        setMensagemEntrar(r.mensagem);
+        if (r.ok) {
+          setCodigoEntrar("");
+          router.refresh();
+        }
+      } catch {
+        setMensagemEntrar("Não consegui entrar no duelo agora. Tente de novo.");
+      } finally {
+        setEntrando(false);
       }
     });
   }

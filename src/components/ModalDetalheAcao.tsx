@@ -67,11 +67,29 @@ export function ModalDetalheAcao({
 
   useEffect(() => {
     if (!ticker) return;
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") aoFechar();
+    };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [ticker, aoFechar]);
+
+  useEffect(() => {
+    if (!ticker) return;
+    let cancelado = false;
     setFundamentos(null);
     fetch(`/api/fundamentos?ticker=${encodeURIComponent(ticker)}`)
       .then((r) => r.json())
-      .then((json) => setFundamentos(json.fundamentos ?? null))
-      .catch(() => setFundamentos(null));
+      .then((json) => {
+        if (cancelado) return;
+        setFundamentos(json.fundamentos ?? null);
+      })
+      .catch(() => {
+        if (!cancelado) setFundamentos(null);
+      });
+    return () => {
+      cancelado = true;
+    };
   }, [ticker]);
 
   useEffect(() => {
@@ -139,6 +157,8 @@ export function ModalDetalheAcao({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={aoFechar}
+          role="dialog"
+          aria-modal="true"
           className="fixed inset-0 z-[65] flex items-end justify-center bg-blue-deep/60 backdrop-blur-sm sm:items-center"
         >
           <motion.div

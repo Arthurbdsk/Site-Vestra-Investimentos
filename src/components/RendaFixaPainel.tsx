@@ -182,13 +182,18 @@ function FormularioInvestir({
         onClick={async () => {
           setEnviando(true);
           setErro(null);
-          const r = await onConfirmar(valor);
-          setEnviando(false);
-          // Só fecha se deu certo. Antes fechava sempre, então saldo
-          // insuficiente parecia investimento feito: o formulário sumia
-          // e a aplicação simplesmente não existia.
-          if (r.ok) setAberto(false);
-          else setErro(r.mensagem);
+          try {
+            const r = await onConfirmar(valor);
+            // Só fecha se deu certo. Antes fechava sempre, então saldo
+            // insuficiente parecia investimento feito: o formulário sumia
+            // e a aplicação simplesmente não existia.
+            if (r.ok) setAberto(false);
+            else setErro(r.mensagem);
+          } catch {
+            setErro("Não consegui investir agora. Tente de novo.");
+          } finally {
+            setEnviando(false);
+          }
         }}
         disabled={enviando}
         className="flex w-full items-center justify-center gap-2 bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-50"
@@ -299,12 +304,17 @@ function PosicaoCartao({ pos, delay }: { pos: PosicaoRendaFixa; delay: number })
   async function resgatar() {
     setResgatando(true);
     setErro(null);
-    // Sem olhar o resultado, um resgate recusado deixava o botao voltar
-    // de "Resgatando..." e a posicao na tela, sem dizer o motivo.
-    const r = await resgatarRendaFixa(pos.id);
-    setResgatando(false);
-    if (r.ok) router.refresh();
-    else setErro(r.mensagem);
+    try {
+      // Sem olhar o resultado, um resgate recusado deixava o botao voltar
+      // de "Resgatando..." e a posicao na tela, sem dizer o motivo.
+      const r = await resgatarRendaFixa(pos.id);
+      if (r.ok) router.refresh();
+      else setErro(r.mensagem);
+    } catch {
+      setErro("Não consegui resgatar agora. Tente de novo.");
+    } finally {
+      setResgatando(false);
+    }
   }
 
   return (

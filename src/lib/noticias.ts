@@ -27,19 +27,21 @@ export async function buscarNoticias(busca?: string): Promise<ResultadoNoticias>
     });
 
     if (error) {
+      console.error("[noticias] buscar_noticias falhou:", error.message);
       return {
         ok: false,
         motivo: "erro",
-        mensagem: `Não foi possível buscar as notícias agora (${error.message}).`,
+        mensagem: "Não foi possível buscar as notícias agora.",
       };
     }
 
     return { ok: true, noticias: (data ?? []) as Noticia[] };
   } catch (e) {
+    console.error("[noticias] erro inesperado:", e instanceof Error ? e.message : e);
     return {
       ok: false,
       motivo: "erro",
-      mensagem: `Não foi possível buscar as notícias agora (${e instanceof Error ? e.message : "erro desconhecido"}).`,
+      mensagem: "Não foi possível buscar as notícias agora.",
     };
   }
 }

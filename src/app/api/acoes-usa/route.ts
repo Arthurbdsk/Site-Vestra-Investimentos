@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { ACOES_USA } from "@/lib/acoesUsa";
+import { montarCotacoesCuradas } from "@/lib/cotacoes";
 
 /**
  * Sem busca: cotacoes das 12 acoes curadas, lidas da cache (rapido).
@@ -32,22 +33,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ acoes });
   }
 
-  const tickers = ACOES_USA.map((a) => a.ticker);
-  const { data } = await supabase.from("cotacoes").select("ticker, preco, variacao, logo").in("ticker", tickers);
-  const mapa = new Map((data ?? []).map((c) => [c.ticker, c]));
-
-  const acoes = ACOES_USA.map((a) => {
-    const c = mapa.get(a.ticker);
-    return {
-      ticker: a.ticker,
-      nome: a.nome,
-      setor: a.setor,
-      explica: a.explica,
-      preco: c ? Number(c.preco) : null,
-      variacao: c ? Number(c.variacao) : null,
-      logo: c?.logo ?? null,
-    };
-  });
+  const acoes = await montarCotacoesCuradas(
+    ACOES_USA.map((a) => ({ ticker: a.ticker, nome: a.nome, setor: a.setor, explica: a.explica })),
+  );
 
   return NextResponse.json({ acoes });
 }

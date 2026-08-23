@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { rotaSegura } from "@/lib/rotaSegura";
 
 /**
  * Pra onde o Google manda a pessoa de volta depois do login. Troca o
@@ -8,7 +9,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/simulador";
+  const next = rotaSegura(searchParams.get("next"));
 
   if (code) {
     const supabase = await criarClienteServidor();

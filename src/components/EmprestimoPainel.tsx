@@ -29,25 +29,35 @@ export function EmprestimoPainel({ emprestimo }: { emprestimo: EstadoEmprestimo 
   async function pedir() {
     setErro(null);
     setEnviando("pedir");
-    const r = await pedirEmprestimo(valorPedir);
-    setEnviando(null);
-    if (!r.ok) {
-      setErro(r.mensagem);
-      return;
+    try {
+      const r = await pedirEmprestimo(valorPedir);
+      if (!r.ok) {
+        setErro(r.mensagem);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setErro("Não consegui pedir o empréstimo agora. Tente de novo.");
+    } finally {
+      setEnviando(null);
     }
-    router.refresh();
   }
 
   async function pagar() {
     setErro(null);
     setEnviando("pagar");
-    const r = await pagarEmprestimo(Math.min(valorPagar, divida));
-    setEnviando(null);
-    if (!r.ok) {
-      setErro(r.mensagem);
-      return;
+    try {
+      const r = await pagarEmprestimo(Math.min(valorPagar, divida));
+      if (!r.ok) {
+        setErro(r.mensagem);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setErro("Não consegui pagar a dívida agora. Tente de novo.");
+    } finally {
+      setEnviando(null);
     }
-    router.refresh();
   }
 
   return (

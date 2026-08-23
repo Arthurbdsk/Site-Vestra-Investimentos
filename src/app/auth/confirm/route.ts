@@ -1,6 +1,7 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { rotaSegura } from "@/lib/rotaSegura";
 
 /**
  * Pra onde o link do email de confirmacao aponta. O Supabase ja validou
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/simulador";
+  const next = rotaSegura(searchParams.get("next"));
 
   if (token_hash && type) {
     const supabase = await criarClienteServidor();

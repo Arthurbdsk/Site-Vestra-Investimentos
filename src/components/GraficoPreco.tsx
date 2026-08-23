@@ -27,7 +27,7 @@ export function GraficoPreco({ serie }: { serie: PontoSerie[] }) {
   const escalaRange = escalaMax - escalaMin || 1;
 
   const subiu = precos[precos.length - 1] >= precos[0];
-  const cor = subiu ? "var(--color-azul-texto)" : "#e11d48";
+  const cor = subiu ? "var(--color-azul-texto)" : "var(--color-baixa)";
 
   const alturaUtil = H - PAD_TOP - PAD_BOTTOM;
   const pontos = serie.map((p, i) => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight } from "lucide-react";
@@ -17,6 +17,28 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
   const [respostas, setRespostas] = useState<Record<string, number>>({});
   const [resultado, setResultado] = useState<Perfil | null>(null);
   const [erroSalvar, setErroSalvar] = useState(false);
+  const tituloId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    dialogRef.current?.focus();
+
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (resultado) {
+        fecharDepoisDoResultado();
+      } else {
+        fechar();
+      }
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+    // Escape precisa fechar com o mesmo comportamento do X (que muda
+    // conforme ha ou nao resultado), entao o handler e recriado quando
+    // esses dois mudam.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, resultado]);
 
   if (!aberto) return null;
 
@@ -69,6 +91,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={resultado ? fecharDepoisDoResultado : fechar}
         className="fixed inset-0 z-[80] flex items-end justify-center bg-blue-deep/60 backdrop-blur-sm sm:items-center"
       >
         <motion.div
@@ -76,7 +99,13 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 20, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 26 }}
-          className="relative w-full max-w-md bg-paper p-7 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={tituloId}
+          ref={dialogRef}
+          tabIndex={-1}
+          className="relative w-full max-w-md bg-paper p-7 shadow-2xl outline-none"
         >
           <button
             onClick={resultado ? fecharDepoisDoResultado : fechar}
@@ -91,7 +120,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
               <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-gold-soft">
                 Seu perfil é
               </p>
-              <h2 className="mt-1 font-display text-3xl font-bold text-blue">{resultado.nome}</h2>
+              <h2 id={tituloId} className="mt-1 font-display text-3xl font-bold text-blue">{resultado.nome}</h2>
               <p className="mt-4 border-l-[3px] border-gold pl-4 text-sm leading-relaxed text-ink-muted">
                 {resultado.descricao}
               </p>
@@ -120,7 +149,7 @@ export function PopupPerfilInvestidor({ mostrar }: { mostrar: boolean }) {
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
                 Bem-vindo(a) ao Vestra
               </p>
-              <h2 className="mt-1 font-display text-2xl text-ink">
+              <h2 id={tituloId} className="mt-1 font-display text-2xl text-ink">
                 Que tipo de investidor você é?
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">

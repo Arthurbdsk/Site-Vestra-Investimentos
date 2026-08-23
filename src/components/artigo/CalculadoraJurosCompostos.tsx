@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { brl } from "@/lib/formato";
+import { projetarJuros } from "@/lib/juros";
+import { SliderControle } from "./SliderControle";
 
 /**
  * Calculadora de juros compostos pra dentro de artigo.
@@ -10,18 +12,6 @@ import { brl } from "@/lib/formato";
  * abrir. E o mesmo calculo da home (Manifesto), mas com taxa e prazo
  * ajustaveis, porque no artigo o assunto E a mecanica.
  */
-function projetar(mensal: number, anos: number, taxaAnual: number) {
-  const i = Math.pow(1 + taxaAnual, 1 / 12) - 1;
-  const pontos: { ano: number; guardado: number; total: number }[] = [];
-
-  for (let ano = 0; ano <= anos; ano++) {
-    const meses = ano * 12;
-    // Serie de aportes mensais: cada parcela rende pelos meses restantes.
-    const total = meses === 0 ? 0 : mensal * ((Math.pow(1 + i, meses) - 1) / i);
-    pontos.push({ ano, guardado: mensal * meses, total });
-  }
-  return pontos;
-}
 
 const L = 640;
 const A = 190;
@@ -31,7 +21,7 @@ export function CalculadoraJurosCompostos() {
   const [anos, setAnos] = useState(20);
   const [taxa, setTaxa] = useState(10);
 
-  const pontos = projetar(mensal, anos, taxa / 100);
+  const pontos = projetarJuros(mensal, anos, taxa / 100);
   const fim = pontos[pontos.length - 1];
   const juros = fim.total - fim.guardado;
   const teto = fim.total || 1;
@@ -56,7 +46,7 @@ export function CalculadoraJurosCompostos() {
       </div>
 
       <div className="grid gap-5 px-5 py-5 sm:grid-cols-3">
-        <Controle
+        <SliderControle
           rotulo="Por mês"
           valor={brl(mensal)}
           min={25}
@@ -65,7 +55,7 @@ export function CalculadoraJurosCompostos() {
           bruto={mensal}
           aoMudar={setMensal}
         />
-        <Controle
+        <SliderControle
           rotulo="Por quantos anos"
           valor={`${anos} ${anos === 1 ? "ano" : "anos"}`}
           min={1}
@@ -74,7 +64,7 @@ export function CalculadoraJurosCompostos() {
           bruto={anos}
           aoMudar={setAnos}
         />
-        <Controle
+        <SliderControle
           rotulo="Retorno ao ano"
           valor={`${taxa}%`}
           min={1}
@@ -124,42 +114,6 @@ export function CalculadoraJurosCompostos() {
         investimento.
       </p>
     </div>
-  );
-}
-
-function Controle({
-  rotulo,
-  valor,
-  min,
-  max,
-  passo,
-  bruto,
-  aoMudar,
-}: {
-  rotulo: string;
-  valor: string;
-  min: number;
-  max: number;
-  passo: number;
-  bruto: number;
-  aoMudar: (v: number) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">
-        {rotulo}
-      </span>
-      <span className="mt-1 block font-mono text-lg tabular text-ink">{valor}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={passo}
-        value={bruto}
-        onChange={(e) => aoMudar(Number(e.target.value))}
-        className="mt-2 w-full accent-[var(--color-azul-texto)]"
-      />
-    </label>
   );
 }
 

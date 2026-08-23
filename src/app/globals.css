@@ -38,10 +38,17 @@
   --color-sky-texto: #2f6690;
   /* O dourado tinha o mesmo defeito que o coral, e pior: #f5a623 como
      texto no papel branco da 2,03:1, e o gold-soft 1,61:1, contra o
-     minimo de 4,5:1 — ilegivel, nao "sutil". Este tom escurece mantendo
+     minimo de 4,5:1 (ilegivel, nao "sutil"). Este tom escurece mantendo
      o matiz 37 (mede 4,95:1) e vale SO pra dourado que e texto; dourado
      como fundo (bg-gold) ou sobre azul continua sendo --color-gold. */
   --color-gold-texto: #9c6407;
+
+  /* Alta/baixa: usadas em grafico de preco (linha, vela, stroke de SVG),
+     nunca como bloco de fundo. Reunidas aqui porque a mesma cor de queda
+     estava duplicada como hex cru em tres componentes de grafico
+     diferentes (GraficoPreco, CandleChart, GraficoAvancado). */
+  --color-alta: #0f2d44;
+  --color-baixa: #e11d48;
 
   /* Texto sobre branco */
   --color-ink: #0f2d44;
@@ -76,6 +83,12 @@
     --color-sky-texto: #6ba4cf;
     /* No escuro o dourado original ja da 8,8:1, entao volta a ser ele. */
     --color-gold-texto: #f5a623;
+    /* Mesmo problema do azul-texto: #0f2d44 sobre papel escuro e quase
+       invisivel, entao alta reusa o mesmo tom claro (7,9:1). Baixa clareia
+       mantendo o matiz do rose original: #e11d48 sobre o papel escuro
+       dava so 3,8:1, abaixo do minimo; #ff6b81 mede 6,5:1. */
+    --color-alta: #7ab3e0;
+    --color-baixa: #ff6b81;
   }
 }
 
@@ -91,6 +104,8 @@
   --color-violet-texto: #a297c1;
   --color-sky-texto: #6ba4cf;
   --color-gold-texto: #f5a623;
+  --color-alta: #7ab3e0;
+  --color-baixa: #ff6b81;
 }
 
 @theme inline {

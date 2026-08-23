@@ -1,4 +1,5 @@
 import { TICKERS } from "./acoes";
+import { criarClienteServidor } from "./supabase/server";
 
 export type Cotacao = {
   ticker: string;
@@ -102,4 +103,52 @@ export async function precoAtualQualquerTicker(
 
   const c = await buscarUm(ticker.trim().toUpperCase(), token);
   return c?.preco ?? null;
+}
+
+export type ItemCurado = {
+  ticker: string;
+  nome: string;
+  setor: string | null;
+  explica: string;
+};
+
+export type CotacaoCurada = {
+  ticker: string;
+  nome: string;
+  setor: string | null;
+  explica: string;
+  preco: number | null;
+  variacao: number | null;
+  logo: string | null;
+};
+
+/**
+ * Junta uma lista curada (acoes, ETFs ou FIIs, cada uma com nome e
+ * explicacao em portugues ja escritos a mao) com o preco/variacao/logo
+ * mais recentes da tabela `cotacoes` (mantida pelo cron atualizar_cotacoes).
+ * Usada pelas rotas /api/acoes-usa, /api/etfs e /api/fiis, que antes
+ * repetiam essa mesma consulta e o mesmo mapeamento cada uma por conta
+ * propria.
+ */
+export async function montarCotacoesCuradas(itens: ItemCurado[]): Promise<CotacaoCurada[]> {
+  const supabase = await criarClienteServidor();
+  const tickers = itens.map((i) => i.ticker);
+  const { data } = await supabase
+    .from("cotacoes")
+    .select("ticker, preco, variacao, logo")
+    .in("ticker", tickers);
+  const mapa = new Map((data ?? []).map((c) => [c.ticker, c]));
+
+  return itens.map((item) => {
+    const c = mapa.get(item.ticker);
+    return {
+      ticker: item.ticker,
+      nome: item.nome,
+      setor: item.setor,
+      explica: item.explica,
+      preco: c ? Number(c.preco) : null,
+      variacao: c ? Number(c.variacao) : null,
+      logo: c?.logo ?? null,
+    };
+  });
 }

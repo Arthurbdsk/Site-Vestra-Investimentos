@@ -68,7 +68,7 @@ export function CandleChart() {
         const high = last ? Math.max(c.h, close + 1) : c.h;
         const low = last ? Math.min(c.l, close - 1) : c.l;
         const up = close >= c.o;
-        const color = up ? "#4ade80" : "#fb7185";
+        const color = up ? "var(--color-alta)" : "var(--color-baixa)";
         const x = i * step + step / 2;
         const top = scale(Math.max(c.o, close));
         const height = Math.max(Math.abs(scale(c.o) - scale(close)), 2);

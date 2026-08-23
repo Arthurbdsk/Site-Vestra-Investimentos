@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { brl } from "@/lib/formato";
+import { SliderControle } from "./SliderControle";
 
 /**
  * Poupanca x CDB x Tesouro Selic, lado a lado, no LIQUIDO.
@@ -42,9 +43,10 @@ export function ComparadorRendaFixa() {
   // Poupanca e isenta de IR pra pessoa fisica: o bruto ja e o liquido.
   const liquidoPoupanca = valor * Math.pow(1 + taxaPoupanca, anos);
 
-  // CDI fica um pouco abaixo da Selic na pratica; o percentual do CDI e
-  // ajustavel porque e exatamente o numero que os bancos anunciam.
-  const cdi = selic / 100;
+  // CDI fica um pouco abaixo da Selic na pratica (cerca de 0,1 ponto
+  // percentual); o percentual do CDI e ajustavel porque e exatamente o
+  // numero que os bancos anunciam.
+  const cdi = (selic - 0.1) / 100;
   const liquidoCdb = liquidar(valor * Math.pow(1 + cdi * (pctCdi / 100), anos));
   // Tesouro Selic acompanha a Selic cheia, menos a custodia da B3.
   const liquidoTesouro = liquidar(valor * Math.pow(1 + (cdi - 0.002), anos));
@@ -78,7 +80,7 @@ export function ComparadorRendaFixa() {
       </div>
 
       <div className="grid gap-5 px-5 py-5 sm:grid-cols-2 lg:grid-cols-4">
-        <Controle
+        <SliderControle
           rotulo="Valor aplicado"
           valor={brl(valor)}
           min={1000}
@@ -87,7 +89,7 @@ export function ComparadorRendaFixa() {
           bruto={valor}
           aoMudar={setValor}
         />
-        <Controle
+        <SliderControle
           rotulo="Por quanto tempo"
           valor={`${meses} meses`}
           min={6}
@@ -96,7 +98,7 @@ export function ComparadorRendaFixa() {
           bruto={meses}
           aoMudar={setMeses}
         />
-        <Controle
+        <SliderControle
           rotulo="Selic ao ano"
           valor={`${selic.toFixed(2)}%`}
           min={2}
@@ -105,7 +107,7 @@ export function ComparadorRendaFixa() {
           bruto={selic}
           aoMudar={setSelic}
         />
-        <Controle
+        <SliderControle
           rotulo="CDB paga do CDI"
           valor={`${pctCdi}%`}
           min={80}
@@ -156,41 +158,5 @@ export function ComparadorRendaFixa() {
         projeção exata.
       </p>
     </div>
-  );
-}
-
-function Controle({
-  rotulo,
-  valor,
-  min,
-  max,
-  passo,
-  bruto,
-  aoMudar,
-}: {
-  rotulo: string;
-  valor: string;
-  min: number;
-  max: number;
-  passo: number;
-  bruto: number;
-  aoMudar: (v: number) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">
-        {rotulo}
-      </span>
-      <span className="mt-1 block font-mono text-lg tabular text-ink">{valor}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={passo}
-        value={bruto}
-        onChange={(e) => aoMudar(Number(e.target.value))}
-        className="mt-2 w-full accent-[var(--color-azul-texto)]"
-      />
-    </label>
   );
 }

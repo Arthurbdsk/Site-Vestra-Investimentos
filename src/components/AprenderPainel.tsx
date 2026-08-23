@@ -31,7 +31,7 @@ import { QuizPerfil } from "./QuizPerfil";
 
 type Aba = "dicionario" | "artigos" | "calculadora" | "perfil";
 
-export function AprenderPainel() {
+export function AprenderPainel({ userId }: { userId?: string | null } = {}) {
   const [aba, setAba] = useState<Aba>("dicionario");
 
   const abas: { id: Aba; label: string; icone: typeof BookOpen }[] = [
@@ -87,7 +87,7 @@ export function AprenderPainel() {
             transition={{ duration: 0.3 }}
           >
             {aba === "dicionario" && <Dicionario />}
-            {aba === "artigos" && <Artigos />}
+            {aba === "artigos" && <Artigos userId={userId} />}
             {aba === "calculadora" && <CalculadoraJuros />}
             {aba === "perfil" && <QuizPerfil />}
           </motion.div>
@@ -173,18 +173,21 @@ function tempoLeitura(artigo: Artigo): number {
   return Math.max(1, Math.round(palavras / 200));
 }
 
-function Artigos() {
+function Artigos({ userId }: { userId?: string | null }) {
   const [aberto, setAberto] = useState<string | null>(null);
   const [concluidos, setConcluidos] = useState<string[]>([]);
   const artigo = ARTIGOS.find((a) => a.slug === aberto);
 
   useEffect(() => {
-    setConcluidos(artigosConcluidos());
-  }, []);
+    setConcluidos(artigosConcluidos(userId));
+    // So precisa reler quando o usuario logado muda (login/logout), nao a
+    // cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   function aoConcluirQuiz(slug: string) {
-    marcarArtigoConcluido(slug);
-    setConcluidos(artigosConcluidos());
+    marcarArtigoConcluido(slug, userId);
+    setConcluidos(artigosConcluidos(userId));
   }
 
   if (artigo) {

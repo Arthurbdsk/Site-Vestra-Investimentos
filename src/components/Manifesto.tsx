@@ -4,30 +4,18 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TituloRevelado, Surge } from "./TituloRevelado";
 import { brl } from "@/lib/formato";
+import { projetarJuros } from "@/lib/juros";
 
 const OPCOES = [25, 50, 100, 200];
 const ANOS = 30;
 const TAXA_ANUAL = 0.1;
-
-/** Quanto vira um deposito mensal, ano a ano, com juros compostos. */
-function projetar(mensal: number) {
-  const i = Math.pow(1 + TAXA_ANUAL, 1 / 12) - 1;
-  const pontos: { ano: number; guardado: number; total: number }[] = [];
-
-  for (let ano = 0; ano <= ANOS; ano++) {
-    const meses = ano * 12;
-    const total = meses === 0 ? 0 : mensal * ((Math.pow(1 + i, meses) - 1) / i);
-    pontos.push({ ano, guardado: mensal * meses, total });
-  }
-  return pontos;
-}
 
 const L = 600;
 const A = 200;
 
 export function Manifesto() {
   const [mensal, setMensal] = useState(50);
-  const pontos = projetar(mensal);
+  const pontos = projetarJuros(mensal, ANOS, TAXA_ANUAL);
   const fim = pontos[pontos.length - 1];
   const teto = fim.total;
 

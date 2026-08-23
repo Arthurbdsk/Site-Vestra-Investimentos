@@ -27,7 +27,7 @@ export async function buscarAcoesB3(termo: string): Promise<ResultadoBusca> {
  *
  * A brapi separa fundo de acao por `type=fund`, e dentro disso distingue
  * FII de ETF por `subType`. Sao 332 FIIs e 182 ETFs, contra os 10 e 6 das
- * listas curadas — que continuam existindo como destaque ("Populares"),
+ * listas curadas, que continuam existindo como destaque ("Populares"),
  * porque so elas tem explicacao escrita em portugues.
  *
  * Volume nao vem ordenavel por valor de mercado aqui (fundo nao publica
@@ -39,6 +39,18 @@ export async function buscarFundosB3(
 ): Promise<ResultadoBusca> {
   return buscarNaBrapi(termo, { type: "fund", subType: subTipo, sortBy: "volume" });
 }
+
+// Cada tecla digitada na busca dispara uma chamada; sem isso, um usuario
+// digitando "petr4" gera 5 chamadas identicas em sequencia contra o plano
+// pago da brapi. Cache simples em memoria (nao e um limitador distribuido,
+// so um jeito pratico de nao repetir a mesma busca dentro de uma janela
+// curta), valido enquanto o processo do servidor Node estiver de pe.
+const CACHE_BUSCA = new Map<string, { at: number; data: ResultadoBusca }>();
+const TTL_CACHE_MS = 9_000;
+
+/** Tamanho de pagina da lista de resultados da busca (equilibra cobertura
+ * da bolsa inteira com o tempo de resposta da brapi). */
+const LIMITE_RESULTADOS = "48";
 
 async function buscarNaBrapi(
   termo: string,
@@ -55,12 +67,18 @@ async function buscarNaBrapi(
 
   const params = new URLSearchParams({
     type: filtros.type,
-    limit: "48",
+    limit: LIMITE_RESULTADOS,
     sortBy: filtros.sortBy,
     sortOrder: "desc",
   });
   if (filtros.subType) params.set("subType", filtros.subType);
   if (termo.trim()) params.set("search", termo.trim());
+
+  const chaveCache = params.toString();
+  const cacheado = CACHE_BUSCA.get(chaveCache);
+  if (cacheado && cacheado.at > Date.now() - TTL_CACHE_MS) {
+    return cacheado.data;
+  }
 
   try {
     const resposta = await fetch(
@@ -104,7 +122,9 @@ async function buscarNaBrapi(
       (a) => a.ticker && !a.ticker.endsWith("F"),
     );
 
-    return { ok: true, acoes: semFracionario };
+    const resultado: ResultadoBusca = { ok: true, acoes: semFracionario };
+    CACHE_BUSCA.set(chaveCache, { at: Date.now(), data: resultado });
+    return resultado;
   } catch {
     return {
       ok: false,

@@ -115,13 +115,19 @@ export async function rodarAgente(): Promise<Resultado> {
       if (executado && decisao.acao === "comprar") {
         const precoCompra = cotacoesMap.get(decisao.ticker) ?? 0;
         if (precoCompra > 0) {
+          let idStopLoss: string | undefined;
           if (dadosAgente?.stopLossPct) {
             const alvo = Math.round(precoCompra * (1 - dadosAgente.stopLossPct / 100) * 100) / 100;
-            await criarOrdemLimitada("vender", decisao.ticker, decisao.quantidade, alvo);
+            const resultado = await criarOrdemLimitada("vender", decisao.ticker, decisao.quantidade, alvo);
+            idStopLoss = resultado.ok ? resultado.id : undefined;
           }
           if (dadosAgente?.stopGainPct) {
             const alvo = Math.round(precoCompra * (1 + dadosAgente.stopGainPct / 100) * 100) / 100;
-            await criarOrdemLimitada("vender", decisao.ticker, decisao.quantidade, alvo);
+            // Liga como ordem irma do stop loss (se criado): quando uma
+            // das duas executar, a outra e cancelada automaticamente,
+            // senao ficaria pendente vendendo cotas que ja nao existem
+            // mais na carteira.
+            await criarOrdemLimitada("vender", decisao.ticker, decisao.quantidade, alvo, idStopLoss);
           }
         }
       }

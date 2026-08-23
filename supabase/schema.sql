@@ -122,6 +122,13 @@ alter table public.ordens_pendentes drop constraint if exists ordens_pendentes_a
 alter table public.ordens_pendentes add constraint ordens_pendentes_alvo_ou_abertura
   check (executar_na_abertura or preco_alvo is not null);
 
+-- ordem_irma_id: liga um stop-loss ao stop-gain criado junto (mesma
+-- compra do agente). Quando uma executa, a outra e cancelada automatico
+-- (ver executar_ordem_pendente), senao ela ficaria pendente pra sempre
+-- referenciando cotas que a pessoa ja nao tem mais.
+alter table public.ordens_pendentes
+  add column if not exists ordem_irma_id uuid references public.ordens_pendentes(id) on delete set null;
+
 create index if not exists ordens_pendentes_usuario_idx
   on public.ordens_pendentes(usuario_id, status);
 
@@ -852,7 +859,8 @@ end $$;
 -- executada ou cancelada.
 -- ------------------------------------------------------------
 create or replace function public.criar_ordem_limitada(
-  p_ticker text, p_tipo text, p_qtd integer, p_preco_alvo numeric
+  p_ticker text, p_tipo text, p_qtd integer, p_preco_alvo numeric,
+  p_ordem_irma_id uuid default null
 )
 returns json language plpgsql security definer set search_path = public as $$
 declare
@@ -872,9 +880,18 @@ begin
     raise exception 'Preco alvo invalido.';
   end if;
 
-  insert into public.ordens_pendentes (usuario_id, ticker, tipo, quantidade, preco_alvo)
-  values (v_usuario, p_ticker, p_tipo, p_qtd, p_preco_alvo)
+  insert into public.ordens_pendentes (usuario_id, ticker, tipo, quantidade, preco_alvo, ordem_irma_id)
+  values (v_usuario, p_ticker, p_tipo, p_qtd, p_preco_alvo, p_ordem_irma_id)
   returning id into v_id;
+
+  -- Liga de volta: a primeira ordem do par (stop loss ou stop gain,
+  -- qual foi criada primeiro) so sabe o id da segunda depois que ela
+  -- existe, entao o link mutuo e completado aqui.
+  if p_ordem_irma_id is not null then
+    update public.ordens_pendentes
+      set ordem_irma_id = v_id
+      where id = p_ordem_irma_id and usuario_id = v_usuario and ordem_irma_id is null;
+  end if;
 
   return json_build_object('ok', true, 'id', v_id);
 end $$;
@@ -914,6 +931,7 @@ returns json language plpgsql security definer set search_path = public as $$
 declare
   v_usuario uuid := auth.uid();
   v_linhas  integer;
+  v_irma    uuid;
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
@@ -921,11 +939,21 @@ begin
 
   update public.ordens_pendentes
     set status = 'cancelada'
-    where id = p_id and usuario_id = v_usuario and status = 'pendente';
+    where id = p_id and usuario_id = v_usuario and status = 'pendente'
+    returning ordem_irma_id into v_irma;
 
   get diagnostics v_linhas = row_count;
   if v_linhas = 0 then
     raise exception 'Ordem nao encontrada ou ja nao esta mais pendente.';
+  end if;
+
+  -- Cancela tambem a ordem irma (par stop loss / stop gain): senao ela
+  -- fica pendente pra sempre depois que a pessoa ja mexeu manualmente
+  -- na outra ponta do par.
+  if v_irma is not null then
+    update public.ordens_pendentes
+      set status = 'cancelada'
+      where id = v_irma and usuario_id = v_usuario and status = 'pendente';
   end if;
 
   return json_build_object('ok', true);
@@ -946,6 +974,67 @@ begin
 
   return json_build_object('ok', true);
 end $$;
+
+-- ------------------------------------------------------------
+-- EXECUTAR ORDEM PENDENTE: junta "confirmar que ainda esta pendente",
+-- "executar a compra/venda" e "marcar como executada" numa unica
+-- transacao. O "for update" trava a linha ate o fim da funcao: se
+-- processarPendencias.ts rodar duas vezes ao mesmo tempo (dois
+-- carregamentos de pagina em sequencia rapida), a segunda chamada
+-- espera a primeira terminar, ve status != 'pendente' e nao executa de
+-- novo. Antes disso, comprar()/vender() e marcar_ordem_executada() eram
+-- dois passos separados: se o segundo falhasse depois do primeiro ja
+-- ter mexido no saldo/posicao, a ordem continuava "pendente" e era
+-- executada de novo na proxima visita (compra ou venda em dobro).
+-- ------------------------------------------------------------
+create or replace function public.executar_ordem_pendente(p_id uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_usuario   uuid := auth.uid();
+  v_ordem     public.ordens_pendentes%rowtype;
+  v_resultado json;
+begin
+  if v_usuario is null then
+    raise exception 'Voce precisa estar logado.';
+  end if;
+
+  select * into v_ordem from public.ordens_pendentes
+    where id = p_id and usuario_id = v_usuario and status = 'pendente'
+    for update;
+
+  if not found then
+    return json_build_object('ok', false, 'motivo', 'ja_processada');
+  end if;
+
+  if v_ordem.tipo = 'comprar' then
+    v_resultado := public.comprar(v_ordem.ticker, v_ordem.quantidade);
+  else
+    v_resultado := public.vender(v_ordem.ticker, v_ordem.quantidade);
+  end if;
+
+  update public.ordens_pendentes
+    set status = 'executada', executada_em = now()
+    where id = p_id;
+
+  -- Ordem irma (par stop loss/stop gain): quando uma executa, a outra
+  -- perde sentido, ja nao ha mais cotas pra vender de novo.
+  if v_ordem.ordem_irma_id is not null then
+    update public.ordens_pendentes
+      set status = 'cancelada'
+      where id = v_ordem.ordem_irma_id and status = 'pendente';
+  end if;
+
+  return json_build_object('ok', true, 'resultado', v_resultado);
+exception
+  when others then
+    -- Preco ainda nao confirma o alvo dentro do banco, saldo ou cotas
+    -- insuficientes agora, etc: deixa 'pendente' pra tentar de novo na
+    -- proxima visita, igual o comportamento anterior.
+    return json_build_object('ok', false, 'motivo', 'falha_execucao', 'mensagem', sqlerrm);
+end $$;
+
+revoke all on function public.executar_ordem_pendente(uuid) from public;
+grant execute on function public.executar_ordem_pendente(uuid) to authenticated;
 
 
 -- ------------------------------------------------------------

@@ -11,9 +11,11 @@ import { SeTivesseInvestido } from "./SeTivesseInvestido";
 import { NoticiasFinanceiras } from "./NoticiasFinanceiras";
 import { RendaFixaPainel, type PosicaoRendaFixa } from "./RendaFixaPainel";
 import { StatusMercado } from "./StatusMercado";
-import { MiniGraficoAcao } from "./MiniGraficoAcao";
-import { TabelaAcoes } from "./TabelaAcoes";
 import { LogoAcao } from "./LogoAcao";
+import { ExplorarBr } from "./ExplorarBr";
+import { ExplorarFii } from "./ExplorarFii";
+import { ExplorarEtf } from "./ExplorarEtf";
+import { ExplorarUs } from "./ExplorarUs";
 import { RankingPainel, type RankingLinha, type RankingMensalLinha } from "./RankingPainel";
 import { PlanejadorPainel } from "./PlanejadorPainel";
 import { PopupStreak } from "./PopupStreak";
@@ -31,7 +33,6 @@ import { AssistenteChat } from "./AssistenteChat";
 import { ComposicaoCarteira } from "./ComposicaoCarteira";
 import { CalendarioDividendos } from "./CalendarioDividendos";
 import { MaioresVariacoes } from "./MaioresVariacoes";
-import { BotaoFavorito } from "./BotaoFavorito";
 import { CountUp } from "./CountUp";
 import { BarraApp, type DestinoApp } from "./app/BarraApp";
 import { Inicio, type PontoPatrimonio } from "./app/Inicio";
@@ -41,15 +42,14 @@ import { nivelMinimoDaAba } from "@/lib/desbloqueios";
 import { cancelarOrdemLimitada } from "@/app/simulador/operacoes";
 import { ACOES } from "@/lib/acoes";
 import { ativoPorTicker } from "@/lib/ativos";
-import { FIIS, fiiPorTicker } from "@/lib/fiis";
-import { ETFS, etfPorTicker } from "@/lib/etfs";
-import { ACOES_USA } from "@/lib/acoesUsa";
+import { FIIS } from "@/lib/fiis";
+import { ETFS } from "@/lib/etfs";
 import type { AcaoB3 } from "@/lib/buscaAcoes";
 import { calcularConquistas } from "@/lib/conquistas";
 import { exportarTransacoesCsv } from "@/lib/exportarCsv";
-import { corDoSetor } from "@/lib/coresSetor";
 import { brl, numero, pct, dataHora } from "@/lib/formato";
 import type { Cotacao } from "@/lib/cotacoes";
+import { useBuscaAtivos } from "@/lib/useBuscaAtivos";
 
 const MERCADOS: { id: "br" | "us" | "fii" | "etf"; label: string; aria: string }[] = [
   { id: "br", label: "BR", aria: "Ações do Brasil" },
@@ -112,6 +112,7 @@ export function PainelSimulador({
   historico = [],
   saudacao = "Bem-vindo de volta",
   mostrarOnboarding = false,
+  userId,
 }: {
   apelido: string;
   saldo: number;
@@ -137,6 +138,7 @@ export function PainelSimulador({
   historico?: PontoPatrimonio[];
   saudacao?: string;
   mostrarOnboarding?: boolean;
+  userId?: string | null;
 }) {
   // O aplicativo abre no Inicio, que e o painel de visao geral. Antes abria
   // direto na carteira (ou no explorar, se vazia), o que jogava a pessoa no
@@ -203,8 +205,8 @@ export function PainelSimulador({
   /**
    * Posicao no ranking, pra entrar no cartao compartilhavel.
    *
-   * O ranking vem so com o topo, entao quem esta fora dele fica com null
-   * — e a linha some do cartao, em vez de mostrar posicao inventada.
+   * O ranking vem so com o topo, entao quem esta fora dele fica com null,
+   * e a linha some do cartao, em vez de mostrar posicao inventada.
    */
   const posicaoRanking =
     ranking.find((r) => r.apelido === apelido)?.posicao ?? null;
@@ -574,7 +576,7 @@ export function PainelSimulador({
         />
       )}
 
-      <PopupDesbloqueio conquistasConcluidas={conquistasConcluidas} />
+      <PopupDesbloqueio conquistasConcluidas={conquistasConcluidas} userId={userId} />
 
       <AssistenteChat />
     </>
@@ -886,18 +888,10 @@ function Explorar({
 }) {
   const [mercado, setMercado] = useState<"br" | "us" | "fii" | "etf">("br");
   const [busca, setBusca] = useState("");
-  const [buscaAtrasada, setBuscaAtrasada] = useState("");
-  const [b3, setB3] = useState<AcaoB3[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erroB3, setErroB3] = useState<string | null>(null);
   const [visao, setVisao] = useState<"cards" | "tabela">("cards");
 
   const [acoesUsa, setAcoesUsa] = useState<AcaoB3[] | null>(null);
   const [buscaUsa, setBuscaUsa] = useState("");
-  const [buscaUsaAtrasada, setBuscaUsaAtrasada] = useState("");
-  const [resultadosBuscaUsa, setResultadosBuscaUsa] = useState<AcaoB3[]>([]);
-  const [carregandoUsa, setCarregandoUsa] = useState(false);
-  const [erroUsa, setErroUsa] = useState<string | null>(null);
 
   useEffect(() => {
     if (mercado !== "us" || acoesUsa) return;
@@ -930,109 +924,56 @@ function Explorar({
 
   // Busca no catalogo COMPLETO da B3: 332 FIIs e 182 ETFs, contra os 10 e
   // 6 curados. So os curados tem explicacao escrita, entao eles seguem
-  // como "Populares" e a busca cobre o resto.
-  const [buscaFundoAtrasada, setBuscaFundoAtrasada] = useState("");
-  const [resultadosFundo, setResultadosFundo] = useState<AcaoB3[]>([]);
-  const [carregandoFundo, setCarregandoFundo] = useState(false);
-  const [erroFundo, setErroFundo] = useState<string | null>(null);
-
+  // como "Populares" e a busca cobre o resto. A logica de debounce +
+  // carregando/erro + guarda de cancelamento e compartilhada pelas
+  // quatro abas via useBuscaAtivos (src/lib/useBuscaAtivos.ts).
   const buscandoFundo = mercado === "fii" || mercado === "etf";
+  const buscaFundo = useBuscaAtivos<AcaoB3>({
+    busca,
+    atrasoMs: 400,
+    minLength: 2,
+    ativo: buscandoFundo,
+    chave: mercado,
+    url: (termo) => `/api/${mercado === "fii" ? "fiis" : "etfs"}?q=${termo}`,
+    interpretarResposta: (json) => ({ resultados: json.acoes ?? [], erro: json.erro ?? null }),
+    mensagemErroFetch: "Não foi possível buscar agora. Tente de novo em instantes.",
+  });
+  const buscaFundoAtrasada = buscaFundo.termo;
+  const resultadosFundo = buscaFundo.resultados;
+  const carregandoFundo = buscaFundo.carregando;
+  const erroFundo = buscaFundo.erro;
 
-  useEffect(() => {
-    const id = setTimeout(() => setBuscaFundoAtrasada(busca.trim()), 400);
-    return () => clearTimeout(id);
-  }, [busca]);
+  const buscaUsaResultado = useBuscaAtivos<AcaoB3>({
+    busca: buscaUsa,
+    atrasoMs: 400,
+    minLength: 2,
+    ativo: mercado === "us",
+    url: (termo) => `/api/acoes-usa?q=${termo}`,
+    interpretarResposta: (json) =>
+      json.acoes
+        ? { resultados: json.acoes, erro: null }
+        : { erro: json.mensagem ?? "Não foi possível buscar agora." },
+    mensagemErroFetch: "Não foi possível buscar agora.",
+  });
+  const buscaUsaAtrasada = buscaUsaResultado.termo;
+  const resultadosBuscaUsa = buscaUsaResultado.resultados;
+  const carregandoUsa = buscaUsaResultado.carregando;
+  const erroUsa = buscaUsaResultado.erro;
 
-  useEffect(() => {
-    if (!buscandoFundo || buscaFundoAtrasada.length < 2) {
-      setResultadosFundo([]);
-      setErroFundo(null);
-      return;
-    }
-    let cancelado = false;
-    setCarregandoFundo(true);
-    fetch(`/api/${mercado === "fii" ? "fiis" : "etfs"}?q=${encodeURIComponent(buscaFundoAtrasada)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (cancelado) return;
-        setResultadosFundo(json.acoes ?? []);
-        setErroFundo(json.erro ?? null);
-      })
-      .catch(() => {
-        if (!cancelado) setErroFundo("Não foi possível buscar agora. Tente de novo em instantes.");
-      })
-      .finally(() => {
-        if (!cancelado) setCarregandoFundo(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [buscandoFundo, mercado, buscaFundoAtrasada]);
-
-  useEffect(() => {
-    const id = setTimeout(() => setBuscaUsaAtrasada(buscaUsa.trim()), 400);
-    return () => clearTimeout(id);
-  }, [buscaUsa]);
-
-  useEffect(() => {
-    if (mercado !== "us" || buscaUsaAtrasada.length < 2) {
-      setResultadosBuscaUsa([]);
-      setErroUsa(null);
-      return;
-    }
-    let cancelado = false;
-    setCarregandoUsa(true);
-    fetch(`/api/acoes-usa?q=${encodeURIComponent(buscaUsaAtrasada)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (cancelado) return;
-        if (json.acoes) {
-          setResultadosBuscaUsa(json.acoes);
-          setErroUsa(null);
-        } else {
-          setErroUsa(json.mensagem ?? "Não foi possível buscar agora.");
-        }
-      })
-      .catch(() => {
-        if (!cancelado) setErroUsa("Não foi possível buscar agora.");
-      })
-      .finally(() => {
-        if (!cancelado) setCarregandoUsa(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [mercado, buscaUsaAtrasada]);
-
-  useEffect(() => {
-    const id = setTimeout(() => setBuscaAtrasada(busca.trim()), 350);
-    return () => clearTimeout(id);
-  }, [busca]);
-
-  useEffect(() => {
-    let cancelado = false;
-    setCarregando(true);
-    fetch(`/api/acoes?q=${encodeURIComponent(buscaAtrasada)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (cancelado) return;
-        if (json.acoes) {
-          setB3(json.acoes);
-          setErroB3(null);
-        } else {
-          setErroB3(json.mensagem ?? "Não foi possível buscar as ações agora.");
-        }
-      })
-      .catch(() => {
-        if (!cancelado) setErroB3("Não foi possível buscar as ações agora.");
-      })
-      .finally(() => {
-        if (!cancelado) setCarregando(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [buscaAtrasada]);
+  const buscaBr = useBuscaAtivos<AcaoB3>({
+    busca,
+    atrasoMs: 350,
+    carregandoInicial: true,
+    url: (termo) => `/api/acoes?q=${termo}`,
+    interpretarResposta: (json) =>
+      json.acoes
+        ? { resultados: json.acoes, erro: null }
+        : { erro: json.mensagem ?? "Não foi possível buscar as ações agora." },
+    mensagemErroFetch: "Não foi possível buscar as ações agora.",
+  });
+  const b3 = buscaBr.resultados;
+  const carregando = buscaBr.carregando;
+  const erroB3 = buscaBr.erro;
 
   const t = busca.trim().toLowerCase();
   const populares = ACOES.filter((a) => {
@@ -1086,661 +1027,63 @@ function Explorar({
       </div>
 
       {mercado === "etf" ? (
-        <>
-          <h2 className="mt-4 font-display text-2xl text-ink">
-            Escolha um ETF
-          </h2>
-          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-            ETFs seguem um índice inteiro numa única cota (tipo o Ibovespa ou
-            o S&P 500), em vez de você escolher ação por ação. Também são
-            negociados na B3 como uma ação comum. Explicamos alguns, mas
-            busque qualquer código pra comprar qualquer um dos mais de 180
-            ETFs da bolsa.
-          </p>
-
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, código ou índice (ex: Ibovespa, S&P 500)"
-            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-          />
-
-          {acoesEtf === null ? (
-            <div className="mt-6 flex items-center gap-2 text-ink-muted">
-              <Loader2 size={16} className="animate-spin" />
-              Carregando ETFs…
-            </div>
-          ) : popularesEtf.length > 0 ? (
-            <>
-              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                Populares
-              </p>
-              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                {popularesEtf.map((a, i) => {
-                  const dado = acoesEtf?.find((x) => x.ticker === a.ticker);
-                  return (
-                    <CartaoAcaoPopular
-                      key={a.ticker}
-                      acao={a}
-                      delay={Math.min(i * 0.04, 0.4)}
-                      favorito={favoritos.has(a.ticker)}
-                      dadosPre={{
-                        preco: dado?.preco ?? null,
-                        variacao: dado?.variacao ?? null,
-                        logo: dado?.logo ?? null,
-                      }}
-                      aoComprar={aoComprar}
-                      aoVerDetalhe={aoVerDetalhe}
-                    />
-                  );
-                })}
-              </ul>
-            </>
-          ) : null}
-
-          <ResultadosFundo
-            titulo="Outros ETFs da B3"
-            termo={buscaFundoAtrasada}
-            resultados={resultadosFundo}
-            carregando={carregandoFundo}
-            erro={erroFundo}
-            curados={new Set(ETFS.map((e) => e.ticker))}
-            favoritos={favoritos}
-            aoComprar={aoComprar}
-            aoVerDetalhe={aoVerDetalhe}
-          />
-
-          {acoesEtf !== null && popularesEtf.length === 0 && !buscaFundoAtrasada && (
-            <p className="mt-8 text-ink-muted">
-              Nenhum ETF encontrado com esse termo.
-            </p>
-          )}
-        </>
+        <ExplorarEtf
+          busca={busca}
+          setBusca={setBusca}
+          acoesEtf={acoesEtf}
+          popularesEtf={popularesEtf}
+          buscaFundoAtrasada={buscaFundoAtrasada}
+          resultadosFundo={resultadosFundo}
+          carregandoFundo={carregandoFundo}
+          erroFundo={erroFundo}
+          favoritos={favoritos}
+          aoComprar={aoComprar}
+          aoVerDetalhe={aoVerDetalhe}
+        />
       ) : mercado === "fii" ? (
-        <>
-          <h2 className="mt-4 font-display text-2xl text-ink">
-            Escolha um Fundo Imobiliário
-          </h2>
-          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-            FIIs são negociados na B3 igual uma ação (ticker termina em 11),
-            mas o dinheiro vai pra imóveis ou títulos imobiliários, não pra
-            uma empresa. Costumam pagar rendimento todo mês. Explicamos
-            alguns conhecidos, mas busque qualquer código pra comprar
-            qualquer um dos mais de 300 FIIs da bolsa.
-          </p>
-
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, código ou tipo (ex: logística, shopping)"
-            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-          />
-
-          {acoesFii === null ? (
-            <div className="mt-6 flex items-center gap-2 text-ink-muted">
-              <Loader2 size={16} className="animate-spin" />
-              Carregando FIIs…
-            </div>
-          ) : popularesFii.length > 0 ? (
-            <>
-              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                Populares
-              </p>
-              <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                {popularesFii.map((a, i) => {
-                  const dado = acoesFii?.find((x) => x.ticker === a.ticker);
-                  return (
-                    <CartaoAcaoPopular
-                      key={a.ticker}
-                      acao={a}
-                      delay={Math.min(i * 0.04, 0.4)}
-                      favorito={favoritos.has(a.ticker)}
-                      dadosPre={{
-                        preco: dado?.preco ?? null,
-                        variacao: dado?.variacao ?? null,
-                        logo: dado?.logo ?? null,
-                      }}
-                      aoComprar={aoComprar}
-                      aoVerDetalhe={aoVerDetalhe}
-                    />
-                  );
-                })}
-              </ul>
-            </>
-          ) : null}
-
-          <ResultadosFundo
-            titulo="Outros FIIs da B3"
-            termo={buscaFundoAtrasada}
-            resultados={resultadosFundo}
-            carregando={carregandoFundo}
-            erro={erroFundo}
-            curados={new Set(FIIS.map((f) => f.ticker))}
-            favoritos={favoritos}
-            aoComprar={aoComprar}
-            aoVerDetalhe={aoVerDetalhe}
-          />
-
-          {acoesFii !== null && popularesFii.length === 0 && !buscaFundoAtrasada && (
-            <p className="mt-8 text-ink-muted">
-              Nenhum FII encontrado com esse termo.
-            </p>
-          )}
-        </>
+        <ExplorarFii
+          busca={busca}
+          setBusca={setBusca}
+          acoesFii={acoesFii}
+          popularesFii={popularesFii}
+          buscaFundoAtrasada={buscaFundoAtrasada}
+          resultadosFundo={resultadosFundo}
+          carregandoFundo={carregandoFundo}
+          erroFundo={erroFundo}
+          favoritos={favoritos}
+          aoComprar={aoComprar}
+          aoVerDetalhe={aoVerDetalhe}
+        />
       ) : mercado === "us" ? (
-        <>
-          <h2 className="mt-4 font-display text-2xl text-ink">
-            Escolha uma ação dos EUA
-          </h2>
-          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-            Destacamos algumas empresas conhecidas, mas a NYSE/NASDAQ inteira
-            é sua: busque qualquer ticker ou nome. Preço já convertido pra
-            reais.
-          </p>
-
-          <input
-            value={buscaUsa}
-            onChange={(e) => setBuscaUsa(e.target.value)}
-            placeholder="Buscar por nome ou ticker (ex: Netflix, GOOG)"
-            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-          />
-
-          {!buscaUsaAtrasada && (
-            <>
-              <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                Populares
-              </p>
-              {acoesUsa === null ? (
-                <div className="mt-6 flex items-center gap-2 text-ink-muted">
-                  <Loader2 size={16} className="animate-spin" />
-                  Carregando ações americanas…
-                </div>
-              ) : (
-                <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                  {ACOES_USA.map((a, i) => {
-                    const dado = acoesUsa.find((x) => x.ticker === a.ticker);
-                    return (
-                      <CartaoAcaoPopular
-                        key={a.ticker}
-                        acao={a}
-                        delay={Math.min(i * 0.04, 0.4)}
-                        favorito={favoritos.has(a.ticker)}
-                        dadosPre={{
-                          preco: dado?.preco ?? null,
-                          variacao: dado?.variacao ?? null,
-                          logo: dado?.logo ?? null,
-                        }}
-                        aoComprar={aoComprar}
-                        aoVerDetalhe={aoVerDetalhe}
-                      />
-                    );
-                  })}
-                </ul>
-              )}
-            </>
-          )}
-
-          {buscaUsaAtrasada && (
-            <div className="mt-8">
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-                  Resultados
-                </p>
-                {carregandoUsa && <Loader2 size={13} className="animate-spin text-ink-muted" />}
-              </div>
-
-              {erroUsa && <p className="mt-4 text-sm text-ink-muted">{erroUsa}</p>}
-
-              {!erroUsa && !carregandoUsa && resultadosBuscaUsa.length === 0 && (
-                <p className="mt-4 text-ink-muted">Nenhuma ação encontrada com esse termo.</p>
-              )}
-
-              {!erroUsa && resultadosBuscaUsa.length > 0 && (
-                <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-                  {resultadosBuscaUsa.map((a, i) => (
-                    <CartaoAcaoB3
-                      key={a.ticker}
-                      acao={a}
-                      delay={Math.min(i * 0.04, 0.4)}
-                      favorito={favoritos.has(a.ticker)}
-                      aoComprar={aoComprar}
-                      aoVerDetalhe={aoVerDetalhe}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </>
+        <ExplorarUs
+          buscaUsa={buscaUsa}
+          setBuscaUsa={setBuscaUsa}
+          acoesUsa={acoesUsa}
+          buscaUsaAtrasada={buscaUsaAtrasada}
+          resultadosBuscaUsa={resultadosBuscaUsa}
+          carregandoUsa={carregandoUsa}
+          erroUsa={erroUsa}
+          favoritos={favoritos}
+          aoComprar={aoComprar}
+          aoVerDetalhe={aoVerDetalhe}
+        />
       ) : (
-        <>
-      <h2 className="mt-4 font-display text-2xl text-ink">
-        Escolha uma ação da B3
-      </h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Destacamos algumas empresas conhecidas com explicação em português,
-        mas a bolsa é sua: busque qualquer código ou nome pra comprar
-        qualquer ação da B3.
-      </p>
-
-      <input
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        placeholder="Buscar por nome, código ou setor"
-        className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-      />
-
-      {favoritos.size > 0 && !t && (
-        <FavoritasFaixa
-          tickers={[...favoritos]}
+        <ExplorarBr
+          busca={busca}
+          setBusca={setBusca}
+          termoBuscado={t}
+          populares={populares}
+          restoB3={restoB3}
+          carregando={carregando}
+          erroB3={erroB3}
+          visao={visao}
+          setVisao={setVisao}
+          favoritos={favoritos}
           aoComprar={aoComprar}
           aoVerDetalhe={aoVerDetalhe}
         />
       )}
-
-      {populares.length > 0 && (
-        <>
-          <p className="mt-8 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-            Populares
-          </p>
-          <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-            {populares.map((a, i) => (
-              <CartaoAcaoPopular
-                key={a.ticker}
-                acao={a}
-                delay={Math.min(i * 0.04, 0.4)}
-                favorito={favoritos.has(a.ticker)}
-                aoComprar={aoComprar}
-                aoVerDetalhe={aoVerDetalhe}
-              />
-            ))}
-          </ul>
-        </>
-      )}
-
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-            {t ? "Resultados na B3" : "Mais ações da B3"}
-          </p>
-          {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
-        </div>
-
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => setVisao("cards")}
-            className={`px-3 py-1.5 font-mono text-xs transition-colors ${
-              visao === "cards"
-                ? "bg-blue text-onblue"
-                : "border border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
-            }`}
-          >
-            Cards
-          </button>
-          <button
-            onClick={() => setVisao("tabela")}
-            className={`px-3 py-1.5 font-mono text-xs transition-colors ${
-              visao === "tabela"
-                ? "bg-blue text-onblue"
-                : "border border-[var(--rule)] text-ink-muted hover:border-blue hover:text-blue"
-            }`}
-          >
-            Tabela
-          </button>
-        </div>
-      </div>
-
-      {erroB3 && (
-        <p className="mt-4 text-sm text-ink-muted">{erroB3}</p>
-      )}
-
-      {!erroB3 && visao === "cards" && (
-        <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-          {restoB3.map((a, i) => (
-            <CartaoAcaoB3
-              key={a.ticker}
-              acao={a}
-              delay={Math.min(i * 0.04, 0.4)}
-              favorito={favoritos.has(a.ticker)}
-              aoComprar={aoComprar}
-              aoVerDetalhe={aoVerDetalhe}
-            />
-          ))}
-        </ul>
-      )}
-
-      {!erroB3 && visao === "tabela" && restoB3.length > 0 && (
-        <div className="mt-3">
-          <TabelaAcoes acoes={restoB3} favoritos={favoritos} aoVerDetalhe={aoVerDetalhe} aoComprar={aoComprar} />
-        </div>
-      )}
-
-      {!carregando && !erroB3 && populares.length === 0 && restoB3.length === 0 && (
-        <p className="mt-8 text-ink-muted">
-          Nenhuma ação encontrada com esse termo.
-        </p>
-      )}
-        </>
-      )}
     </div>
-  );
-}
-
-function CartaoAcaoPopular({
-  acao,
-  delay,
-  favorito,
-  dadosPre,
-  aoComprar,
-  aoVerDetalhe,
-}: {
-  acao: (typeof ACOES)[number];
-  delay: number;
-  favorito?: boolean;
-  /** Quando informado, pula a busca propria (usado pras acoes americanas, ja buscadas de uma vez pelo componente pai). */
-  dadosPre?: { preco: number | null; variacao: number | null; logo: string | null };
-  aoComprar: (ticker: string, preco: number, nome?: string) => void;
-  aoVerDetalhe: (ticker: string) => void;
-}) {
-  const [dados, setDados] = useState<{ preco: number; variacao: number; logo: string | null } | null>(null);
-
-  useEffect(() => {
-    if (dadosPre) return;
-    let cancelado = false;
-    fetch(`/api/acoes?q=${encodeURIComponent(acao.ticker)}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (cancelado || !json.acoes) return;
-        const encontrada = json.acoes.find(
-          (a: AcaoB3) => a.ticker === acao.ticker,
-        );
-        if (encontrada?.preco != null) {
-          setDados({ preco: encontrada.preco, variacao: encontrada.variacao ?? 0, logo: encontrada.logo ?? null });
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelado = true;
-    };
-  }, [acao.ticker, dadosPre]);
-
-  const dadosFinais = dadosPre
-    ? dadosPre.preco != null
-      ? { preco: dadosPre.preco, variacao: dadosPre.variacao ?? 0, logo: dadosPre.logo }
-      : null
-    : dados;
-  const semDadosDisponiveis = Boolean(dadosPre) && dadosPre!.preco == null;
-
-  return (
-    <motion.li
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="bg-paper p-5"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <button onClick={() => aoVerDetalhe(acao.ticker)} className="flex items-start gap-3 text-left">
-          <LogoAcao logo={dadosFinais?.logo ?? null} ticker={acao.ticker} />
-          <div>
-            <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-              {acao.ticker}
-            </p>
-            <p className="text-sm text-ink">{acao.nome}</p>
-            <p
-              className="font-mono text-[11px] font-medium uppercase tracking-wider"
-              style={{ color: corDoSetor(acao.setor) }}
-            >
-              {acao.setor}
-            </p>
-          </div>
-        </button>
-
-        <div className="flex items-start gap-3">
-          <div className="text-right">
-            {dadosFinais ? (
-              <>
-                <p className="font-mono text-lg tabular text-ink">{brl(dadosFinais.preco)}</p>
-                <p
-                  className={`font-mono text-xs tabular ${
-                    dadosFinais.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {dadosFinais.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(dadosFinais.variacao))}%
-                </p>
-              </>
-            ) : semDadosDisponiveis ? (
-              <p className="font-mono text-xs text-ink-muted">indisponível</p>
-            ) : (
-              <p className="font-mono text-xs text-ink-muted">carregando…</p>
-            )}
-          </div>
-          <BotaoFavorito ticker={acao.ticker} favorito={Boolean(favorito)} />
-        </div>
-      </div>
-
-      {!dadosPre && (
-        <div className="mt-3 flex justify-end">
-          <MiniGraficoAcao ticker={acao.ticker} />
-        </div>
-      )}
-
-      <p className="mt-3 text-sm leading-relaxed text-ink-muted">{acao.explica}</p>
-
-      <button
-        onClick={() => dadosFinais && aoComprar(acao.ticker, dadosFinais.preco, acao.nome)}
-        disabled={!dadosFinais}
-        className="mt-4 w-full bg-blue px-5 py-2.5 text-sm font-semibold text-onblue transition-colors hover:bg-blue-deep disabled:opacity-40"
-      >
-        {dadosFinais ? "Comprar" : "Indisponível agora"}
-      </button>
-    </motion.li>
-  );
-}
-
-/**
- * Resultados da busca no catalogo completo de fundos da B3.
- *
- * Os curados aparecem acima em "Populares", com explicacao propria, e sao
- * removidos daqui pra a mesma cota nao sair duas vezes na tela.
- */
-function ResultadosFundo({
-  titulo,
-  termo,
-  resultados,
-  carregando,
-  erro,
-  curados,
-  favoritos,
-  aoComprar,
-  aoVerDetalhe,
-}: {
-  titulo: string;
-  termo: string;
-  resultados: AcaoB3[];
-  carregando: boolean;
-  erro: string | null;
-  curados: Set<string>;
-  favoritos: Set<string>;
-  aoComprar: (ticker: string, preco: number, nome?: string) => void;
-  aoVerDetalhe: (ticker: string) => void;
-}) {
-  if (termo.length < 2) return null;
-
-  const novos = resultados.filter((a) => !curados.has(a.ticker));
-
-  return (
-    <div className="mt-10">
-      <div className="flex items-center gap-2">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-          {titulo}
-        </p>
-        {carregando && <Loader2 size={13} className="animate-spin text-ink-muted" />}
-      </div>
-
-      {erro && <p className="mt-4 text-sm text-ink-muted">{erro}</p>}
-
-      {!erro && !carregando && novos.length === 0 && (
-        <p className="mt-4 text-ink-muted">Nada mais encontrado com esse termo.</p>
-      )}
-
-      {!erro && novos.length > 0 && (
-        <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-          {novos.map((a, i) => (
-            <CartaoAcaoB3
-              key={a.ticker}
-              acao={a}
-              delay={Math.min(i * 0.04, 0.4)}
-              favorito={favoritos.has(a.ticker)}
-              aoComprar={aoComprar}
-              aoVerDetalhe={aoVerDetalhe}
-            />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function CartaoAcaoB3({
-  acao,
-  delay,
-  favorito,
-  aoComprar,
-  aoVerDetalhe,
-}: {
-  acao: AcaoB3;
-  delay: number;
-  favorito?: boolean;
-  aoComprar: (ticker: string, preco: number, nome?: string) => void;
-  aoVerDetalhe: (ticker: string) => void;
-}) {
-  const disponivel = acao.preco != null;
-
-  return (
-    <motion.li
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="bg-paper p-5"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <button onClick={() => aoVerDetalhe(acao.ticker)} className="flex items-start gap-3 text-left">
-          <LogoAcao logo={acao.logo} ticker={acao.ticker} />
-          <div>
-            <p className="font-mono text-sm font-semibold text-ink underline decoration-transparent underline-offset-4 transition-colors hover:text-blue hover:decoration-blue">
-              {acao.ticker}
-            </p>
-            <p className="text-sm text-ink">{acao.nome}</p>
-            {acao.setor && (
-              <p
-                className="font-mono text-[11px] font-medium uppercase tracking-wider"
-                style={{ color: corDoSetor(acao.setor) }}
-              >
-                {acao.setor}
-              </p>
-            )}
-          </div>
-        </button>
-
-        <div className="flex items-start gap-3">
-          <div className="text-right">
-            {disponivel ? (
-              <>
-                <p className="font-mono text-lg tabular text-ink">{brl(acao.preco!)}</p>
-                {acao.variacao != null && (
-                  <p
-                    className={`font-mono text-xs tabular ${
-                      acao.variacao >= 0 ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {acao.variacao >= 0 ? "▲" : "▼"} {numero(Math.abs(acao.variacao))}%
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="font-mono text-xs text-ink-muted">preço indisponível</p>
-            )}
-          </div>
-          <BotaoFavorito ticker={acao.ticker} favorito={Boolean(favorito)} />
-        </div>
-      </div>
-
-      <div className="mt-3 flex justify-end">
-        <MiniGraficoAcao ticker={acao.ticker} />
-      </div>
-
-      <button
-        onClick={() => disponivel && aoComprar(acao.ticker, acao.preco!, acao.nome)}
-        disabled={!disponivel}
-        className="mt-4 w-full border border-blue px-5 py-2.5 text-sm font-semibold text-blue transition-colors hover:bg-blue hover:text-onblue disabled:opacity-40"
-      >
-        {disponivel ? "Comprar" : "Indisponível agora"}
-      </button>
-    </motion.li>
-  );
-}
-
-/** Suas acoes favoritadas, buscando a cotacao de cada uma individualmente. */
-function FavoritasFaixa({
-  tickers,
-  aoComprar,
-  aoVerDetalhe,
-}: {
-  tickers: string[];
-  aoComprar: (ticker: string, preco: number, nome?: string) => void;
-  aoVerDetalhe: (ticker: string) => void;
-}) {
-  const [acoes, setAcoes] = useState<AcaoB3[]>([]);
-
-  useEffect(() => {
-    let cancelado = false;
-    // Cada favorito vai pra rota que cobre o mercado dele. Antes tudo ia
-    // pra /api/acoes (type=stock na brapi, so B3), entao favoritar um
-    // FII, um ETF ou uma acao americana acendia a estrela mas o ativo
-    // nunca aparecia nesta faixa, sem aviso nenhum.
-    function rotaDe(t: string) {
-      if (fiiPorTicker(t)) return "/api/fiis";
-      if (etfPorTicker(t)) return "/api/etfs";
-      if (/^[A-Z]{1,5}$/.test(t)) return `/api/acoes-usa?q=${encodeURIComponent(t)}`;
-      return `/api/acoes?q=${encodeURIComponent(t)}`;
-    }
-
-    Promise.all(
-      tickers.map((t) =>
-        fetch(rotaDe(t))
-          .then((r) => r.json())
-          .then((json) => json.acoes?.find((a: AcaoB3) => a.ticker === t) ?? null)
-          .catch(() => null),
-      ),
-    ).then((resultados) => {
-      if (!cancelado) setAcoes(resultados.filter((a): a is AcaoB3 => a != null));
-    });
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickers.join(",")]);
-
-  if (acoes.length === 0) return null;
-
-  return (
-    <>
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-ink-muted">
-        Suas favoritas
-      </p>
-      <ul className="mt-3 grid gap-px bg-[var(--rule)] sm:grid-cols-2">
-        {acoes.map((a, i) => (
-          <CartaoAcaoB3
-            key={a.ticker}
-            acao={a}
-            delay={Math.min(i * 0.04, 0.4)}
-            favorito
-            aoComprar={aoComprar}
-            aoVerDetalhe={aoVerDetalhe}
-          />
-        ))}
-      </ul>
-    </>
   );
 }
 

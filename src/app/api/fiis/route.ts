@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { criarClienteServidor } from "@/lib/supabase/server";
 import { FIIS } from "@/lib/fiis";
 import { buscarFundosB3 } from "@/lib/buscaAcoes";
+import { montarCotacoesCuradas } from "@/lib/cotacoes";
 
 /**
  * Sem `q`: os FIIs curados, lidos da tabela cotacoes (mantida pelo cron
@@ -23,23 +23,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ acoes: r.acoes });
   }
 
-  const supabase = await criarClienteServidor();
-  const tickers = FIIS.map((f) => f.ticker);
-  const { data } = await supabase.from("cotacoes").select("ticker, preco, variacao, logo").in("ticker", tickers);
-  const mapa = new Map((data ?? []).map((c) => [c.ticker, c]));
-
-  const acoes = FIIS.map((f) => {
-    const c = mapa.get(f.ticker);
-    return {
-      ticker: f.ticker,
-      nome: f.nome,
-      setor: f.tipo,
-      explica: f.explica,
-      preco: c ? Number(c.preco) : null,
-      variacao: c ? Number(c.variacao) : null,
-      logo: c?.logo ?? null,
-    };
-  });
+  const acoes = await montarCotacoesCuradas(
+    FIIS.map((f) => ({ ticker: f.ticker, nome: f.nome, setor: f.tipo, explica: f.explica })),
+  );
 
   return NextResponse.json({ acoes });
 }

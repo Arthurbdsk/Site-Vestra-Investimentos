@@ -64,12 +64,14 @@ export function ModalOrdem({
   }, [ordem]);
 
   useEffect(() => {
+    if (!ordem) return;
     const esc = (e: KeyboardEvent) => {
       if (e.key === "Escape") fechar();
     };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordem]);
 
   if (!ordem) return null;
 
@@ -113,24 +115,28 @@ export function ModalOrdem({
   function enviar() {
     setEstado({ fase: "enviando" });
     iniciar(async () => {
-      const r =
-        modo === "limitada"
-          ? await criarOrdemLimitada(
-              comprando ? "comprar" : "vender",
-              ordem!.ticker,
-              qtd,
-              precoAlvo,
-            )
-          : modo === "abertura"
-            ? await criarOrdemMercadoAbertura(comprando ? "comprar" : "vender", ordem!.ticker, qtd)
-            : comprando
-              ? await comprar(ordem!.ticker, qtd)
-              : await vender(ordem!.ticker, qtd);
-      setEstado(
-        r.ok
-          ? { fase: "feito", mensagem: r.mensagem }
-          : { fase: "erro", mensagem: r.mensagem },
-      );
+      try {
+        const r =
+          modo === "limitada"
+            ? await criarOrdemLimitada(
+                comprando ? "comprar" : "vender",
+                ordem!.ticker,
+                qtd,
+                precoAlvo,
+              )
+            : modo === "abertura"
+              ? await criarOrdemMercadoAbertura(comprando ? "comprar" : "vender", ordem!.ticker, qtd)
+              : comprando
+                ? await comprar(ordem!.ticker, qtd)
+                : await vender(ordem!.ticker, qtd);
+        setEstado(
+          r.ok
+            ? { fase: "feito", mensagem: r.mensagem }
+            : { fase: "erro", mensagem: r.mensagem },
+        );
+      } catch {
+        setEstado({ fase: "erro", mensagem: "Não consegui completar a ordem agora. Tente de novo." });
+      }
     });
   }
 
@@ -141,6 +147,8 @@ export function ModalOrdem({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={fechar}
+        role="dialog"
+        aria-modal="true"
         className="fixed inset-0 z-[70] flex items-end justify-center bg-blue-deep/60 backdrop-blur-sm sm:items-center"
       >
         <motion.div

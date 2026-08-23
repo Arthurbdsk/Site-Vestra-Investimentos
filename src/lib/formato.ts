@@ -19,8 +19,24 @@ export function pct(valor: number): string {
   return `${sinal}${numero(valor, 2)}%`;
 }
 
+const SOMENTE_DATA = /^\d{4}-\d{2}-\d{2}$/;
+
 export function data(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", {
+  // Uma string "YYYY-MM-DD" (sem hora) e interpretada pelo construtor
+  // Date como meia-noite UTC. Em fuso atras de UTC (ex: America/Sao_Paulo,
+  // o publico deste site), isso formata como o dia ANTERIOR. Pra datas
+  // sem hora, montamos o Date com ano/mes/dia locais, sem passar pelo UTC.
+  // Strings com hora (timestamp completo) continuam indo direto pro
+  // construtor, sem mudanca de comportamento.
+  const dataObj = SOMENTE_DATA.test(iso)
+    ? new Date(
+        Number(iso.slice(0, 4)),
+        Number(iso.slice(5, 7)) - 1,
+        Number(iso.slice(8, 10)),
+      )
+    : new Date(iso);
+
+  return dataObj.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

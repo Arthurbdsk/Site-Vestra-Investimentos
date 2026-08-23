@@ -1,23 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { DESBLOQUEIOS } from "@/lib/desbloqueios";
 import { Confete } from "./Confete";
 
-const CHAVE = "conquistas_vistas";
+const CHAVE_BASE = "conquistas_vistas";
+
+// Sem o id do usuario, esse estado fica global no navegador: numa
+// maquina compartilhada, trocar de conta faz o progresso de conquistas
+// de uma pessoa vazar pra outra. Sem usuario logado (visitante), cai na
+// chave sem sufixo.
+function chaveStorage(userId?: string | null): string {
+  return userId ? `${CHAVE_BASE}_${userId}` : CHAVE_BASE;
+}
 
 /**
  * Compara quantas conquistas a pessoa tinha na ultima visita com
  * quantas tem agora; se isso cruzou o limiar de alguma funcao nova
  * (ver lib/desbloqueios.ts), comemora com confete.
  */
-export function PopupDesbloqueio({ conquistasConcluidas }: { conquistasConcluidas: number }) {
+export function PopupDesbloqueio({
+  conquistasConcluidas,
+  userId,
+}: {
+  conquistasConcluidas: number;
+  userId?: string | null;
+}) {
   const [novasFuncoes, setNovasFuncoes] = useState<string[]>([]);
+  const tituloId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const anteriorTexto = localStorage.getItem(CHAVE);
+    const chave = chaveStorage(userId);
+    const anteriorTexto = localStorage.getItem(chave);
     const anterior = anteriorTexto ? Number(anteriorTexto) : 0;
 
     if (conquistasConcluidas > anterior) {
@@ -27,10 +44,22 @@ export function PopupDesbloqueio({ conquistasConcluidas }: { conquistasConcluida
       if (novas.length > 0) setNovasFuncoes(novas);
     }
 
-    localStorage.setItem(CHAVE, String(conquistasConcluidas));
-    // So roda uma vez por carregamento da pagina, de propósito.
+    localStorage.setItem(chave, String(conquistasConcluidas));
+    // So roda uma vez por carregamento da pagina (ou quando o usuario
+    // logado muda), de propósito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
+
+  useEffect(() => {
+    if (novasFuncoes.length === 0) return;
+    dialogRef.current?.focus();
+
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") setNovasFuncoes([]);
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [novasFuncoes.length]);
 
   if (novasFuncoes.length === 0) return null;
 
@@ -49,7 +78,12 @@ export function PopupDesbloqueio({ conquistasConcluidas }: { conquistasConcluida
           exit={{ y: 20, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-sm overflow-hidden bg-paper p-8 text-center shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={tituloId}
+          ref={dialogRef}
+          tabIndex={-1}
+          className="relative w-full max-w-sm overflow-hidden bg-paper p-8 text-center shadow-2xl outline-none"
         >
           <Confete />
 
@@ -70,7 +104,7 @@ export function PopupDesbloqueio({ conquistasConcluidas }: { conquistasConcluida
             <Sparkles size={36} className="text-blue" />
           </motion.div>
 
-          <p className="mt-5 font-display text-xl font-bold text-ink">
+          <p id={tituloId} className="mt-5 font-display text-xl font-bold text-ink">
             {novasFuncoes.length === 1 ? "Nova função desbloqueada!" : "Novas funções desbloqueadas!"}
           </p>
           <div className="mt-3 space-y-1.5">

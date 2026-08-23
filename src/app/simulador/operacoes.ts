@@ -5,7 +5,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { brl } from "@/lib/formato";
 
 export type Resultado =
-  | { ok: true; mensagem: string }
+  | { ok: true; mensagem: string; id?: string }
   | { ok: false; mensagem: string };
 
 async function executar(
@@ -76,6 +76,7 @@ export async function criarOrdemLimitada(
   ticker: string,
   quantidade: number,
   precoAlvo: number,
+  ordemIrmaId?: string,
 ): Promise<Resultado> {
   const supabase = await criarClienteServidor();
 
@@ -93,11 +94,12 @@ export async function criarOrdemLimitada(
     return { ok: false, mensagem: "Escolha um preço-alvo válido." };
   }
 
-  const { error } = await supabase.rpc("criar_ordem_limitada", {
+  const { data, error } = await supabase.rpc("criar_ordem_limitada", {
     p_ticker: ticker,
     p_tipo: tipo,
     p_qtd: quantidade,
     p_preco_alvo: precoAlvo,
+    p_ordem_irma_id: ordemIrmaId ?? null,
   });
 
   if (error) {
@@ -108,6 +110,7 @@ export async function criarOrdemLimitada(
 
   return {
     ok: true,
+    id: (data as { id?: string } | null)?.id,
     mensagem: `Ordem criada: ${tipo === "comprar" ? "comprar" : "vender"} ${quantidade} ${quantidade === 1 ? "cota" : "cotas"} de ${ticker} quando o preço ${tipo === "comprar" ? "cair para" : "subir para"} ${brl(precoAlvo)}.`,
   };
 }

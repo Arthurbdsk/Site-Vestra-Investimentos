@@ -94,18 +94,37 @@ async function processarChamadaMargem(
 
   for (const pos of ordenadas) {
     const { data: patrimonioAtual } = await supabase.rpc("patrimonio_de", { p_usuario: usuarioId });
-    if (patrimonioAtual !== null && Number(patrimonioAtual) >= 0) break;
+    if (patrimonioAtual === null) break;
+    const deficit = -Number(patrimonioAtual);
+    if (deficit <= 0) break;
+
+    // Vende so o necessario pra cobrir o deficit (com uma folga de 20%
+    // pro imposto sobre o lucro da venda), nao a posicao inteira: uma
+    // chamada de margem real liquida o minimo, nao zera a carteira.
+    const quantidadeTotal = Number(pos.quantidade);
+    const precoAtual = precoDe.get(pos.ticker) ?? Number(pos.preco_medio);
+    const quantidadeParaVender =
+      precoAtual > 0
+        ? Math.min(quantidadeTotal, Math.ceil((deficit * 1.2) / precoAtual))
+        : quantidadeTotal;
+    if (quantidadeParaVender <= 0) continue;
 
     const { error: erroVenda } = await supabase.rpc("vender", {
       p_ticker: pos.ticker,
-      p_qtd: Number(pos.quantidade),
+      p_qtd: quantidadeParaVender,
     });
-    if (erroVenda) continue;
+    if (erroVenda) {
+      console.error(`[margem] falha ao vender ${pos.ticker} (usuario ${usuarioId}):`, erroVenda.message);
+      continue;
+    }
 
     const { data: perfilAtual } = await supabase.from("perfis").select("saldo").eq("id", usuarioId).single();
     const saldoCaixa = Number(perfilAtual?.saldo ?? 0);
     if (saldoCaixa > 0) {
-      await supabase.rpc("pagar_emprestimo", { p_valor: saldoCaixa });
+      const { error: erroEmprestimo } = await supabase.rpc("pagar_emprestimo", { p_valor: saldoCaixa });
+      if (erroEmprestimo) {
+        console.error(`[margem] falha ao pagar emprestimo (usuario ${usuarioId}):`, erroEmprestimo.message);
+      }
     }
   }
 }
@@ -131,7 +150,10 @@ async function processarAlertas(
       alerta.direcao === "acima" ? preco >= precoAlvo : preco <= precoAlvo;
     if (!atingiu) continue;
 
-    await supabase.rpc("marcar_alerta_disparado", { p_id: alerta.id });
+    const { error } = await supabase.rpc("marcar_alerta_disparado", { p_id: alerta.id });
+    if (error) {
+      console.error(`[alertas] falha ao marcar alerta ${alerta.id} (${alerta.ticker}):`, error.message);
+    }
   }
 }
 
@@ -165,17 +187,23 @@ async function processarOrdens(
       if (!atingiu) continue;
     }
 
-    // O preco de execucao e confirmado de novo dentro do banco
-    // (garantir_cotacao), nao pelo que foi lido aqui so pra checar o alvo.
-    const { error } = await supabase.rpc(ordem.tipo, {
-      p_ticker: ordem.ticker,
-      p_qtd: ordem.quantidade,
-    });
+    // executar_ordem_pendente confirma que a ordem ainda esta pendente,
+    // executa a compra/venda (preco de novo vem de garantir_cotacao
+    // dentro do banco, nao do que foi lido aqui so pra checar o alvo) e
+    // marca como executada, tudo numa unica transacao atomica: evita
+    // executar a mesma ordem 2x se isso rodar em paralelo (dois
+    // carregamentos de pagina quase juntos).
+    const { data, error } = await supabase.rpc("executar_ordem_pendente", { p_id: ordem.id });
+    if (error) {
+      console.error(`[ordens] erro ao executar ordem ${ordem.id} (${ordem.ticker}):`, error.message);
+      continue;
+    }
 
-    // Se falhar (ex: saldo ou cotas insuficientes agora), deixa
-    // pendente pra tentar de novo na proxima visita.
-    if (!error) {
-      await supabase.rpc("marcar_ordem_executada", { p_id: ordem.id });
+    const resultado = data as { ok: boolean; motivo?: string; mensagem?: string } | null;
+    if (resultado && !resultado.ok && resultado.motivo === "falha_execucao") {
+      // Ex: saldo ou cotas insuficientes agora. Deixa pendente pra
+      // tentar de novo na proxima visita.
+      console.error(`[ordens] ordem ${ordem.id} (${ordem.ticker}) nao executou:`, resultado.mensagem);
     }
   }
 }
@@ -219,14 +247,19 @@ async function processarDividendos(
       const dataPagamento = d.dataPagamento.slice(0, 10);
       if (dataPagamento > hoje || dataPagamento < desde) continue;
 
-      await supabase.rpc("creditar_dividendo", {
+      const { error } = await supabase.rpc("creditar_dividendo", {
         p_ticker: pos.ticker,
         p_data_pagamento: dataPagamento,
         p_quantidade: pos.quantidade,
         p_rate: d.rate,
       });
       // O unique de dividendos_creditados garante que repetir essa
-      // chamada em visitas futuras nao credita de novo.
+      // chamada em visitas futuras nao credita de novo (a funcao retorna
+      // ok:true mesmo quando ja foi creditado, entao "error" aqui e
+      // sempre uma falha de verdade, ex: dados invalidos).
+      if (error) {
+        console.error(`[dividendos] falha ao creditar ${pos.ticker} em ${dataPagamento}:`, error.message);
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Flame } from "lucide-react";
 import { Confete } from "./Confete";
@@ -16,6 +16,19 @@ export function PopupStreak({
   perdoado?: boolean;
 }) {
   const [aberto, setAberto] = useState(dias > 1);
+  const tituloId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    dialogRef.current?.focus();
+
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") setAberto(false);
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [aberto]);
 
   if (!aberto) return null;
 
@@ -34,7 +47,12 @@ export function PopupStreak({
           exit={{ y: 20, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-sm overflow-hidden bg-paper p-8 text-center shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={tituloId}
+          ref={dialogRef}
+          tabIndex={-1}
+          className="relative w-full max-w-sm overflow-hidden bg-paper p-8 text-center shadow-2xl outline-none"
         >
           {dias >= 3 && <Confete quantidade={dias >= 7 ? 32 : 18} />}
 
@@ -55,7 +73,7 @@ export function PopupStreak({
             <Flame size={40} className="text-blue" />
           </motion.div>
 
-          <p className="mt-5 font-mono text-4xl font-bold tabular text-blue">{dias}</p>
+          <p id={tituloId} className="mt-5 font-mono text-4xl font-bold tabular text-blue">{dias}</p>
           <p className="mt-1 font-display text-xl font-bold text-ink">
             {dias === 1 ? "dia seguido" : "dias seguidos"}!
           </p>

@@ -12,9 +12,6 @@ import {
 import { CandlestickChart, LineChart } from "lucide-react";
 import type { PontoSerie } from "@/lib/historico";
 
-const COR_ALTA = "#0f2d44";
-const COR_BAIXA = "#e11d48";
-
 function paraTimestamp(data: string): UTCTimestamp {
   return Math.floor(new Date(data).getTime() / 1000) as UTCTimestamp;
 }
@@ -32,6 +29,14 @@ export function GraficoAvancado({ serie }: { serie: PontoSerie[] }) {
   useEffect(() => {
     const container = containerRef.current;
     if (!container || serie.length < 2) return;
+
+    // Canvas nao resolve "var(--x)" sozinho (fillStyle so entende cor
+    // final), diferente do texto/grade abaixo que a propria lib repassa
+    // pro DOM. Por isso lemos o valor computado uma vez aqui, o que
+    // tambem mantem as cores de alta/baixa vindas so do globals.css.
+    const estiloRaiz = getComputedStyle(document.documentElement);
+    const corAlta = estiloRaiz.getPropertyValue("--color-alta").trim();
+    const corBaixa = estiloRaiz.getPropertyValue("--color-baixa").trim();
 
     const chart = createChart(container, {
       width: container.clientWidth,
@@ -58,11 +63,11 @@ export function GraficoAvancado({ serie }: { serie: PontoSerie[] }) {
 
     if (modo === "candle") {
       const candles = chart.addSeries(CandlestickSeries, {
-        upColor: COR_ALTA,
-        downColor: COR_BAIXA,
+        upColor: corAlta,
+        downColor: corBaixa,
         borderVisible: false,
-        wickUpColor: COR_ALTA,
-        wickDownColor: COR_BAIXA,
+        wickUpColor: corAlta,
+        wickDownColor: corBaixa,
       });
       candles.setData(
         pontosOrdenados.map((p) => ({
@@ -75,7 +80,7 @@ export function GraficoAvancado({ serie }: { serie: PontoSerie[] }) {
       );
     } else {
       const linha = chart.addSeries(LineSeries, {
-        color: COR_ALTA,
+        color: corAlta,
         lineWidth: 2,
       });
       linha.setData(pontosOrdenados.map((p) => ({ time: paraTimestamp(p.data), value: p.preco })));
@@ -92,7 +97,7 @@ export function GraficoAvancado({ serie }: { serie: PontoSerie[] }) {
         pontosOrdenados.map((p, i) => ({
           time: paraTimestamp(p.data),
           value: p.volume,
-          color: i === 0 || p.preco >= pontosOrdenados[i - 1].preco ? `${COR_ALTA}80` : `${COR_BAIXA}80`,
+          color: i === 0 || p.preco >= pontosOrdenados[i - 1].preco ? `${corAlta}80` : `${corBaixa}80`,
         })),
       );
     }
