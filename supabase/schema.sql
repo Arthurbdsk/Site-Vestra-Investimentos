@@ -78,12 +78,16 @@ create table if not exists public.transacoes (
   preco       numeric(14,2) not null check (preco > 0),
   total       numeric(14,2) not null,
   imposto     numeric(14,2) not null default 0,
+  nota        text,
   criado_em   timestamptz not null default now()
 );
 
 -- Se a tabela ja existia (de uma versao anterior), garante as colunas novas
 -- e afrouxa o check de tipo pra aceitar 'dividendo'.
 alter table public.transacoes add column if not exists imposto numeric(14,2) not null default 0;
+alter table public.transacoes add column if not exists nota text;
+alter table public.transacoes drop constraint if exists transacoes_nota_tamanho;
+alter table public.transacoes add constraint transacoes_nota_tamanho check (char_length(nota) <= 280);
 alter table public.transacoes drop constraint if exists transacoes_tipo_check;
 alter table public.transacoes add constraint transacoes_tipo_check check (tipo in ('compra','venda','dividendo'));
 
@@ -710,7 +714,7 @@ grant execute on function public.buscar_acoes_usa(text) to authenticated;
 -- ------------------------------------------------------------
 drop function if exists public.comprar(text, integer, numeric);
 
-create or replace function public.comprar(p_ticker text, p_qtd integer)
+create or replace function public.comprar(p_ticker text, p_qtd integer, p_nota text default null)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_usuario uuid := auth.uid();
@@ -718,12 +722,16 @@ declare
   v_custo   numeric(14,2);
   v_saldo   numeric(14,2);
   v_pos     public.posicoes%rowtype;
+  v_nota    text := left(trim(p_nota), 280);
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
   end if;
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+  if v_nota = '' then
+    v_nota := null;
   end if;
 
   v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
@@ -758,8 +766,8 @@ begin
     values (v_usuario, upper(trim(p_ticker)), p_qtd, v_preco);
   end if;
 
-  insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total)
-  values (v_usuario, upper(trim(p_ticker)), 'compra', p_qtd, v_preco, v_custo);
+  insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total, nota)
+  values (v_usuario, upper(trim(p_ticker)), 'compra', p_qtd, v_preco, v_custo, v_nota);
 
   return json_build_object('ok', true, 'preco', v_preco, 'custo', v_custo, 'saldo', v_saldo - v_custo);
 end $$;
@@ -775,7 +783,7 @@ end $$;
 -- ------------------------------------------------------------
 drop function if exists public.vender(text, integer, numeric);
 
-create or replace function public.vender(p_ticker text, p_qtd integer)
+create or replace function public.vender(p_ticker text, p_qtd integer, p_nota text default null)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_usuario     uuid := auth.uid();
@@ -786,12 +794,16 @@ declare
   v_imposto     numeric(14,2) := 0;
   v_liquido     numeric(14,2);
   v_pos         public.posicoes%rowtype;
+  v_nota        text := left(trim(p_nota), 280);
 begin
   if v_usuario is null then
     raise exception 'Voce precisa estar logado.';
   end if;
   if p_qtd is null or p_qtd <= 0 then
     raise exception 'A quantidade precisa ser maior que zero.';
+  end if;
+  if v_nota = '' then
+    v_nota := null;
   end if;
 
   v_preco := public.garantir_cotacao(upper(trim(p_ticker)));
@@ -833,8 +845,8 @@ begin
 
   update public.perfis set saldo = saldo + v_liquido where id = v_usuario;
 
-  insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total, imposto)
-  values (v_usuario, upper(trim(p_ticker)), 'venda', p_qtd, v_preco, v_valor, v_imposto);
+  insert into public.transacoes (usuario_id, ticker, tipo, quantidade, preco, total, imposto, nota)
+  values (v_usuario, upper(trim(p_ticker)), 'venda', p_qtd, v_preco, v_valor, v_imposto, v_nota);
 
   return json_build_object('ok', true, 'preco', v_preco, 'valor', v_valor, 'imposto', v_imposto, 'liquido', v_liquido);
 end $$;

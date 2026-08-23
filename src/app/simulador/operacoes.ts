@@ -12,6 +12,7 @@ async function executar(
   operacao: "comprar" | "vender",
   ticker: string,
   quantidade: number,
+  nota?: string,
 ): Promise<Resultado> {
   const supabase = await criarClienteServidor();
 
@@ -33,6 +34,7 @@ async function executar(
   const { data, error } = await supabase.rpc(operacao, {
     p_ticker: ticker,
     p_qtd: quantidade,
+    p_nota: nota?.trim() ? nota.trim().slice(0, 280) : null,
   });
 
   if (error) {
@@ -63,12 +65,12 @@ async function executar(
   };
 }
 
-export async function comprar(ticker: string, quantidade: number) {
-  return executar("comprar", ticker, quantidade);
+export async function comprar(ticker: string, quantidade: number, nota?: string) {
+  return executar("comprar", ticker, quantidade, nota);
 }
 
-export async function vender(ticker: string, quantidade: number) {
-  return executar("vender", ticker, quantidade);
+export async function vender(ticker: string, quantidade: number, nota?: string) {
+  return executar("vender", ticker, quantidade, nota);
 }
 
 export async function criarOrdemLimitada(

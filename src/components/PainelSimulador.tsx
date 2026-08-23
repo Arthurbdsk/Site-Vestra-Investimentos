@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home } from "lucide-react";
+import { Wallet, Search, Clock, TrendingUp, ArrowRight, Loader2, History, Newspaper, Timer, X, Landmark, Trophy, Target, Share2, Swords, Download, ChevronDown, Bot, HandCoins, Lock, Home, StickyNote } from "lucide-react";
 import { ModalOrdem, type OrdemAberta } from "./ModalOrdem";
 import { ModalDetalheAcao } from "./ModalDetalheAcao";
 import { SeTivesseInvestido } from "./SeTivesseInvestido";
@@ -72,6 +72,7 @@ export type Transacao = {
   preco: number;
   total: number;
   imposto: number;
+  nota: string | null;
   criado_em: string;
 };
 
@@ -1161,7 +1162,16 @@ function Historico({ transacoes }: { transacoes: Transacao[] }) {
                     {t.tipo}
                   </span>
                 </td>
-                <td className="px-3 py-2 font-mono font-semibold text-ink">{t.ticker}</td>
+                <td className="px-3 py-2 font-mono font-semibold text-ink">
+                  <span className="inline-flex items-center gap-1.5">
+                    {t.ticker}
+                    {t.nota && (
+                      <span title={t.nota} className="inline-flex shrink-0">
+                        <StickyNote size={12} className="text-ink-muted" aria-label={`Nota: ${t.nota}`} />
+                      </span>
+                    )}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-right font-mono tabular text-ink-muted">
                   {numero(t.quantidade, 0)}
                 </td>

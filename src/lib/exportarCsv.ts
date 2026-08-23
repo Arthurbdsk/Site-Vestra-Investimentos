@@ -6,7 +6,7 @@ function celula(v: string | number): string {
 }
 
 export function exportarTransacoesCsv(transacoes: Transacao[]) {
-  const cabecalho = ["Data", "Tipo", "Ticker", "Quantidade", "Preço", "Total", "Imposto"];
+  const cabecalho = ["Data", "Tipo", "Ticker", "Quantidade", "Preço", "Total", "Imposto", "Nota"];
   const linhas = transacoes.map((t) =>
     [
       new Date(t.criado_em).toLocaleString("pt-BR"),
@@ -16,6 +16,7 @@ export function exportarTransacoesCsv(transacoes: Transacao[]) {
       t.preco.toFixed(2).replace(".", ","),
       t.total.toFixed(2).replace(".", ","),
       t.imposto.toFixed(2).replace(".", ","),
+      t.nota ?? "",
     ]
       .map(celula)
       .join(";"),

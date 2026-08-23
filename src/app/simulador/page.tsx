@@ -88,7 +88,7 @@ export default async function SimuladorPage() {
     supabase.from("posicoes").select("ticker, quantidade, preco_medio").order("ticker"),
     supabase
       .from("transacoes")
-      .select("id, ticker, tipo, quantidade, preco, total, imposto, criado_em")
+      .select("id, ticker, tipo, quantidade, preco, total, imposto, nota, criado_em")
       .order("criado_em", { ascending: false })
       .limit(50),
     // As cotacoes agora vem da tabela que o proprio banco mantem atualizada.
@@ -231,6 +231,7 @@ export default async function SimuladorPage() {
     preco: Number(t.preco),
     total: Number(t.total),
     imposto: Number(t.imposto ?? 0),
+    nota: t.nota ?? null,
     criado_em: t.criado_em,
   }));
 

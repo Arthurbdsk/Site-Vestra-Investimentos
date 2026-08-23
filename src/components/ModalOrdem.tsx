@@ -42,6 +42,7 @@ export function ModalOrdem({
   const [valorTexto, setValorTexto] = useState("");
   const [modo, setModo] = useState<"mercado" | "limitada" | "abertura">("mercado");
   const [precoAlvo, setPrecoAlvo] = useState(0);
+  const [nota, setNota] = useState("");
   const [estado, setEstado] = useState<Estado>({ fase: "formulario" });
   const [, iniciar] = useTransition();
   const mercadoFechado = !statusMercado(new Date(), ordem ? mercadoDoTicker(ordem.ticker) : "br").aberto;
@@ -59,6 +60,7 @@ export function ModalOrdem({
       setValorTexto("");
       setModo("mercado");
       setPrecoAlvo(ordem.preco);
+      setNota("");
       setEstado({ fase: "formulario" });
     }
   }, [ordem]);
@@ -127,8 +129,8 @@ export function ModalOrdem({
             : modo === "abertura"
               ? await criarOrdemMercadoAbertura(comprando ? "comprar" : "vender", ordem!.ticker, qtd)
               : comprando
-                ? await comprar(ordem!.ticker, qtd)
-                : await vender(ordem!.ticker, qtd);
+                ? await comprar(ordem!.ticker, qtd, nota)
+                : await vender(ordem!.ticker, qtd, nota);
         setEstado(
           r.ok
             ? { fase: "feito", mensagem: r.mensagem }
@@ -439,6 +441,26 @@ export function ModalOrdem({
                   </div>
                 )}
               </div>
+
+              {modo === "mercado" && (
+                <div className="mt-4">
+                  <label className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+                    Nota (opcional)
+                  </label>
+                  <textarea
+                    value={nota}
+                    onChange={(e) => setNota(e.target.value.slice(0, 280))}
+                    maxLength={280}
+                    rows={2}
+                    placeholder={
+                      comprando
+                        ? "Por que está comprando isso agora?"
+                        : "Por que está vendendo isso agora?"
+                    }
+                    className="mt-2 w-full resize-none border border-[var(--rule)] bg-paper px-4 py-3 text-sm text-ink outline-none placeholder:text-ink-muted/60 focus:border-blue"
+                  />
+                </div>
+              )}
 
               {passaDoLimite && (
                 <p className="mt-3 flex items-start gap-2 text-sm text-rose-700">
