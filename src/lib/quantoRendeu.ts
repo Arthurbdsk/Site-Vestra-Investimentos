@@ -37,6 +37,22 @@ export const JANELAS: JanelaQuantoRendeu[] = [
 /** Valores redondos, que e como as pessoas escrevem a busca. */
 export const VALORES = [1000, 5000] as const;
 
+/**
+ * Valor canonico dessas paginas.
+ *
+ * Mesmo ativo e mesma janela, mudando so o valor, dao a MESMA pagina
+ * multiplicada: o percentual de retorno e identico, o texto do ativo e
+ * identico, e todo numero em reais so escala. Medido em producao entre
+ * petr4-1000-reais-1-ano e petr4-5000-reais-1-ano: as unicas diferencas
+ * eram os seis valores em reais, todos vezes cinco.
+ *
+ * Entao so o valor principal entra no sitemap, e as outras versoes
+ * apontam canonical pra ele. As rotas continuam existindo e respondendo
+ * 200, pra nao quebrar link nem indexacao ja existente. A janela, essa
+ * sim, gera conteudo diferente de verdade, e continua inteira.
+ */
+export const VALOR_PRINCIPAL = 1000;
+
 export type CategoriaAtivo = "acao-br" | "acao-us" | "fii" | "etf";
 
 export type AtivoQuantoRendeu = Acao & { categoria: CategoriaAtivo };
@@ -71,6 +87,14 @@ export type CombinacaoQuantoRendeu = {
 /** petr4-1000-reais-5-anos */
 export function montarSlug(ticker: string, valor: number, janelaSlug: string): string {
   return `${ticker.toLowerCase()}-${valor}-reais-${janelaSlug}`;
+}
+
+/**
+ * Slug da versao canonica de uma combinacao: mesmo ativo, mesma janela,
+ * no valor principal. Pra quem ja esta no valor principal, e ele mesmo.
+ */
+export function slugCanonico(c: CombinacaoQuantoRendeu): string {
+  return montarSlug(c.ativo.ticker, VALOR_PRINCIPAL, c.janela.slug);
 }
 
 export function combinacaoPorSlug(slug: string): CombinacaoQuantoRendeu | undefined {

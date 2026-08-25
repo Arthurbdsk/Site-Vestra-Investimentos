@@ -2,11 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, supabaseConfigurado } from "./config";
 
-// Rotas que exigem sessao. Cada pagina aqui dentro ja verifica o usuario
-// por conta propria e redireciona (ver src/app/conta/page.tsx e o
-// componente de convite em src/app/simulador/page.tsx); esta lista e
-// so uma segunda barreira, antes da pagina chegar a renderizar.
-const PREFIXOS_PROTEGIDOS = ["/simulador", "/conta"];
+// Rotas que exigem sessao e devem REDIRECIONAR quem nao esta logado.
+//
+// /simulador NAO entra aqui de proposito. Ele ja trata o visitante por
+// conta propria devolvendo 200 com <ConviteEntrar />, que e conteudo
+// publico e indexavel. Redirecionar aqui transformava a pagina principal
+// do produto num 307 pro /login, inclusive pro Googlebot, e o Search
+// Console reportava "pagina com redirecionamento". Nenhum dado vaza: o
+// page.tsx retorna cedo, antes de qualquer consulta ao banco.
+const PREFIXOS_PROTEGIDOS = ["/conta"];
 
 /**
  * Renova o cookie de sessao a cada navegacao. Sem isso o usuario e

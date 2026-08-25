@@ -1,16 +1,15 @@
 import type { MetadataRoute } from "next";
 import { POSTS_BLOG } from "@/lib/blog";
-import { TODAS_COMBINACOES } from "@/lib/quantoRendeu";
+import { TODAS_COMBINACOES, VALOR_PRINCIPAL } from "@/lib/quantoRendeu";
 
 const BASE_URL = "https://vestra-simulator.com.br";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const paginas: { rota: string; prioridade: number; frequencia: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
-    // /simulador fica fora de proposito: exige sessao, entao responde 307
-    // pro /login pra quem nao esta logado, incluindo o Googlebot. Estava
-    // aqui com prioridade 0.9 e virava "pagina com redirecionamento" no
-    // relatorio de indexacao.
     { rota: "", prioridade: 1, frequencia: "weekly" },
+    // /simulador volta ao sitemap: o middleware nao redireciona mais, a
+    // pagina responde 200 com o convite pra visitante deslogado.
+    { rota: "/simulador", prioridade: 0.9, frequencia: "daily" },
     { rota: "/aprender", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/blog", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/novidades", prioridade: 0.6, frequencia: "weekly" },
@@ -39,7 +38,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // As paginas de "quanto rendeu" mudam de valor todo dia (dependem do
   // preco de hoje), por isso daily.
-  const quantoRendeu: MetadataRoute.Sitemap = TODAS_COMBINACOES.map((c) => ({
+  // So o valor principal entra. As outras versoes de valor sao a mesma
+  // pagina multiplicada e apontam canonical pra esta, e sitemap so deve
+  // listar URL canonica. As rotas seguem existindo e respondendo 200.
+  const quantoRendeu: MetadataRoute.Sitemap = TODAS_COMBINACOES.filter(
+    (c) => c.valor === VALOR_PRINCIPAL,
+  ).map((c) => ({
     url: `${BASE_URL}/quanto-rendeu/${c.slug}`,
     lastModified: new Date(),
     changeFrequency: "daily",

@@ -17,6 +17,7 @@ import {
   POUPANCA_ANUAL_APROX,
   JANELAS,
   montarSlug,
+  slugCanonico,
 } from "@/lib/quantoRendeu";
 import { brl, pct, numero, data as fmtData } from "@/lib/formato";
 
@@ -60,7 +61,10 @@ export async function generateMetadata({
       `investir em ${c.ativo.nome}`,
       `${c.ativo.ticker} vale a pena`,
     ],
-    alternates: { canonical: url },
+    // Trocar so o valor da a mesma pagina multiplicada, entao essas
+    // versoes apontam pra do valor principal em vez de competirem entre
+    // si. Pra propria versao principal, isso resolve pra ela mesma.
+    alternates: { canonical: `${BASE_URL}/quanto-rendeu/${slugCanonico(c)}` },
     openGraph: { title: titulo, description: descricao, url, type: "article" },
   };
 }
