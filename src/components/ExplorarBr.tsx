@@ -20,6 +20,7 @@ export function ExplorarBr({
   favoritos,
   aoComprar,
   aoVerDetalhe,
+  embutido = false,
 }: {
   busca: string;
   setBusca: (v: string) => void;
@@ -34,24 +35,30 @@ export function ExplorarBr({
   favoritos: Set<string>;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
+  /** Dentro do Explorar unificado: sem titulo e sem busca propria (a busca fica no topo). */
+  embutido?: boolean;
 }) {
   return (
     <>
-      <h2 className="mt-4 font-display text-2xl text-ink">
-        Escolha uma ação da B3
-      </h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Destacamos algumas empresas conhecidas com explicação em português,
-        mas a bolsa é sua: busque qualquer código ou nome pra comprar
-        qualquer ação da B3.
-      </p>
+      {!embutido && (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha uma ação da B3
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            Destacamos algumas empresas conhecidas com explicação em português,
+            mas a bolsa é sua: busque qualquer código ou nome pra comprar
+            qualquer ação da B3.
+          </p>
 
-      <input
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        placeholder="Buscar por nome, código ou setor"
-        className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-      />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, código ou setor"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+        </>
+      )}
 
       {favoritos.size > 0 && !termoBuscado && (
         <FavoritasFaixa

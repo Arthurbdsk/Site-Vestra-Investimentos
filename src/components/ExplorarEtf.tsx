@@ -18,6 +18,7 @@ export function ExplorarEtf({
   favoritos,
   aoComprar,
   aoVerDetalhe,
+  embutido = false,
 }: {
   busca: string;
   setBusca: (v: string) => void;
@@ -30,26 +31,32 @@ export function ExplorarEtf({
   favoritos: Set<string>;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
+  /** Dentro do Explorar unificado: sem titulo e sem busca propria (a busca fica no topo). */
+  embutido?: boolean;
 }) {
   return (
     <>
-      <h2 className="mt-4 font-display text-2xl text-ink">
-        Escolha um ETF
-      </h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        ETFs seguem um índice inteiro numa única cota (tipo o Ibovespa ou
-        o S&P 500), em vez de você escolher ação por ação. Também são
-        negociados na B3 como uma ação comum. Explicamos alguns, mas
-        busque qualquer código pra comprar qualquer um dos mais de 180
-        ETFs da bolsa.
-      </p>
+      {!embutido && (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha um ETF
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            ETFs seguem um índice inteiro numa única cota (tipo o Ibovespa ou
+            o S&P 500), em vez de você escolher ação por ação. Também são
+            negociados na B3 como uma ação comum. Explicamos alguns, mas
+            busque qualquer código pra comprar qualquer um dos mais de 180
+            ETFs da bolsa.
+          </p>
 
-      <input
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        placeholder="Buscar por nome, código ou índice (ex: Ibovespa, S&P 500)"
-        className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-      />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, código ou índice (ex: Ibovespa, S&P 500)"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+        </>
+      )}
 
       {acoesEtf === null ? (
         <div className="mt-6 flex items-center gap-2 text-ink-muted">

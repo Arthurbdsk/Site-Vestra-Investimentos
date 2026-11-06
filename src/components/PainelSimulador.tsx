@@ -56,8 +56,8 @@ import type { Cotacao } from "@/lib/cotacoes";
 import { useBuscaAtivos } from "@/lib/useBuscaAtivos";
 
 const MERCADOS: { id: "br" | "us" | "fii" | "etf"; label: string; aria: string }[] = [
-  { id: "br", label: "BR", aria: "Ações do Brasil" },
-  { id: "us", label: "US", aria: "Ações dos Estados Unidos" },
+  { id: "br", label: "Brasil", aria: "Ações do Brasil" },
+  { id: "us", label: "EUA", aria: "Ações dos Estados Unidos" },
   { id: "fii", label: "FII", aria: "Fundos imobiliários" },
   { id: "etf", label: "ETF", aria: "ETFs e fundos de índice" },
 ];
@@ -929,68 +929,61 @@ function Explorar({
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
 }) {
-  const [mercado, setMercado] = useState<"br" | "us" | "fii" | "etf">("br");
+  // Brasil, EUA, FII e ETF ficam todos na mesma tela, um embaixo do
+  // outro, com uma busca so no topo que procura nos quatro mercados.
   const [busca, setBusca] = useState("");
   const [visao, setVisao] = useState<"cards" | "tabela">("cards");
 
+  // Precos das listas curadas de EUA, FII e ETF. FIIs e ETFs nao aparecem
+  // na busca geral da B3 (a brapi filtra so "stock"), entao vem da cache
+  // de cotacoes, igual as acoes dos EUA. Carrega tudo ao abrir a aba.
   const [acoesUsa, setAcoesUsa] = useState<AcaoB3[] | null>(null);
-  const [buscaUsa, setBuscaUsa] = useState("");
-
-  useEffect(() => {
-    if (mercado !== "us" || acoesUsa) return;
-    fetch("/api/acoes-usa")
-      .then((r) => r.json())
-      .then((json) => setAcoesUsa(json.acoes ?? []))
-      .catch(() => setAcoesUsa([]));
-  }, [mercado, acoesUsa]);
-
-  // FIIs nao aparecem na busca geral da B3 (a brapi filtra so "stock"),
-  // entao os precos vem direto da cache (cotacoes), igual as acoes dos EUA.
   const [acoesFii, setAcoesFii] = useState<AcaoB3[] | null>(null);
-  useEffect(() => {
-    if (mercado !== "fii" || acoesFii) return;
-    fetch("/api/fiis")
-      .then((r) => r.json())
-      .then((json) => setAcoesFii(json.acoes ?? []))
-      .catch(() => setAcoesFii([]));
-  }, [mercado, acoesFii]);
-
-  // Mesmo caso dos FIIs: ETFs tambem ficam de fora da busca "type=stock".
   const [acoesEtf, setAcoesEtf] = useState<AcaoB3[] | null>(null);
   useEffect(() => {
-    if (mercado !== "etf" || acoesEtf) return;
-    fetch("/api/etfs")
-      .then((r) => r.json())
-      .then((json) => setAcoesEtf(json.acoes ?? []))
-      .catch(() => setAcoesEtf([]));
-  }, [mercado, acoesEtf]);
+    let cancelado = false;
+    const carregar = (url: string, guardar: (v: AcaoB3[]) => void) =>
+      fetch(url)
+        .then((r) => r.json())
+        .then((json) => {
+          if (!cancelado) guardar(json.acoes ?? []);
+        })
+        .catch(() => {
+          if (!cancelado) guardar([]);
+        });
+    carregar("/api/acoes-usa", setAcoesUsa);
+    carregar("/api/fiis", setAcoesFii);
+    carregar("/api/etfs", setAcoesEtf);
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
-  // Busca no catalogo COMPLETO da B3: 332 FIIs e 182 ETFs, contra os 10 e
-  // 6 curados. So os curados tem explicacao escrita, entao eles seguem
-  // como "Populares" e a busca cobre o resto. A logica de debounce +
-  // carregando/erro + guarda de cancelamento e compartilhada pelas
-  // quatro abas via useBuscaAtivos (src/lib/useBuscaAtivos.ts).
-  const buscandoFundo = mercado === "fii" || mercado === "etf";
-  const buscaFundo = useBuscaAtivos<AcaoB3>({
+  // Busca no catalogo COMPLETO de cada mercado (332 FIIs, 182 ETFs, toda
+  // a B3 e NYSE/NASDAQ). So os curados tem explicacao escrita, entao eles
+  // seguem como "Populares" e a busca cobre o resto.
+  const buscaFii = useBuscaAtivos<AcaoB3>({
     busca,
     atrasoMs: 400,
     minLength: 2,
-    ativo: buscandoFundo,
-    chave: mercado,
-    url: (termo) => `/api/${mercado === "fii" ? "fiis" : "etfs"}?q=${termo}`,
+    chave: "fii",
+    url: (termo) => `/api/fiis?q=${termo}`,
     interpretarResposta: (json) => ({ resultados: json.acoes ?? [], erro: json.erro ?? null }),
     mensagemErroFetch: "Não foi possível buscar agora. Tente de novo em instantes.",
   });
-  const buscaFundoAtrasada = buscaFundo.termo;
-  const resultadosFundo = buscaFundo.resultados;
-  const carregandoFundo = buscaFundo.carregando;
-  const erroFundo = buscaFundo.erro;
-
-  const buscaUsaResultado = useBuscaAtivos<AcaoB3>({
-    busca: buscaUsa,
+  const buscaEtf = useBuscaAtivos<AcaoB3>({
+    busca,
     atrasoMs: 400,
     minLength: 2,
-    ativo: mercado === "us",
+    chave: "etf",
+    url: (termo) => `/api/etfs?q=${termo}`,
+    interpretarResposta: (json) => ({ resultados: json.acoes ?? [], erro: json.erro ?? null }),
+    mensagemErroFetch: "Não foi possível buscar agora. Tente de novo em instantes.",
+  });
+  const buscaUsa = useBuscaAtivos<AcaoB3>({
+    busca,
+    atrasoMs: 400,
+    minLength: 2,
     url: (termo) => `/api/acoes-usa?q=${termo}`,
     interpretarResposta: (json) =>
       json.acoes
@@ -998,11 +991,6 @@ function Explorar({
         : { erro: json.mensagem ?? "Não foi possível buscar agora." },
     mensagemErroFetch: "Não foi possível buscar agora.",
   });
-  const buscaUsaAtrasada = buscaUsaResultado.termo;
-  const resultadosBuscaUsa = buscaUsaResultado.resultados;
-  const carregandoUsa = buscaUsaResultado.carregando;
-  const erroUsa = buscaUsaResultado.erro;
-
   const buscaBr = useBuscaAtivos<AcaoB3>({
     busca,
     atrasoMs: 350,
@@ -1014,9 +1002,6 @@ function Explorar({
         : { erro: json.mensagem ?? "Não foi possível buscar as ações agora." },
     mensagemErroFetch: "Não foi possível buscar as ações agora.",
   });
-  const b3 = buscaBr.resultados;
-  const carregando = buscaBr.carregando;
-  const erroB3 = buscaBr.erro;
 
   const t = busca.trim().toLowerCase();
   const populares = ACOES.filter((a) => {
@@ -1028,10 +1013,8 @@ function Explorar({
     );
   });
   const populareTickers = new Set(populares.map((a) => a.ticker));
-  const restoB3 = b3.filter((a) => !populareTickers.has(a.ticker));
+  const restoB3 = buscaBr.resultados.filter((a) => !populareTickers.has(a.ticker));
 
-  // FIIs nao aparecem na busca geral da B3 (a brapi so lista "stock"),
-  // entao e so a lista curada, filtrada localmente pelo termo buscado.
   const popularesFii = FIIS.filter((f) => {
     if (!t) return true;
     return (
@@ -1050,81 +1033,174 @@ function Explorar({
     );
   }).map((e) => ({ ticker: e.ticker, nome: e.nome, setor: e.indice, explica: e.explica }));
 
+  // Com um termo buscado, esconde o mercado que nao achou nada, pra quem
+  // procura "Petrobras" nao ver tres avisos de "nada encontrado".
+  const termo = busca.trim();
+  const buscando = termo.length >= 2;
+  const pendente = (b: { termo: string; carregando: boolean }) =>
+    b.carregando || b.termo !== termo;
+  const curadosFii = new Set(FIIS.map((f) => f.ticker));
+  const curadosEtf = new Set(ETFS.map((e) => e.ticker));
+
+  const mostrar = {
+    br:
+      !buscando ||
+      populares.length > 0 ||
+      restoB3.length > 0 ||
+      pendente(buscaBr) ||
+      Boolean(buscaBr.erro),
+    us:
+      !buscando ||
+      buscaUsa.resultados.length > 0 ||
+      pendente(buscaUsa) ||
+      Boolean(buscaUsa.erro),
+    fii:
+      !buscando ||
+      popularesFii.length > 0 ||
+      buscaFii.resultados.some((a) => !curadosFii.has(a.ticker)) ||
+      pendente(buscaFii) ||
+      Boolean(buscaFii.erro),
+    etf:
+      !buscando ||
+      popularesEtf.length > 0 ||
+      buscaEtf.resultados.some((a) => !curadosEtf.has(a.ticker)) ||
+      pendente(buscaEtf) ||
+      Boolean(buscaEtf.erro),
+  };
+  const nadaEncontrado = !mostrar.br && !mostrar.us && !mostrar.fii && !mostrar.etf;
+
+  function irPara(id: string) {
+    document.getElementById(`explorar-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div>
-      <div className="flex gap-px border border-[var(--rule)]">
-        {MERCADOS.map((m) => (
+      <h2 className="font-display text-2xl text-ink">Escolha onde investir</h2>
+      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+        Ações do Brasil e dos EUA, fundos imobiliários e ETFs, tudo aqui.
+        Busque por nome ou código, ou role a página pra ver cada mercado.
+      </p>
+
+      <input
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        placeholder="Buscar em todos os mercados (ex: Petrobras, Apple, HGLG11)"
+        aria-label="Buscar ações, FIIs e ETFs"
+        className="mt-6 w-full max-w-md border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+      />
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {MERCADOS.filter((m) => mostrar[m.id]).map((m) => (
           <button
             key={m.id}
-            onClick={() => setMercado(m.id)}
-            aria-label={m.aria}
-            className="px-4 py-2 font-mono text-[11px] uppercase tracking-wider transition-colors"
-            style={{
-              color: mercado === m.id ? "var(--color-azul-texto)" : "var(--color-ink-muted)",
-              background: mercado === m.id ? "var(--color-paper-alt)" : "var(--color-paper)",
-            }}
+            onClick={() => irPara(m.id)}
+            aria-label={`Ir para ${m.aria}`}
+            className="border border-[var(--rule)] bg-paper px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-ink-muted transition-colors hover:border-blue hover:text-blue"
           >
             {m.label}
           </button>
         ))}
       </div>
 
-      {mercado === "etf" ? (
-        <ExplorarEtf
-          busca={busca}
-          setBusca={setBusca}
-          acoesEtf={acoesEtf}
-          popularesEtf={popularesEtf}
-          buscaFundoAtrasada={buscaFundoAtrasada}
-          resultadosFundo={resultadosFundo}
-          carregandoFundo={carregandoFundo}
-          erroFundo={erroFundo}
-          favoritos={favoritos}
-          aoComprar={aoComprar}
-          aoVerDetalhe={aoVerDetalhe}
-        />
-      ) : mercado === "fii" ? (
-        <ExplorarFii
-          busca={busca}
-          setBusca={setBusca}
-          acoesFii={acoesFii}
-          popularesFii={popularesFii}
-          buscaFundoAtrasada={buscaFundoAtrasada}
-          resultadosFundo={resultadosFundo}
-          carregandoFundo={carregandoFundo}
-          erroFundo={erroFundo}
-          favoritos={favoritos}
-          aoComprar={aoComprar}
-          aoVerDetalhe={aoVerDetalhe}
-        />
-      ) : mercado === "us" ? (
-        <ExplorarUs
-          buscaUsa={buscaUsa}
-          setBuscaUsa={setBuscaUsa}
-          acoesUsa={acoesUsa}
-          buscaUsaAtrasada={buscaUsaAtrasada}
-          resultadosBuscaUsa={resultadosBuscaUsa}
-          carregandoUsa={carregandoUsa}
-          erroUsa={erroUsa}
-          favoritos={favoritos}
-          aoComprar={aoComprar}
-          aoVerDetalhe={aoVerDetalhe}
-        />
-      ) : (
-        <ExplorarBr
-          busca={busca}
-          setBusca={setBusca}
-          termoBuscado={t}
-          populares={populares}
-          restoB3={restoB3}
-          carregando={carregando}
-          erroB3={erroB3}
-          visao={visao}
-          setVisao={setVisao}
-          favoritos={favoritos}
-          aoComprar={aoComprar}
-          aoVerDetalhe={aoVerDetalhe}
-        />
+      {nadaEncontrado && (
+        <p className="mt-10 text-ink-muted">
+          Nada encontrado com esse termo em nenhum mercado.
+        </p>
+      )}
+
+      {mostrar.br && (
+        <section id="explorar-br" className="mt-12 scroll-mt-24">
+          <h3 className="font-display text-2xl text-ink">Ações do Brasil</h3>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-muted">
+            Empresas da B3. Destacamos algumas conhecidas com explicação em
+            português, e a busca acha qualquer outra.
+          </p>
+          <ExplorarBr
+            embutido
+            busca={busca}
+            setBusca={setBusca}
+            termoBuscado={t}
+            populares={populares}
+            restoB3={restoB3}
+            carregando={buscaBr.carregando}
+            erroB3={buscaBr.erro}
+            visao={visao}
+            setVisao={setVisao}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+        </section>
+      )}
+
+      {mostrar.us && (
+        <section id="explorar-us" className="mt-16 scroll-mt-24 border-t border-[var(--rule)] pt-10">
+          <h3 className="font-display text-2xl text-ink">Ações dos EUA</h3>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-muted">
+            Empresas da NYSE e da NASDAQ, com o preço já convertido pra reais.
+          </p>
+          <ExplorarUs
+            embutido
+            buscaUsa={busca}
+            setBuscaUsa={setBusca}
+            acoesUsa={acoesUsa}
+            buscaUsaAtrasada={buscaUsa.termo.length >= 2 ? buscaUsa.termo : ""}
+            resultadosBuscaUsa={buscaUsa.resultados}
+            carregandoUsa={buscaUsa.carregando}
+            erroUsa={buscaUsa.erro}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+        </section>
+      )}
+
+      {mostrar.fii && (
+        <section id="explorar-fii" className="mt-16 scroll-mt-24 border-t border-[var(--rule)] pt-10">
+          <h3 className="font-display text-2xl text-ink">Fundos imobiliários (FII)</h3>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-muted">
+            Negociados na B3 igual uma ação, mas o dinheiro vai pra imóveis ou
+            títulos imobiliários. Costumam pagar rendimento todo mês.
+          </p>
+          <ExplorarFii
+            embutido
+            busca={busca}
+            setBusca={setBusca}
+            acoesFii={acoesFii}
+            popularesFii={popularesFii}
+            buscaFundoAtrasada={buscaFii.termo}
+            resultadosFundo={buscaFii.resultados}
+            carregandoFundo={buscaFii.carregando}
+            erroFundo={buscaFii.erro}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+        </section>
+      )}
+
+      {mostrar.etf && (
+        <section id="explorar-etf" className="mt-16 scroll-mt-24 border-t border-[var(--rule)] pt-10">
+          <h3 className="font-display text-2xl text-ink">ETFs</h3>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-muted">
+            Um índice inteiro numa única cota, como o Ibovespa ou o S&amp;P 500,
+            em vez de escolher ação por ação.
+          </p>
+          <ExplorarEtf
+            embutido
+            busca={busca}
+            setBusca={setBusca}
+            acoesEtf={acoesEtf}
+            popularesEtf={popularesEtf}
+            buscaFundoAtrasada={buscaEtf.termo}
+            resultadosFundo={buscaEtf.resultados}
+            carregandoFundo={buscaEtf.carregando}
+            erroFundo={buscaEtf.erro}
+            favoritos={favoritos}
+            aoComprar={aoComprar}
+            aoVerDetalhe={aoVerDetalhe}
+          />
+        </section>
       )}
     </div>
   );

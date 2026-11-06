@@ -17,6 +17,7 @@ export function ExplorarUs({
   favoritos,
   aoComprar,
   aoVerDetalhe,
+  embutido = false,
 }: {
   buscaUsa: string;
   setBuscaUsa: (v: string) => void;
@@ -28,24 +29,30 @@ export function ExplorarUs({
   favoritos: Set<string>;
   aoComprar: (ticker: string, preco: number, nome?: string) => void;
   aoVerDetalhe: (ticker: string) => void;
+  /** Dentro do Explorar unificado: sem titulo e sem busca propria (a busca fica no topo). */
+  embutido?: boolean;
 }) {
   return (
     <>
-      <h2 className="mt-4 font-display text-2xl text-ink">
-        Escolha uma ação dos EUA
-      </h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
-        Destacamos algumas empresas conhecidas, mas a NYSE/NASDAQ inteira
-        é sua: busque qualquer ticker ou nome. Preço já convertido pra
-        reais.
-      </p>
+      {!embutido && (
+        <>
+          <h2 className="mt-4 font-display text-2xl text-ink">
+            Escolha uma ação dos EUA
+          </h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-ink-muted">
+            Destacamos algumas empresas conhecidas, mas a NYSE/NASDAQ inteira
+            é sua: busque qualquer ticker ou nome. Preço já convertido pra
+            reais.
+          </p>
 
-      <input
-        value={buscaUsa}
-        onChange={(e) => setBuscaUsa(e.target.value)}
-        placeholder="Buscar por nome ou ticker (ex: Netflix, GOOG)"
-        className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
-      />
+          <input
+            value={buscaUsa}
+            onChange={(e) => setBuscaUsa(e.target.value)}
+            placeholder="Buscar por nome ou ticker (ex: Netflix, GOOG)"
+            className="mt-6 w-full max-w-sm border border-[var(--rule)] bg-paper px-4 py-3 text-ink outline-none transition-colors placeholder:text-ink-muted/60 focus:border-blue"
+          />
+        </>
+      )}
 
       {!buscaUsaAtrasada && (
         <>
