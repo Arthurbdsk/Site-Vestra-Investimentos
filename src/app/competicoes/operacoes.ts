@@ -41,6 +41,7 @@ export async function criarCompeticao(dados: {
   capital: number;
   dominioEmail: string;
   teseObrigatoria: boolean;
+  oficial?: boolean;
 }): Promise<ResultadoChallenge> {
   const { supabase, user } = await exigirSessao();
   if (!user) return { ok: false, mensagem: "Sua sessão expirou. Entre de novo pra continuar." };
@@ -57,12 +58,15 @@ export async function criarCompeticao(dados: {
     p_capital: dados.capital,
     p_dominio_email: normalizarDominio(dados.dominioEmail),
     p_tese_obrigatoria: dados.teseObrigatoria,
+    // O banco recusa se quem pediu nao estiver em vestra_admins.
+    p_oficial: dados.oficial === true,
   });
   if (error) {
     return { ok: false, mensagem: mensagemDoErro(error, "Não foi possível criar a competição.") };
   }
 
-  revalidatePath("/challenge");
+  revalidatePath("/competicoes");
+  if (dados.oficial) revalidatePath("/challenge");
   return {
     ok: true,
     mensagem: "Competição criada. Compartilhe o link com os participantes.",
@@ -82,8 +86,8 @@ export async function entrarCompeticao(codigo: string): Promise<ResultadoChallen
     return { ok: false, mensagem: mensagemDoErro(error, "Não foi possível entrar na competição.") };
   }
 
-  revalidatePath("/challenge");
-  revalidatePath(`/challenge/${limpo}`);
+  revalidatePath("/competicoes");
+  revalidatePath(`/competicoes/${limpo}`);
   return { ok: true, mensagem: "Inscrição feita. Boa competição!", codigo: limpo };
 }
 
@@ -120,7 +124,7 @@ export async function operarCompeticao(dados: {
     return { ok: false, mensagem: mensagemDoErro(error, "Não foi possível executar a ordem.") };
   }
 
-  revalidatePath(`/challenge/${codigo}`);
+  revalidatePath(`/competicoes/${codigo}`);
   const total = Number((data as { total?: number } | null)?.total ?? 0);
   const cotas = dados.quantidade === 1 ? "1 cota" : `${dados.quantidade} cotas`;
   return {

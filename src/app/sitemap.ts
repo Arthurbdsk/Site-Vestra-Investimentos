@@ -10,6 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // /simulador volta ao sitemap: o middleware nao redireciona mais, a
     // pagina responde 200 com o convite pra visitante deslogado.
     { rota: "/simulador", prioridade: 0.9, frequencia: "daily" },
+    { rota: "/challenge", prioridade: 0.8, frequencia: "weekly" },
+    { rota: "/competicoes", prioridade: 0.6, frequencia: "weekly" },
     { rota: "/aprender", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/blog", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/novidades", prioridade: 0.6, frequencia: "weekly" },

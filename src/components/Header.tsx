@@ -11,6 +11,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const links = [
   { href: "/", label: "Início" },
   { href: "/simulador", label: "Simulador" },
+  { href: "/challenge", label: "Challenge" },
   { href: "/aprender", label: "Aprender" },
   { href: "/blog", label: "Blog" },
   { href: "/novidades", label: "Novidades" },

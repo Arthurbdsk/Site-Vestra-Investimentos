@@ -47,6 +47,7 @@ export type Competicao = {
   ok: true;
   nome: string;
   codigo: string;
+  oficial: boolean;
   capitalInicial: number;
   inicio: string;
   fim: string;
@@ -65,6 +66,7 @@ export type Competicao = {
 export type ResumoCompeticao = {
   codigo: string;
   nome: string;
+  oficial: boolean;
   inicio: string;
   fim: string;
   status: StatusCompeticao;
@@ -72,6 +74,29 @@ export type ResumoCompeticao = {
   participo: boolean;
   totalParticipantes: number;
 };
+
+export type EdicaoOficial = {
+  codigo: string;
+  nome: string;
+  inicio: string;
+  fim: string;
+  capitalInicial: number;
+  status: StatusCompeticao;
+  totalParticipantes: number;
+  podio: { posicao: number; apelido: string; retornoPct: number }[];
+};
+
+/**
+ * Qual edicao oficial destacar no topo de /challenge: a que esta em
+ * andamento; se nenhuma, a proxima agendada (a mais proxima de comecar).
+ * A lista chega do banco ordenada por inicio decrescente.
+ */
+export function edicaoEmDestaque(edicoes: EdicaoOficial[]): EdicaoOficial | null {
+  const aberta = edicoes.find((e) => e.status === "aberta");
+  if (aberta) return aberta;
+  const agendadas = edicoes.filter((e) => e.status === "agendada");
+  return agendadas.length > 0 ? agendadas[agendadas.length - 1] : null;
+}
 
 export const ROTULO_STATUS: Record<StatusCompeticao, string> = {
   agendada: "Ainda não começou",

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Trophy, Plus, LogIn } from "lucide-react";
-import { criarCompeticao, entrarCompeticao } from "@/app/challenge/operacoes";
+import { criarCompeticao, entrarCompeticao } from "@/app/competicoes/operacoes";
 import {
   ROTULO_STATUS,
   descreverPrazo,
@@ -35,10 +35,12 @@ const rotulo = "mb-1 block font-mono text-[11px] uppercase tracking-widest text-
 export function ChallengeInicio({
   logado,
   competicoes,
+  souAdmin = false,
   agora,
 }: {
   logado: boolean;
   competicoes: ResumoCompeticao[];
+  souAdmin?: boolean;
   agora: number;
 }) {
   const router = useRouter();
@@ -55,6 +57,7 @@ export function ChallengeInicio({
   const [capital, setCapital] = useState(100_000);
   const [dominio, setDominio] = useState("");
   const [tese, setTese] = useState(true);
+  const [oficial, setOficial] = useState(false);
   const [criando, setCriando] = useState(false);
   const [msgCriar, setMsgCriar] = useState<string | null>(null);
 
@@ -66,7 +69,7 @@ export function ChallengeInicio({
       try {
         const r = await entrarCompeticao(codigo);
         if (r.ok && r.codigo) {
-          router.push(`/challenge/${r.codigo}`);
+          router.push(`/competicoes/${r.codigo}`);
           return;
         }
         setMsgEntrar(r.mensagem);
@@ -102,9 +105,10 @@ export function ChallengeInicio({
           capital,
           dominioEmail: dominio,
           teseObrigatoria: tese,
+          oficial: souAdmin && oficial,
         });
         if (r.ok && r.codigo) {
-          router.push(`/challenge/${r.codigo}`);
+          router.push(`/competicoes/${r.codigo}`);
           return;
         }
         setMsgCriar(r.mensagem);
@@ -151,7 +155,7 @@ export function ChallengeInicio({
             {competicoes.map((c) => (
               <li key={c.codigo} className="border-b border-[var(--rule)] last:border-b-0">
                 <Link
-                  href={`/challenge/${c.codigo}`}
+                  href={`/competicoes/${c.codigo}`}
                   className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 transition-colors hover:bg-paper-alt"
                 >
                   <span>
@@ -162,6 +166,7 @@ export function ChallengeInicio({
                     </span>
                   </span>
                   <span className="font-mono text-xs text-ink-muted">
+                    {c.oficial && <span className="mr-2 text-gold">Oficial</span>}
                     {c.souOrganizador ? "Organizador" : "Participante"}
                   </span>
                 </Link>
@@ -256,6 +261,17 @@ export function ChallengeInicio({
                 </span>
               </span>
             </label>
+            {souAdmin && (
+              <label className="flex items-start gap-2 border-l-[3px] border-gold bg-gold/10 px-3 py-2 text-sm text-ink">
+                <input type="checkbox" checked={oficial} onChange={(e) => setOficial(e.target.checked)} className="mt-1" />
+                <span>
+                  Edição oficial do Vestra Challenge
+                  <span className="block text-xs text-ink-muted">
+                    Só a equipe do Vestra vê esta opção. A competição aparece em destaque na página /challenge.
+                  </span>
+                </span>
+              </label>
+            )}
             <p className="text-xs leading-relaxed text-ink-muted">
               Dica: marque o fim depois do fechamento do pregão. O resultado é
               congelado com as cotações daquele momento.

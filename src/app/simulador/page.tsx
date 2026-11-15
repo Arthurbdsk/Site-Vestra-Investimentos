@@ -13,7 +13,6 @@ import type { PosicaoRendaFixa } from "@/components/RendaFixaPainel";
 import type { RankingLinha, RankingMensalLinha } from "@/components/RankingPainel";
 import type { AlertaPreco } from "@/components/AlertasPreco";
 import type { Duelo } from "@/components/DuelosPainel";
-import type { Liga } from "@/components/LigasPainel";
 import type { Opcao } from "@/components/OpcoesPainel";
 import type { Agente, DecisaoAgente } from "@/components/AgentePainel";
 import type { EstadoEmprestimo } from "./operacoesEmprestimo";
@@ -76,7 +75,6 @@ export default async function SimuladorPage() {
     rankingMensalRes,
     favoritosRes,
     duelosRes,
-    ligasRes,
     opcoesRes,
     alertasRes,
     acessoRes,
@@ -112,7 +110,6 @@ export default async function SimuladorPage() {
     supabase.rpc("ranking_mensal", { p_limite: 50 }),
     supabase.from("favoritos").select("ticker"),
     supabase.rpc("listar_meus_duelos"),
-    supabase.rpc("listar_minhas_ligas"),
     supabase.rpc("listar_minhas_opcoes"),
     supabase
       .from("alertas_preco")
@@ -181,7 +178,6 @@ export default async function SimuladorPage() {
 
   const favoritos: string[] = (favoritosRes.data ?? []).map((f) => f.ticker);
   const duelos: Duelo[] = duelosRes.data ?? [];
-  const ligas: Liga[] = ligasRes.data ?? [];
   const opcoes: Opcao[] = opcoesRes.data ?? [];
 
   const alertas: AlertaPreco[] = (alertasRes.data ?? [])
@@ -341,7 +337,6 @@ export default async function SimuladorPage() {
         alertas={alertas}
         favoritos={favoritos}
         duelos={duelos}
-        ligas={ligas}
         opcoes={opcoes}
         agente={agente}
         decisoesAgente={decisoesAgente}

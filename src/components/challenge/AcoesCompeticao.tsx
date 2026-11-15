@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trophy, Copy, Check } from "lucide-react";
-import { entrarCompeticao, operarCompeticao } from "@/app/challenge/operacoes";
+import { entrarCompeticao, operarCompeticao } from "@/app/competicoes/operacoes";
 import { TESE_MAXIMA, TESE_MINIMA, validarOrdem } from "@/lib/challenge";
 
 const campo =
