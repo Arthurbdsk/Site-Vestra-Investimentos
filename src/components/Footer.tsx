@@ -36,6 +36,11 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/challenge" className="transition-colors hover:text-gold">
+                    Vestra Challenge
+                  </Link>
+                </li>
+                <li>
                   <Link href="/blog" className="transition-colors hover:text-gold">
                     Blog
                   </Link>
