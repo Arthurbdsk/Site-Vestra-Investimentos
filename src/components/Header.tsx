@@ -12,6 +12,7 @@ const links = [
   { href: "/", label: "Início" },
   { href: "/simulador", label: "Simulador" },
   { href: "/challenge", label: "Challenge" },
+  { href: "/educacao", label: "Educação" },
   { href: "/aprender", label: "Aprender" },
   { href: "/blog", label: "Blog" },
   { href: "/novidades", label: "Novidades" },

@@ -15,8 +15,11 @@ import { salvarPerfilInvestidor } from "@/app/simulador/operacoesPerfil";
  */
 export function QuizPerfil({
   persistir = false,
+  aoConcluir,
 }: {
   persistir?: boolean;
+  /** Quando passado, devolve o perfil pra quem chamou em vez de so mostrar. */
+  aoConcluir?: (perfil: Perfil) => void;
 } = {}) {
   const [passo, setPasso] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, number>>({});
@@ -31,8 +34,12 @@ export function QuizPerfil({
       setPasso(passo + 1);
     } else {
       const perfil = calcularPerfil(novasRespostas);
-      setResultado(perfil);
       if (persistir) void salvarPerfilInvestidor(perfil.id);
+      if (aoConcluir) {
+        aoConcluir(perfil);
+        return;
+      }
+      setResultado(perfil);
     }
   }
 

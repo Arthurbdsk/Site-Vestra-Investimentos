@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { rota: "/simulador", prioridade: 0.9, frequencia: "daily" },
     { rota: "/challenge", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/competicoes", prioridade: 0.6, frequencia: "weekly" },
+    { rota: "/educacao", prioridade: 0.9, frequencia: "monthly" },
     { rota: "/aprender", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/blog", prioridade: 0.8, frequencia: "weekly" },
     { rota: "/novidades", prioridade: 0.6, frequencia: "weekly" },
