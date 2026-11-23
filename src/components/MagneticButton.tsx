@@ -1,7 +1,4 @@
-"use client";
-
-import { useRef, useState, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import type { ReactNode } from "react";
 
 type MagneticButtonProps = {
   href: string;
@@ -11,44 +8,31 @@ type MagneticButtonProps = {
   className?: string;
 };
 
-/** Botão que "puxa" levemente na direção do cursor. */
+/**
+ * Botao-link principal do site. O nome ficou por compatibilidade: ele ja
+ * "puxava" na direcao do cursor com uma mola, o que era movimento sem
+ * funcao. Agora o hover e so troca de cor e o clique afunda de leve.
+ */
 export function MagneticButton({
   href,
   children,
   variant = "solid",
   className = "",
 }: MagneticButtonProps) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  const handleMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = e.clientX - (rect.left + rect.width / 2);
-    const y = e.clientY - (rect.top + rect.height / 2);
-    setOffset({ x: x * 0.28, y: y * 0.35 });
-  };
-
   const styles = {
     solid: "bg-blue text-onblue hover:bg-blue-deep",
-    ghost: "border border-[var(--rule)] text-ink hover:border-blue hover:text-blue",
+    ghost: "border border-[var(--rule)] text-ink hover:border-[var(--color-azul-texto)]",
     // Sobre dourado o texto tem que continuar escuro nos dois temas, por
     // isso blue-deep e nao blue (que clareia no escuro).
     gold: "bg-gold text-blue-deep hover:bg-gold-soft",
   }[variant];
 
   return (
-    <motion.a
-      ref={ref}
+    <a
       href={href}
-      onMouseMove={handleMove}
-      onMouseLeave={() => setOffset({ x: 0, y: 0 })}
-      animate={{ x: offset.x, y: offset.y }}
-      transition={{ type: "spring", stiffness: 260, damping: 18, mass: 0.4 }}
-      className={`inline-flex items-center gap-2.5 px-7 py-3.5 text-sm font-semibold transition-colors ${styles} ${className}`}
+      className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold active:scale-[0.98] ${styles} ${className}`}
     >
       {children}
-    </motion.a>
+    </a>
   );
 }

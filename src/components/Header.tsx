@@ -46,7 +46,7 @@ export function Header({ logado = false }: { logado?: boolean }) {
           >
             <Logomark size={36} />
           </motion.span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted transition-colors group-hover:text-blue">
+          <span className="text-[15px] font-semibold text-ink transition-colors">
             Vestra
           </span>
         </Link>
@@ -79,7 +79,7 @@ export function Header({ logado = false }: { logado?: boolean }) {
           {logado && (
             <Link
               href="/conta"
-              className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted transition-colors hover:text-blue"
+              className="text-sm text-ink-muted transition-colors hover:text-ink"
             >
               Minha conta
             </Link>
@@ -139,7 +139,7 @@ export function Header({ logado = false }: { logado?: boolean }) {
                 <Link
                   href="/conta"
                   onClick={() => setMenuOpen(false)}
-                  className="mt-3 block text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+                  className="mt-3 block text-center text-sm text-ink-muted"
                 >
                   Minha conta
                 </Link>

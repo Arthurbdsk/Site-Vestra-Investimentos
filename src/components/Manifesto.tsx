@@ -30,16 +30,16 @@ export function Manifesto() {
   const area = `${linha("total")} L${L},${A} L0,${A} Z`;
 
   return (
-    <section className="grain relative overflow-hidden bg-paper py-24 md:py-36">
-      <div className="relative z-[2] mx-auto max-w-6xl px-6">
+    <section className="relative overflow-hidden bg-paper py-24 md:py-36">
+      <div className="relative mx-auto max-w-6xl px-6">
         <Surge>
-          <span className="bg-gold px-2 py-1 font-mono text-[11px] font-semibold text-blue-deep">
+          <span className="font-mono text-xs tabular text-ink-muted">
             01
           </span>
         </Surge>
 
         <TituloRevelado
-          linhas={["Investir não é", "coisa de rico."]}
+          linhas={["Investir não é", "coisa de rico"]}
           destaque={1}
           fundo="claro"
           atraso={0.1}
@@ -55,8 +55,8 @@ export function Manifesto() {
 
         {/* Prova interativa */}
         <Surge atraso={0.2} className="mt-14">
-          <div className="bg-blue p-6 shadow-[0_30px_70px_-30px_rgba(15,45,68,0.6)] sm:p-10">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-onblue-muted">
+          <div className="bg-blue p-6 border border-[var(--rule)] shadow-[0_16px_40px_-24px_rgba(0,0,0,0.35)] sm:p-10">
+            <p className="text-sm text-onblue-muted">
               Se você guardasse por mês
             </p>
 
@@ -78,7 +78,7 @@ export function Manifesto() {
                       <motion.span
                         layoutId="pilula-valor"
                         className="absolute inset-0 bg-gold"
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       />
                     )}
                     <span className="relative">R$ {v}</span>
@@ -90,7 +90,7 @@ export function Manifesto() {
             <div className="mt-10 grid gap-10 md:grid-cols-[1fr_1.4fr] md:items-end">
               <div className="space-y-7">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
+                  <p className="text-xs text-onblue-muted">
                     Você teria guardado
                   </p>
                   <p className="mt-1 font-mono text-2xl tabular text-onblue">
@@ -99,7 +99,7 @@ export function Manifesto() {
                 </div>
 
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
+                  <p className="text-xs text-onblue-muted">
                     Poderia ter virado
                   </p>
                   <AnimatePresence mode="wait">

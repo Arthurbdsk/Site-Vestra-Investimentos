@@ -4,12 +4,14 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 /**
- * Titulo que sobe linha por linha de dentro de uma mascara.
+ * Titulo de secao. Antes cada linha subia de dentro de uma mascara e a
+ * linha de destaque vinha em italico: isso em toda secao da home virava
+ * ruido. Agora o titulo entra uma vez, com o mesmo fade curto do Surge,
+ * e o destaque e so cor (dourado sobre azul) ou o grifo (sobre claro).
  *
- * IMPORTANTE: o gatilho (whileInView) fica no elemento de fora, que nunca
- * se move. Se ele ficasse na linha animada, a linha comecaria deslocada
- * pra fora da area visivel e esperaria por si mesma pra sempre, e o texto
- * nunca apareceria. Foi exatamente esse bug que quebrou a ultima secao.
+ * O gatilho (whileInView) continua no elemento de fora, que nunca se
+ * move, pelo mesmo motivo de antes: um elemento deslocado pra fora da
+ * area visivel esperaria por si mesmo pra sempre.
  */
 export function TituloRevelado({
   linhas,
@@ -34,52 +36,28 @@ export function TituloRevelado({
 }) {
   return (
     <motion.div
-      initial="oculto"
-      whileInView="visivel"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
-      variants={{
-        visivel: { transition: { staggerChildren: 0.09, delayChildren: atraso } },
-      }}
+      transition={{ duration: 0.5, delay: atraso, ease: [0.22, 1, 0.36, 1] }}
     >
-      <Tag className={className}>
+      <Tag className={`isolate ${className}`}>
         {linhas.map((linha, i) => {
           const eDestaque = i === destaque;
           const dourado = eDestaque && fundo === "escuro";
           const grifado = eDestaque && fundo === "claro";
 
           return (
-            <span key={`${linha}-${i}`} className="block overflow-hidden pb-[0.12em]">
-              <motion.span
-                className={`relative inline-block ${eDestaque ? "italic" : ""} ${
-                  dourado ? "text-gold" : ""
-                }`}
-                variants={{
-                  oculto: { y: "110%" },
-                  visivel: {
-                    y: "0%",
-                    transition: { duration: 0.85, ease: [0.22, 1, 0.36, 1] },
-                  },
-                }}
-              >
+            <span key={`${linha}-${i}`} className="block pb-[0.08em]">
+              <span className={`relative inline-block ${dourado ? "text-gold" : ""}`}>
                 {linha}
                 {grifado && (
-                  <motion.span
+                  <span
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-[0.06em] -z-10 h-[0.22em] origin-left bg-gold"
-                    variants={{
-                      oculto: { scaleX: 0 },
-                      visivel: {
-                        scaleX: 1,
-                        transition: {
-                          duration: 0.7,
-                          delay: 0.35,
-                          ease: [0.22, 1, 0.36, 1],
-                        },
-                      },
-                    }}
+                    className="absolute inset-x-0 bottom-[0.06em] -z-10 h-[0.22em] bg-gold"
                   />
                 )}
-              </motion.span>
+              </span>
             </span>
           );
         })}
@@ -101,10 +79,10 @@ export function Surge({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.7, delay: atraso, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.5, delay: atraso, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>

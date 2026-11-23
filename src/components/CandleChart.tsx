@@ -57,7 +57,7 @@ export function CandleChart() {
           x2={W}
           y1={H * g}
           y2={H * g}
-          stroke="var(--rule)"
+          stroke="var(--rule-inv)"
           strokeDasharray="3 5"
         />
       ))}
@@ -68,7 +68,9 @@ export function CandleChart() {
         const high = last ? Math.max(c.h, close + 1) : c.h;
         const low = last ? Math.min(c.l, close - 1) : c.l;
         const up = close >= c.o;
-        const color = up ? "var(--color-alta)" : "var(--color-baixa)";
+        // O grafico so aparece sobre o painel azul do hero, nos dois temas. Os
+        // tokens alta/baixa do tema claro sao azul-marinho, que sumia nesse fundo.
+        const color = up ? "#7ab3e0" : "#ff6b81";
         const x = i * step + step / 2;
         const top = scale(Math.max(c.o, close));
         const height = Math.max(Math.abs(scale(c.o) - scale(close)), 2);

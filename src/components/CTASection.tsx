@@ -3,12 +3,11 @@
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { MagneticButton } from "./MagneticButton";
-import { TickerTape } from "./TickerTape";
 import { TituloRevelado, Surge } from "./TituloRevelado";
 
 export function CTASection() {
   return (
-    <section className="grain relative overflow-hidden bg-blue">
+    <section className="relative overflow-hidden bg-blue">
       <Image
         src="/images/cta-skyline.jpg"
         alt=""
@@ -17,13 +16,12 @@ export function CTASection() {
         className="object-cover opacity-40 grayscale"
       />
       <div className="absolute inset-0 bg-blue/85" aria-hidden="true" />
-      <TickerTape speed="slow" />
 
-      <div className="relative z-[2] mx-auto max-w-6xl px-6 py-24 md:py-32">
+      <div className="relative mx-auto max-w-6xl px-6 py-24 md:py-32">
         <div className="grid gap-10 md:grid-cols-[1.3fr_0.7fr] md:items-end">
           <div>
             <TituloRevelado
-              linhas={["Sua primeira ação", "começa aqui."]}
+              linhas={["Sua primeira ação", "começa aqui"]}
               destaque={1}
               className="font-display text-[10vw] leading-[0.98] text-onblue sm:text-[6vw] md:text-[4.4rem]"
             />
@@ -33,14 +31,15 @@ export function CTASection() {
                 Começar agora, é de graça
                 <ArrowRight
                   size={16}
-                  className="transition-transform group-hover:translate-x-1"
+                  strokeWidth={1.5}
+                  className="transition-transform duration-150 ease-out group-hover:translate-x-0.5"
                 />
               </MagneticButton>
             </Surge>
           </div>
 
           <Surge atraso={0.3}>
-            <p className="border-l-[3px] border-gold pl-5 text-sm leading-relaxed text-onblue-muted">
+            <p className="border-l-2 border-[var(--rule-inv)] pl-5 text-sm leading-relaxed text-onblue-muted">
               Nenhuma promessa de ficar rico rápido. Só um lugar seguro pra
               você entender o mercado no seu ritmo, sem pressa e sem risco.
             </p>

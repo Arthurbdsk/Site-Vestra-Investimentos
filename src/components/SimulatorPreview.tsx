@@ -78,11 +78,11 @@ export function SimulatorPreview() {
   }, [visivel]);
 
   return (
-    <section ref={ref} className="grain relative bg-blue py-24 md:py-32">
+    <section ref={ref} className="relative bg-blue py-24 md:py-32">
 
-      <div className="relative z-[2] mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-6xl px-6">
         <div className="mb-12 flex items-center gap-4">
-          <span className="bg-coral px-2 py-1 font-mono text-[11px] font-semibold text-onblue">
+          <span className="font-mono text-xs tabular text-onblue-muted">
             03
           </span>
           <span className="h-px flex-1 bg-[var(--rule-inv)]" />
@@ -90,7 +90,7 @@ export function SimulatorPreview() {
 
         <div className="grid gap-12 md:grid-cols-[0.8fr_1.2fr] md:items-start">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-70px" }}
             transition={{ duration: 0.6 }}
@@ -99,7 +99,7 @@ export function SimulatorPreview() {
             <h2 className="font-display text-3xl leading-tight text-onblue sm:text-[2.6rem]">
               Cada número aqui vem
               <br />
-              <span className="italic text-gold">com legenda.</span>
+              <span className="text-gold">com legenda</span>
             </h2>
             <p className="mt-5 max-w-sm leading-relaxed text-onblue-muted">
               Passe o mouse em qualquer papel da carteira e a explicação
@@ -109,7 +109,7 @@ export function SimulatorPreview() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 26 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-70px" }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -117,7 +117,7 @@ export function SimulatorPreview() {
           >
             <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule-inv)] p-6">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
+                <p className="text-xs text-onblue-muted">
                   Patrimônio
                 </p>
                 <p className="mt-1.5 font-mono text-4xl tabular text-gold">
@@ -125,8 +125,8 @@ export function SimulatorPreview() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
-                  No dia
+                <p className="text-xs text-onblue-muted">
+                  Desde o início
                 </p>
                 <p className="mt-1.5 font-mono text-xl tabular text-emerald-400">
                   <CountUp value={3.24} prefix="+" suffix="%" decimals={2} />
@@ -138,8 +138,8 @@ export function SimulatorPreview() {
               {papeis.map((p, i) => (
                 <motion.li
                   key={p.ticker}
-                  initial={{ opacity: 0, x: -12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: 0.15 + i * 0.1 }}
                   className={`group border-b border-[var(--rule-inv)] last:border-b-0 ${
@@ -188,10 +188,10 @@ export function SimulatorPreview() {
                     </div>
                   </div>
 
-                  <div className="grid grid-rows-[0fr] transition-all duration-300 group-hover:grid-rows-[1fr]">
+                  <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out group-hover:grid-rows-[1fr]">
                     <div className="overflow-hidden">
                       <p className="flex items-start gap-2 px-6 pb-4 text-xs leading-relaxed text-onblue-muted">
-                        <ArrowUpRight size={13} className="mt-0.5 shrink-0 text-gold" />
+                        <ArrowUpRight size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-gold" />
                         {p.explica}
                       </p>
                     </div>

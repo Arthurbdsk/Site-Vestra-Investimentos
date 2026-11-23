@@ -16,23 +16,23 @@ import { motion } from "framer-motion";
  */
 export function Depoimento() {
   return (
-    <section className="grain relative bg-paper py-24 md:py-32">
+    <section className="relative bg-paper py-24 md:py-32">
       <div className="mx-auto max-w-5xl px-6">
         <div className="mb-12 flex items-center gap-4">
-          <span className="bg-sky px-2 py-1 font-mono text-[11px] font-semibold text-onblue">
+          <span className="font-mono text-xs tabular text-ink-muted">
             05
           </span>
           <span className="h-px flex-1 bg-[var(--rule)]" />
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7 }}
           className="max-w-3xl"
         >
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+          <p className="text-sm text-ink-muted">
             O tamanho do problema
           </p>
 
@@ -40,7 +40,7 @@ export function Depoimento() {
             36%
           </p>
 
-          <p className="mt-4 border-l-[3px] border-sky pl-5 text-xl leading-relaxed text-ink sm:text-2xl">
+          <p className="mt-4 border-l-2 border-[var(--rule)] pl-5 text-xl leading-relaxed text-ink sm:text-2xl">
             É quanto da população brasileira tem algum investimento
             financeiro. A maioria não investe, e quase nunca é por falta de
             vontade.
@@ -53,7 +53,7 @@ export function Depoimento() {
               href="https://www.anbima.com.br/pt_br/especial/raio-x-do-investidor-brasileiro.htm"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 transition-colors hover:text-blue"
+              className="underline underline-offset-4 transition-colors hover:text-ink"
             >
               Ver a pesquisa
             </a>

@@ -47,20 +47,20 @@ export function HowItWorks() {
     <section
       ref={ref}
       id="como-funciona"
-      className="grain relative bg-paper py-24 md:py-32"
+      className="relative bg-paper py-24 md:py-32"
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 flex items-center gap-4">
-          <span className="bg-violet px-2 py-1 font-mono text-[11px] font-semibold text-onblue">
+          <span className="font-mono text-xs tabular text-ink-muted">
             04
           </span>
           <span className="h-px flex-1 bg-[var(--rule)]" />
         </div>
 
         <h2 className="max-w-2xl font-display text-3xl leading-tight text-ink sm:text-[2.6rem]">
-          Do zero até sua primeira ação.
+          Do zero até sua primeira ação
         </h2>
 
         <div className="mt-14 grid gap-10 md:grid-cols-[1fr_1fr] md:gap-16">
@@ -72,25 +72,25 @@ export function HowItWorks() {
                   <button
                     onClick={() => setAtivo(i)}
                     className="group relative w-full border-l-[3px] py-5 pl-6 text-left transition-colors"
-                    style={{ borderColor: on ? "var(--color-violet-texto)" : "var(--rule)" }}
+                    style={{ borderColor: on ? "var(--color-azul-texto)" : "var(--rule)" }}
                   >
                     {on && (
                       <motion.span
                         layoutId="passo-fundo"
                         className="absolute inset-0 -z-10 bg-paper-alt"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       />
                     )}
                     <div className="flex items-baseline gap-3">
                       <span
                         className={`font-mono text-xs tabular transition-colors ${
-                          on ? "text-violet" : "text-ink-muted"
+                          on ? "text-ink" : "text-ink-muted"
                         }`}
                       >
                         0{i + 1}
                       </span>
                       <span
-                        className={`text-lg font-semibold transition-colors ${
+                        className={`text-lg font-medium transition-colors ${
                           on ? "text-ink" : "text-ink-muted group-hover:text-ink"
                         }`}
                       >
@@ -118,7 +118,7 @@ export function HowItWorks() {
                         initial={{ scaleY: 0 }}
                         animate={{ scaleY: 1 }}
                         transition={{ duration: 4.2, ease: "linear" }}
-                        className="absolute -left-[3px] top-0 h-full w-[3px] origin-top bg-violet"
+                        className="absolute -left-[3px] top-0 h-full w-[3px] origin-top bg-[var(--color-azul-texto)]"
                       />
                     )}
                   </button>
@@ -128,14 +128,14 @@ export function HowItWorks() {
           </ul>
 
           {/* Painel azul de destaque */}
-          <div className="relative min-h-[320px] bg-blue p-8 shadow-[0_18px_50px_-24px_rgba(15,45,68,0.5)]">
+          <div className="relative min-h-[320px] bg-blue p-8 border border-[var(--rule)] shadow-[0_16px_40px_-24px_rgba(0,0,0,0.35)]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={ativo}
-                initial={{ opacity: 0, y: 18 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                 className="flex h-full flex-col justify-center"
               >
                 <PassoVisual tipo={passos[ativo].visual} />
@@ -155,8 +155,8 @@ function PassoVisual({ tipo }: { tipo: string }) {
         {["seu@email.com", "••••••••••"].map((v, i) => (
           <motion.div
             key={v}
-            initial={{ opacity: 0, x: -14 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 0.15 + i * 0.12 }}
             className="border border-[var(--rule-inv)] px-4 py-3 text-onblue-muted"
           >
@@ -164,8 +164,8 @@ function PassoVisual({ tipo }: { tipo: string }) {
           </motion.div>
         ))}
         <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ delay: 0.42 }}
           className="bg-gold px-4 py-3 text-center font-semibold text-blue-deep"
         >
@@ -178,19 +178,19 @@ function PassoVisual({ tipo }: { tipo: string }) {
   if (tipo === "saldo") {
     return (
       <div className="text-center">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
+        <p className="text-xs text-onblue-muted">
           Saldo liberado
         </p>
         <motion.p
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 16, delay: 0.15 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
           className="mt-3 font-mono text-5xl tabular text-gold"
         >
           R$ 100.000
         </motion.p>
         <p className="mt-3 font-mono text-xs text-onblue-muted">
-          zero risco • zero dinheiro real
+          sem risco e sem dinheiro real
         </p>
       </div>
     );
@@ -211,9 +211,9 @@ function PassoVisual({ tipo }: { tipo: string }) {
           {[10, 50, 100].map((q, i) => (
             <motion.span
               key={q}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.08 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
               className={`border px-4 py-2 font-mono text-xs ${
                 q === 100
                   ? "border-gold bg-gold/15 text-gold"
@@ -232,12 +232,12 @@ function PassoVisual({ tipo }: { tipo: string }) {
     <div className="space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-onblue-muted">
+          <p className="text-xs text-onblue-muted">
             Sua carteira
           </p>
-          <p className="mt-1 font-mono text-3xl tabular text-gold">R$ 103.240</p>
+          <p className="mt-1 font-mono text-3xl tabular text-gold">R$ 103.240,00</p>
         </div>
-        <p className="font-mono text-sm text-emerald-400">▲ 3,24%</p>
+        <p className="font-mono text-sm text-emerald-400">▲ 3,24% desde o início</p>
       </div>
       <svg viewBox="0 0 240 70" className="w-full">
         <motion.path
